@@ -367,7 +367,7 @@ document.addEventListener('click',e=>{
 async function initApp(user){
   currentUser=user;
   await loadAll();
-  currentEmp=employees.find(e=>e.email===user.email)||{id:null,full_name:user.email,email:user.email,role:'employee',department_id:null,position_percent:100};
+  currentEmp=employees.find(e=>e.email.toLowerCase()===user.email.toLowerCase())||{id:null,full_name:user.email,email:user.email,role:'employee',department_id:null,position_percent:100};
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app').style.display='block';
   const role=currentEmp.role;
