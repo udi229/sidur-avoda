@@ -522,8 +522,9 @@ function toggleFreelanceHighlight(){
 function cancelEdit(){ editMode=false; openDropdown=null; renderSchedule(); }
 async function sendEdit(deptId){
   editMode=false; openDropdown=null;
-  // mark as submitted again so manager knows there's an update
-  if(schedules[deptId]){
+  const role=currentEmp?.role||'employee';
+  if(role==='team_lead'&&schedules[deptId]){
+    // team_lead: re-submit for manager approval
     await sb.from('schedules').update({team_submitted:true}).eq('id',schedules[deptId].id);
     schedules[deptId].team_submitted=true;
   }
@@ -689,9 +690,11 @@ async function saveNote(dId,shiftId,dayIdx,note){
 
 // ── RENDER SCHEDULE ──
 function canEdit(dId){
-  if(isMgr) return true;
+  // manager (PIN): requires editMode
+  if(isMgr) return editMode;
   const role=currentEmp?.role||'employee';
-  if(role==='manager') return true;
+  if(role==='manager') return editMode;
+  // team_lead: own dept, current/future weeks
   if(role==='team_lead'&&currentEmp.department_id===dId&&weekOffset>=0){
     if(!isApproved(dId)) return true;
     if(editMode) return true;
@@ -735,7 +738,7 @@ function renderSchedule(){
     <div class="sched-hdr" style="background:${dept.color}">
       <span class="sched-hdr-title">${dept.name} — ${document.getElementById('wk-lbl').textContent}</span>
       ${ed?'<span class="edit-badge">✏️ עריכה פעילה</span>':''}
-      ${(currentEmp?.role==='team_lead'&&currentEmp?.department_id===dept.id&&weekOffset>=0&&isApproved(dept.id)&&!isMgr) ?
+      ${((currentEmp?.role==='team_lead'&&currentEmp?.department_id===dept.id&&weekOffset>=0&&isApproved(dept.id)&&!isMgr)||(isMgr||currentEmp?.role==='manager')) ?
         (editMode ?
           `<button onclick="sendEdit('${dept.id}')" style="background:#10b981;color:white;border:none;border-radius:8px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✓ שלח</button>
            <button onclick="cancelEdit()" style="background:rgba(255,255,255,0.2);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;margin-right:4px">ביטול</button>` :
@@ -789,13 +792,12 @@ function renderSchedule(){
         if(isSearchMatch){
           tagBg='#fee2e2'; tagColor='#dc2626'; tagBorder='#fca5a5';
         } else if(isCurrentUser&&isApproved(dept.id)){
-          // own name in red when viewing approved schedule
           tagBg='#fee2e2'; tagColor='#dc2626'; tagBorder='#fca5a5';
         } else if(showFreelancers&&isFreelance){
+          // yellow highlight only when freelancer toggle is ON
           tagBg='#fef9c3'; tagColor='#854d0e'; tagBorder='#fcd34d';
-        } else if(isFreelance){
-          tagBg='#dcfce7'; tagColor='#15803d'; tagBorder='#86efac';
         } else {
+          // all names same color by default (blue) - no distinction freelance/regular
           tagBg='#eff6ff'; tagColor='#1e40af'; tagBorder='#bfdbfe';
         }
         html+=`<span class="emp-tag" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder}">
