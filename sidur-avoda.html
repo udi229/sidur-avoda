@@ -98,8 +98,8 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
 .emp-tag.freelance { background:#f0fdf4; color:#15803d; }
 .emp-tag .remove-tag { cursor:pointer; font-size:14px; line-height:1; opacity:0.6; }
 .emp-tag .remove-tag:hover { opacity:1; }
-.add-emp-btn { background:#f1f5f9; border:1px dashed #cbd5e1; border-radius:6px; padding:3px 8px; font-size:12px; color:#64748b; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:3px; }
-.add-emp-btn:hover { background:#e2e8f0; }
+.add-emp-btn { background:#e2e8f0; border:none; border-radius:50%; width:20px; height:20px; font-size:14px; color:#64748b; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; justify-content:center; line-height:1; padding:0; }
+.add-emp-btn:hover { background:#cbd5e1; color:#0f172a; }
 
 /* DROPDOWN */
 .emp-dropdown { position:absolute; top:100%; right:0; z-index:200; background:white; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.15); min-width:200px; max-height:260px; overflow-y:auto; border:1px solid #e2e8f0; }
@@ -375,6 +375,8 @@ async function initApp(user){
   document.getElementById('hdr-rl').textContent=ROLE_HEB[role]||'עובד';
   document.getElementById('nav-stats').style.display=(role==='manager'||role==='team_lead')?'inline-block':'none';
   document.getElementById('nav-settings').style.display='none'; // settings only via manager PIN
+  // team_lead: default to their own dept
+  if(role==='team_lead'&&currentEmp.department_id) activeDeptId=currentEmp.department_id;
   activeDeptId=currentEmp.department_id||departments[0]?.id||null;
   await loadWeekData();
   renderDeptTabs();
@@ -447,8 +449,11 @@ function renderDeptTabs(){
   const fa=fullyApproved();
   let vis=[];
   if(isMgr||role==='manager') vis=departments;
-  else if(role==='team_lead') vis=departments;
-  else vis=departments.filter(d=>d.id===currentEmp?.department_id||(fa&&isApproved(d.id)));
+  else if(role==='team_lead'){
+    // team_lead sees all approved depts + own dept always
+    vis=departments.filter(d=>d.id===currentEmp?.department_id||isApproved(d.id));
+  }
+  else vis=departments.filter(d=>d.id===currentEmp?.department_id||isApproved(d.id));
   document.getElementById('dept-tabs').innerHTML=vis.map(d=>`
     <button class="dept-tab${activeDeptId===d.id?' active':''}"
       style="border-color:${d.color};${activeDeptId===d.id?`background:${d.color};color:white`:`color:${d.color}`}"
@@ -581,7 +586,14 @@ function renderSchedule(){
   if(activeView!=='schedule') return;
   const role=currentEmp?.role||'employee';
   const fa=fullyApproved();
-  document.getElementById('lock-notice').style.display=(role==='employee'&&!fa)?'block':'none';
+  const isEmployee=role==='employee'&&!isMgr;
+  // employee sees nothing until approved
+  if(isEmployee&&!isApproved(activeDeptId)){
+    document.getElementById('lock-notice').style.display='block';
+    document.getElementById('sched-wrap').innerHTML='<div class="loading">🔒 הסידור של מחלקה זו טרם אושר</div>';
+    return;
+  }
+  document.getElementById('lock-notice').style.display='none';
   const wrap=document.getElementById('sched-wrap');
   if(!departments.length){wrap.innerHTML='<div class="loading">אין מחלקות — הוסף מחלקות בהגדרות</div>';return;}
   if(!activeDeptId){wrap.innerHTML='<div class="loading">בחר מחלקה</div>';return;}
@@ -639,7 +651,7 @@ function renderSchedule(){
         }
       }
       if(ed){
-        html+=`<button class="add-emp-btn" onclick="event.stopPropagation();toggleDropdown('${dept.id}','${shift.id}',${d})">+ הוסף</button>`;
+        html+=`<button class="add-emp-btn" title="הוסף עובד" onclick="event.stopPropagation();toggleDropdown('${dept.id}','${shift.id}',${d})">+</button>`;
         if(isOpen){
           const deptEmps=employees.filter(e=>e.department_id===dept.id&&!names.includes(e.full_name));
           const deptFree=freelancers.filter(f=>f.department_id===dept.id&&!names.includes(f.name));
