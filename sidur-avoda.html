@@ -96,6 +96,9 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
 
 /* CELL */
 .cell-inner { min-height:52px; padding:4px 6px; display:flex; flex-direction:column; gap:3px; }
+.cell-note { width:100%; border:none; border-top:1px dashed #e2e8f0; background:transparent; font-size:11px; color:#64748b; font-family:inherit; padding:2px 2px; outline:none; margin-top:2px; }
+.cell-note:focus { background:#fffbeb; border-radius:3px; }
+.cell-note-view { font-size:11px; color:#64748b; font-style:italic; border-top:1px dashed #e2e8f0; padding-top:2px; margin-top:2px; }
 .cell-tags { display:flex; flex-wrap:wrap; gap:3px; min-height:28px; }
 .emp-tag { display:inline-flex; align-items:center; gap:4px; background:#eff6ff; color:#1e40af; border-radius:20px; padding:3px 10px; font-size:12px; font-weight:600; }
 .emp-tag.freelance { background:#f0fdf4; color:#15803d; }
@@ -419,7 +422,13 @@ async function loadWeekData(){
   cellData={};
   if(ids.length){
     const {data:cells}=await sb.from('schedule_cells').select('*').in('schedule_id',ids);
-    (cells||[]).forEach(c=>{cellData[`${c.schedule_id}_${c.shift_type}_${c.day_index}`]=c;});
+    (cells||[]).forEach(c=>{
+      if(c.shift_type.startsWith('note_')){
+        cellData[`note_${c.schedule_id}_${c.shift_type.replace('note_','')}_${c.day_index}`]=c;
+      } else {
+        cellData[`${c.schedule_id}_${c.shift_type}_${c.day_index}`]=c;
+      }
+    });
   }
   updateWeekUI();
 }
@@ -589,6 +598,33 @@ function renderDropdownItems(dId,shiftId,dayIdx,q=''){
   container.innerHTML=html;
 }
 
+// count how many shifts an employee has this week across all cells
+function countEmpShifts(name, deptId){
+  const sched=schedules[deptId];
+  if(!sched) return 0;
+  let count=0;
+  Object.entries(cellData).forEach(([key,cell])=>{
+    if(cell.schedule_id===sched.id&&cell.content&&!key.startsWith('note_')){
+      const names=cell.content.split('|');
+      if(names.includes(name)) count++;
+    }
+  });
+  return count;
+}
+
+async function saveNote(dId,shiftId,dayIdx,note){
+  const sched=await ensureSched(dId);
+  const key=`note_${sched.id}_${shiftId}_${dayIdx}`;
+  const existing=cellData[key];
+  if(existing){
+    const {data}=await sb.from('schedule_cells').update({content:note}).eq('id',existing.id).select().single();
+    cellData[key]=data;
+  } else if(note){
+    const {data}=await sb.from('schedule_cells').insert({schedule_id:sched.id,shift_type:`note_${shiftId}`,day_index:dayIdx,content:note}).select().single();
+    cellData[key]=data;
+  }
+}
+
 // ── RENDER SCHEDULE ──
 function canEdit(dId){
   if(isMgr) return true;
@@ -601,22 +637,12 @@ function canEdit(dId){
 
 // per-cell custom shift time (manager only)
 let editingShiftTime=null;
-async function saveCustomTime(dId,shiftId,dayIdx,time){
-  const sched=await ensureSched(dId);
-  const key=sched.id+'_'+shiftId+'_'+dayIdx;
-  const existing=cellData[key];
-  if(existing){
-    const {data}=await sb.from('schedule_cells').update({custom_time:time}).eq('id',existing.id).select().single();
-    cellData[key]=data;
-  } else {
-    const {data}=await sb.from('schedule_cells').insert({schedule_id:sched.id,shift_type:shiftId,day_index:dayIdx,content:'',custom_time:time}).select().single();
-    cellData[key]=data;
-  }
-  editingShiftTime=null; renderSchedule();
-}
-function getCellTime(schedId,shiftId,dayIdx,defaultTime){
-  const key=schedId+'_'+shiftId+'_'+dayIdx;
-  return cellData[key]?.custom_time||defaultTime;
+function saveShiftTime(shiftId, time){
+  const shift=shiftTypes.find(s=>s.id===shiftId);
+  if(shift) shift.time=time;
+  editingShiftTime=null;
+  renderSchedule();
+  renderSettings();
 }
 
 function renderSchedule(){
@@ -653,62 +679,44 @@ function renderSchedule(){
     </tr></thead><tbody>`;
 
   for(const shift of shiftTypes){
+    const isEditShiftTime=isMgr&&editingShiftTime&&editingShiftTime.shiftId===shift.id;
     html+=`<tr><td class="shift-label">
       <span class="shift-dot" style="background:${shift.color}"></span>${shift.name}
-      ${shift.time?`<br><span style="font-size:10px;color:#94a3b8;font-weight:400">${shift.time}</span>`:''}
+      ${isMgr ? (isEditShiftTime ?
+        `<br><div style="display:flex;gap:3px;margin-top:3px;align-items:center">
+          <input id="stime-${shift.id}" value="${shift.time||''}" placeholder="שעות" style="width:80px;padding:2px 5px;border:1px solid #3b82f6;border-radius:4px;font-size:10px;font-family:inherit" />
+          <button onclick="event.stopPropagation();saveShiftTime('${shift.id}',document.getElementById('stime-${shift.id}').value)" style="background:#0f172a;color:white;border:none;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer">✓</button>
+          <button onclick="event.stopPropagation();editingShiftTime=null;renderSchedule()" style="background:#f1f5f9;border:none;border-radius:4px;padding:2px 5px;font-size:10px;cursor:pointer">✕</button>
+        </div>` :
+        `${shift.time?`<br><span style="font-size:10px;color:#94a3b8;font-weight:400;cursor:pointer" onclick="event.stopPropagation();editingShiftTime={shiftId:'${shift.id}'};renderSchedule()" title="ערוך שעות">${shift.time} ✎</span>`:`<br><span style="font-size:10px;color:#bfdbfe;cursor:pointer" onclick="event.stopPropagation();editingShiftTime={shiftId:'${shift.id}'};renderSchedule()">+ שעות</span>`}`)
+        : (shift.time?`<br><span style="font-size:10px;color:#94a3b8;font-weight:400">${shift.time}</span>`:'')}
     </td>`;
     for(let d=0;d<7;d++){
       const names=sched?getCellNames(sched.id,shift.id,d):[];
       const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===shift.id&&openDropdown.dayIdx===d;
       html+=`<td><div class="cell-inner cell-rel">
         <div class="cell-tags">`;
+      const noteKey2=sched?`note_${sched.id}_${shift.id}_${d}`:'';
+      const noteVal2=noteKey2&&cellData[noteKey2]?.content||'';
       names.forEach(name=>{
         const isFreelance=freelancers.some(f=>f.name===name&&f.department_id===dept.id);
-        const escapedName=name.replace(/'/g,"\\'");
+        const escapedName=name.replace(/\'/g,"\\'");
+        const emp2=employees.find(e=>e.full_name===name);
+        const cnt2=countEmpShifts(name,dept.id);
+        const req2=emp2?Math.round((emp2.position_percent/100)*5):0;
+        const sc2=emp2?(cnt2<req2?'#ef4444':cnt2>req2?'#3b82f6':'#10b981'):'#94a3b8';
         html+=`<span class="emp-tag${isFreelance?' freelance':''}">
-          ${name}
+          ${name}${emp2?`<span style="font-size:9px;font-weight:800;color:${sc2};margin-right:2px"> ${cnt2}</span>`:''}
           ${ed?`<span class="remove-tag" onclick="removeName('${dept.id}','${shift.id}',${d},'${escapedName}')">×</span>`:''}
         </span>`;
       });
       html+=`</div>`;
-      // custom time for manager
-      const cellTime=sched?getCellTime(sched.id,shift.id,d,shift.time):shift.time;
-      const isEditTime=isMgr&&editingShiftTime&&editingShiftTime.dId===dept.id&&editingShiftTime.shiftId===shift.id&&editingShiftTime.dayIdx===d;
-      if(isMgr){
-        if(isEditTime){
-          html+=`<div style="margin-top:4px;display:flex;gap:4px;align-items:center">
-            <input id="ctime-inp" value="${cellTime||''}" placeholder="שעות" style="width:90px;padding:3px 6px;border:1px solid #3b82f6;border-radius:5px;font-size:11px;font-family:inherit" />
-            <button onclick="event.stopPropagation();saveCustomTime('${dept.id}','${shift.id}',${d},document.getElementById('ctime-inp').value)" style="background:#0f172a;color:white;border:none;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer">✓</button>
-            <button onclick="event.stopPropagation();editingShiftTime=null;renderSchedule()" style="background:#f1f5f9;border:none;border-radius:5px;padding:3px 6px;font-size:11px;cursor:pointer">✕</button>
-          </div>`;
-        } else if(cellTime){
-          html+=`<div style="font-size:10px;color:#64748b;margin-top:2px;cursor:pointer" onclick="event.stopPropagation();editingShiftTime={dId:'${dept.id}',shiftId:'${shift.id}',dayIdx:${d}};renderSchedule()" title="לחץ לעריכת שעה">🕐 ${cellTime}</div>`;
-        } else {
-          html+=`<div style="font-size:10px;color:#94a3b8;margin-top:2px;cursor:pointer" onclick="event.stopPropagation();editingShiftTime={dId:'${dept.id}',shiftId:'${shift.id}',dayIdx:${d}};renderSchedule()" title="הוסף שעה ספציפית">+ שעה</div>`;
-        }
-      }
       if(ed){
-        html+=`<button class="add-emp-btn" title="הוסף עובד" onclick="event.stopPropagation();toggleDropdown('${dept.id}','${shift.id}',${d})">+</button>`;
-        if(isOpen){
-          const deptEmps=employees.filter(e=>e.department_id===dept.id&&!names.includes(e.full_name));
-          const deptFree=freelancers.filter(f=>f.department_id===dept.id&&!names.includes(f.name));
-          let ddHtml='';
-          if(deptEmps.length){
-            ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">עובדים קבועים</div>`;
-            deptEmps.forEach(e=>{ddHtml+=`<div class="emp-dd-item" onclick="addName('${dept.id}','${shift.id}',${d},'${e.full_name.replace(/'/g,"\\'")}')">👤 ${e.full_name}</div>`;});
-            ddHtml+=`</div>`;
-          }
-          if(deptFree.length){
-            ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">פרילנסרים</div>`;
-            deptFree.forEach(f=>{ddHtml+=`<div class="emp-dd-item freelance-item" onclick="addName('${dept.id}','${shift.id}',${d},'${f.name.replace(/'/g,"\\'")}')">🔄 ${f.name}</div>`;});
-            ddHtml+=`</div>`;
-          }
-          if(!deptEmps.length&&!deptFree.length) ddHtml='<div class="emp-dd-empty">אין עובדים זמינים</div>';
-          html+=`<div class="emp-dropdown" onclick="event.stopPropagation()">
-            <div class="emp-dd-search"><input id="dd-search" placeholder="חפש שם..." oninput="filterDropdown('${dept.id}','${shift.id}',${d})" /></div>
-            <div id="dd-items">${ddHtml}</div>
-          </div>`;
-        }
+        html+=`<input class="cell-note" placeholder="הערה..." value="${noteVal2.replace(/"/g,'&quot;')}"
+          onblur="saveNote('${dept.id}','${shift.id}',${d},this.value)"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" />`;
+      } else if(noteVal2){
+        html+=`<div class="cell-note-view">${noteVal2}</div>`;
       }
       html+=`</div></td>`;
     }
