@@ -773,7 +773,7 @@ function renderCombinedView(){
   const wrap=document.getElementById('sched-wrap');
   document.getElementById('lock-notice').style.display='none';
 
-  // get active shifts - union of all depts shifts
+  // union of all active shifts across depts
   const allShiftIds=new Set();
   depts.forEach(dept=>{
     const ds=deptShifts[dept.id];
@@ -789,42 +789,64 @@ function renderCombinedView(){
     </div>
     <div class="tbl-wrap"><table>
     <thead><tr>
-      <th class="shift-col">משמרת</th>
-      ${DAYS_DISPLAY.map((d,i)=>`<th style="min-width:${depts.length*80}px">${d}<br><span style="font-size:10px;font-weight:400;color:#94a3b8">${dates[i]}</span></th>`).join('')}
+      <th class="shift-col" style="min-width:140px">משמרת / תפקיד</th>
+      ${DAYS_DISPLAY.map((d,i)=>`<th>${d}<br><span style="font-size:10px;font-weight:400;color:#94a3b8">${dates[i]}</span></th>`).join('')}
     </tr></thead><tbody>`;
 
+  // each shift × each dept = one row
   for(const shift of activeShifts){
-    html+=`<tr><td class="shift-label">
-      <span class="shift-dot" style="background:${shift.color}"></span>${shift.name}
-      ${shift.time?`<br><span style="font-size:10px;color:#94a3b8">${shift.time}</span>`:''}
-    </td>`;
-    for(let d=0;d<7;d++){
-      html+=`<td><div class="cell-inner" style="flex-direction:row;gap:6px;flex-wrap:wrap;justify-content:center;min-height:44px">`;
-      depts.forEach(dept=>{
+    // one sub-row per dept, stacked vertically under the shift
+    const deptsForShift=depts.filter(dept=>{
+      const ds=deptShifts[dept.id];
+      return !ds||ds.length===0||ds.includes(shift.id);
+    });
+    deptsForShift.forEach((dept,di)=>{
+      const isFirst=di===0;
+      const isLast=di===deptsForShift.length-1;
+      html+=`<tr>`;
+      // shift name cell: only on first row, rowspan all dept rows
+      if(isFirst){
+        html+=`<td class="shift-label" rowspan="${deptsForShift.length}"
+          style="vertical-align:middle;border-left:3px solid ${shift.color}">
+          <span class="shift-dot" style="background:${shift.color}"></span><strong>${shift.name}</strong>
+          ${shift.time?`<br><span style="font-size:10px;color:#94a3b8">${shift.time}</span>`:''}
+        </td>`;
+      }
+      // dept name cell
+      html+=`<td style="padding:6px 10px;font-size:11px;font-weight:700;color:${dept.color};
+        background:${isFirst?'#fafafa':'white'};white-space:nowrap;min-width:70px;
+        border-bottom:${isLast?'2px solid #e2e8f0':'1px dashed #f1f5f9'};
+        vertical-align:middle">${dept.name}</td>`;
+      // day cells
+      for(let d=0;d<7;d++){
         const sched=schedules[dept.id];
         const names=sched?getCellNames(sched.id,shift.id,d):[];
         const noteKey=sched?`note_${sched.id}_${shift.id}_${d}`:'';
         const noteVal=noteKey&&cellData[noteKey]?.content||'';
-        html+=`<div style="flex:1;min-width:60px;border-right:2px solid ${dept.color}22;padding:2px 6px;text-align:center">
-          <div style="font-size:9px;font-weight:700;color:${dept.color};margin-bottom:2px">${dept.name}</div>`;
+        html+=`<td style="border-bottom:${isLast?'2px solid #e2e8f0':'1px dashed #f1f5f9'};
+          background:${isFirst?'#fafafa':'white'};text-align:center;padding:5px 4px">
+          <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center">`;
         if(names.length){
           names.forEach(name=>{
             const isMe=currentEmp&&currentEmp.full_name===name&&!isMgr;
             const isSearch=searchQuery&&name.toLowerCase().includes(searchQuery.toLowerCase());
             const col=isMe||isSearch?'#dc2626':'#1e40af';
             const bg=isMe||isSearch?'#fee2e2':'#eff6ff';
-            html+=`<div style="font-size:11px;font-weight:600;color:${col};background:${bg};border-radius:10px;padding:1px 6px;margin-bottom:2px;display:inline-block">${name}</div> `;
+            html+=`<span style="font-size:11px;font-weight:600;color:${col};background:${bg};
+              border-radius:10px;padding:2px 8px">${name}</span>`;
           });
         } else {
-          html+=`<div style="font-size:11px;color:#e2e8f0">—</div>`;
+          html+=`<span style="font-size:12px;color:#d1d5db">—</span>`;
         }
-        if(noteVal) html+=`<div style="font-size:10px;color:#1e40af;background:#eff6ff;border-radius:3px;padding:1px 4px;margin-top:2px">${noteVal}</div>`;
         html+=`</div>`;
-      });
-      html+=`</div></td>`;
-    }
-    html+=`</tr>`;
+        if(noteVal) html+=`<div style="font-size:10px;color:#1e40af;background:#eff6ff;
+          border-radius:3px;padding:1px 4px;margin-top:2px">${noteVal}</div>`;
+        html+=`</td>`;
+      }
+      html+=`</tr>`;
+    });
   }
+
   html+=`</tbody></table></div></div>`;
   wrap.innerHTML=html;
 }
