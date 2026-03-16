@@ -698,6 +698,7 @@ function canEdit(dId){
   if(role==='team_lead'&&currentEmp.department_id===dId&&weekOffset>=0){
     if(!isApproved(dId)) return true;
     if(editMode) return true;
+    if(schedules[dId]?.returned_to_edit) return true;
   }
   return false;
 }
@@ -848,7 +849,63 @@ function renderSchedule(){
     if(inp) inp.focus();
   }
 
-  // manager: show dept employee stats below schedule
+  // ── NOTES PANEL ──
+  const noteDiv=document.createElement('div');
+  noteDiv.style.cssText='background:white;border-radius:14px;padding:16px 20px;box-shadow:0 1px 8px rgba(0,0,0,0.07);margin-top:14px';
+  const deptSchedNote=schedules[activeDeptId];
+  const role3=currentEmp?.role||'employee';
+  const isTeamLead3=role3==='team_lead'&&currentEmp?.department_id===activeDeptId;
+  const isMgrView=isMgr||role3==='manager';
+  let noteHtml='<div style="display:flex;gap:16px;flex-wrap:wrap">';
+
+  // team note
+  if(isTeamLead3||isMgrView){
+    const tNote=deptSchedNote?.team_note||'';
+    noteHtml+=`<div style="flex:1;min-width:200px">
+      <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:6px">📝 הערת ראש צוות</div>
+      ${isTeamLead3?
+        `<textarea id="team-note-ta" rows="3" placeholder="הערה לסידור..." style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:13px;outline:none;resize:vertical">${tNote}</textarea>
+         <button onclick="saveTeamNote('${activeDeptId}')" style="margin-top:6px;background:#0f172a;color:white;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">שמור</button>` :
+        `<div style="background:#f8fafc;border-radius:8px;padding:10px;font-size:13px;color:${tNote?'#0f172a':'#94a3b8'};min-height:40px">${tNote||'אין הערה'}</div>`
+      }
+    </div>`;
+  }
+
+  // manager note (visible to team_lead too after submission)
+  if(isMgrView||(isTeamLead3&&deptSchedNote?.manager_note)){
+    const mNote=deptSchedNote?.manager_note||'';
+    noteHtml+=`<div style="flex:1;min-width:200px">
+      <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:6px">💬 הערת מנהל</div>
+      ${isMgrView?
+        `<textarea id="mgr-note-ta" rows="3" placeholder="הערה לראש הצוות..." style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:13px;outline:none;resize:vertical">${mNote}</textarea>
+         <button onclick="saveMgrNote('${activeDeptId}')" style="margin-top:6px;background:#0f172a;color:white;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">שמור</button>` :
+        `<div style="background:#eff6ff;border-radius:8px;padding:10px;font-size:13px;color:${mNote?'#1e40af':'#94a3b8'};min-height:40px">${mNote||'אין הערה'}</div>`
+      }
+    </div>`;
+  }
+
+  // manager: approve or return buttons
+  if(isMgrView&&deptSchedNote?.team_submitted&&deptSchedNote?.status!=='approved'){
+    noteHtml+=`<div style="display:flex;flex-direction:column;gap:8px;justify-content:center;min-width:140px">
+      <button onclick="approveDept('${activeDeptId}')" style="background:#10b981;color:white;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">✅ אשר סידור</button>
+      <button onclick="returnToEdit('${activeDeptId}')" style="background:#f59e0b;color:white;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">↩️ החזר לעריכה</button>
+    </div>`;
+  }
+  if(isMgrView&&deptSchedNote?.status==='approved'){
+    noteHtml+=`<div style="display:flex;flex-direction:column;gap:8px;justify-content:center;min-width:140px">
+      <button onclick="returnToEdit('${activeDeptId}')" style="background:#f59e0b;color:white;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">↩️ החזר לעריכה</button>
+    </div>`;
+  }
+  // show team_lead if returned
+  if(isTeamLead3&&deptSchedNote?.returned_to_edit){
+    noteHtml+=`<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;font-size:13px;color:#92400e;font-weight:600;align-self:center">⚠️ המנהל החזיר את הסידור לעריכה</div>`;
+  }
+
+  noteHtml+='</div>';
+  noteDiv.innerHTML=noteHtml;
+  wrap.appendChild(noteDiv);
+
+  // ── STATS PANEL ──
   if((isMgr||currentEmp?.role==='manager'||(currentEmp?.role==='team_lead'&&currentEmp?.department_id===activeDeptId))&&activeDeptId){
     const statDiv=document.createElement('div');
     statDiv.style.cssText='background:white;border-radius:14px;padding:16px 20px;box-shadow:0 1px 8px rgba(0,0,0,0.07);margin-top:14px';
@@ -932,10 +989,36 @@ async function approveDept(deptId){
     const {data}=await sb.from('schedules').insert({week_start:ws,department_id:deptId,status:'approved',team_submitted:true}).select().single();
     schedules[deptId]=data;
   } else {
-    await sb.from('schedules').update({status:'approved'}).eq('id',schedules[deptId].id);
+    await sb.from('schedules').update({status:'approved',returned_to_edit:false}).eq('id',schedules[deptId].id);
     schedules[deptId].status='approved';
+    schedules[deptId].returned_to_edit=false;
   }
   updateWeekUI();renderStats();renderSchedule();
+}
+
+async function returnToEdit(deptId){
+  if(!schedules[deptId]) return;
+  await sb.from('schedules').update({status:'draft',team_submitted:false,returned_to_edit:true}).eq('id',schedules[deptId].id);
+  schedules[deptId].status='draft';
+  schedules[deptId].team_submitted=false;
+  schedules[deptId].returned_to_edit=true;
+  updateWeekUI();renderSchedule();
+}
+
+async function saveTeamNote(deptId){
+  const val=document.getElementById('team-note-ta')?.value||'';
+  const sched=await ensureSched(deptId);
+  await sb.from('schedules').update({team_note:val}).eq('id',sched.id);
+  schedules[deptId].team_note=val;
+  renderSchedule();
+}
+
+async function saveMgrNote(deptId){
+  const val=document.getElementById('mgr-note-ta')?.value||'';
+  const sched=await ensureSched(deptId);
+  await sb.from('schedules').update({manager_note:val}).eq('id',sched.id);
+  schedules[deptId].manager_note=val;
+  renderSchedule();
 }
 
 // ── SETTINGS ──
