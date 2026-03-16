@@ -95,12 +95,13 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
 .shift-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-left:6px; vertical-align:middle; }
 
 /* CELL */
-.cell-inner { min-height:52px; padding:4px 6px; display:flex; flex-direction:column; gap:3px; }
+.cell-inner { min-height:52px; padding:4px 6px; display:flex; flex-direction:column; gap:3px; align-items:center; }
+.cell-tags { display:flex; flex-wrap:wrap; gap:3px; justify-content:center; min-height:28px; }
 .cell-note { width:100%; border:none; border-radius:4px; background:#eff6ff; font-size:11px; color:#1e40af; font-family:inherit; padding:3px 6px; outline:none; margin-top:3px; }
 .cell-note:focus { background:#dbeafe; }
 .cell-note::placeholder { color:#93c5fd; }
 .cell-note-view { font-size:11px; color:#1e40af; font-style:italic; background:#eff6ff; border-radius:4px; padding:3px 6px; margin-top:3px; }
-.cell-tags { display:flex; flex-wrap:wrap; gap:3px; min-height:28px; }
+
 .emp-tag { display:inline-flex; align-items:center; gap:4px; background:#eff6ff; color:#1e40af; border-radius:20px; padding:3px 10px; font-size:12px; font-weight:600; }
 .emp-tag.freelance { background:#f0fdf4; color:#15803d; }
 .emp-tag .remove-tag { cursor:pointer; font-size:14px; line-height:1; opacity:0.6; }
@@ -252,6 +253,11 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
         <div class="item-list" id="dept-list"></div>
       </div>
       <div class="set-sec">
+        <h3>משמרות לפי מחלקה</h3>
+        <div class="notice n-info" style="margin-bottom:14px">💡 בחר אילו משמרות פעילות בכל מחלקה. אם לא נבחר כלום — יוצגו כל המשמרות.</div>
+        <div id="dept-shift-settings"></div>
+      </div>
+      <div class="set-sec">
         <h3>סוגי משמרות</h3>
         <div class="set-row">
           <input class="s-inp" id="ns-nm" placeholder="שם משמרת" />
@@ -290,7 +296,9 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser=null, currentEmp=null, isMgr=false;
 let weekOffset=0, departments=[], employees=[], freelancers=[], schedules={}, cellData={};
 let activeView='schedule', activeDeptId=null;
-let openDropdown=null; // {deptId, shiftId, dayIdx}
+let openDropdown=null;
+let editMode=false;
+let deptShifts={}; // {deptId: [shiftId, ...]}
 
 let shiftTypes=[
   {id:'morning', name:'בוקר',   time:'06:00-14:00', color:'#F59E0B'},
@@ -400,14 +408,21 @@ async function initApp(user){
 }
 
 async function loadAll(){
-  const [d,e,f]=await Promise.all([
+  const [d,e,f,ds]=await Promise.all([
     sb.from('departments').select('*').order('name'),
     sb.from('employees').select('*').order('full_name'),
     sb.from('freelancers').select('*').order('name'),
+    sb.from('department_shifts').select('*').order('sort_order'),
   ]);
   departments=d.data||[];
   employees=e.data||[];
   freelancers=f.data||[];
+  // build deptShifts map
+  deptShifts={};
+  (ds.data||[]).forEach(r=>{
+    if(!deptShifts[r.department_id]) deptShifts[r.department_id]=[];
+    deptShifts[r.department_id].push(r.shift_id);
+  });
 }
 
 // ── WEEK ──
@@ -477,6 +492,18 @@ async function approveWeek(){
   updateWeekUI();renderSchedule();
 }
 function isApproved(dId){return schedules[dId]?.status==='approved';}
+
+function startEdit(){ editMode=true; renderSchedule(); }
+function cancelEdit(){ editMode=false; openDropdown=null; renderSchedule(); }
+async function sendEdit(deptId){
+  editMode=false; openDropdown=null;
+  // mark as submitted again so manager knows there's an update
+  if(schedules[deptId]){
+    await sb.from('schedules').update({team_submitted:true}).eq('id',schedules[deptId].id);
+    schedules[deptId].team_submitted=true;
+  }
+  updateWeekUI(); renderSchedule();
+}
 
 async function teamSubmit(){
   if(!activeDeptId) return;
@@ -631,8 +658,10 @@ function canEdit(dId){
   if(isMgr) return true;
   const role=currentEmp?.role||'employee';
   if(role==='manager') return true;
-  // team_lead: own dept, current or future weeks only, not yet approved
-  if(role==='team_lead'&&currentEmp.department_id===dId&&weekOffset>=0&&!isApproved(dId)) return true;
+  if(role==='team_lead'&&currentEmp.department_id===dId&&weekOffset>=0){
+    if(!isApproved(dId)) return true;
+    if(editMode) return true;
+  }
   return false;
 }
 
@@ -672,6 +701,12 @@ function renderSchedule(){
     <div class="sched-hdr" style="background:${dept.color}">
       <span class="sched-hdr-title">${dept.name} — ${document.getElementById('wk-lbl').textContent}</span>
       ${ed?'<span class="edit-badge">✏️ עריכה פעילה</span>':''}
+      ${(currentEmp?.role==='team_lead'&&currentEmp?.department_id===dept.id&&weekOffset>=0&&isApproved(dept.id)&&!isMgr) ?
+        (editMode ?
+          `<button onclick="sendEdit('${dept.id}')" style="background:#10b981;color:white;border:none;border-radius:8px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✓ שלח</button>
+           <button onclick="cancelEdit()" style="background:rgba(255,255,255,0.2);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;margin-right:4px">ביטול</button>` :
+          `<button onclick="startEdit()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.4);border-radius:8px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✏️ עריכה</button>`)
+        : ''}
     </div>
     <div class="tbl-wrap"><table>
     <thead><tr>
@@ -679,7 +714,13 @@ function renderSchedule(){
       ${DAYS_DISPLAY.map((d,i)=>`<th>${d}<br><span style="font-size:10px;font-weight:400;color:#94a3b8">${dates[i]}</span></th>`).join('')}
     </tr></thead><tbody>`;
 
-  for(const shift of shiftTypes){
+  // get shifts for this dept (fallback to all if none configured)
+  const deptShiftIds=deptShifts[dept.id];
+  const activeShifts=deptShiftIds&&deptShiftIds.length>0
+    ? shiftTypes.filter(s=>deptShiftIds.includes(s.id))
+    : shiftTypes;
+
+  for(const shift of activeShifts){
     const isEditShiftTime=isMgr&&editingShiftTime&&editingShiftTime.shiftId===shift.id;
     html+=`<tr><td class="shift-label">
       <span class="shift-dot" style="background:${shift.color}"></span>${shift.name}
@@ -846,8 +887,55 @@ async function approveDept(deptId){
 }
 
 // ── SETTINGS ──
+function renderDeptShiftSettings(){
+  const el=document.getElementById('dept-shift-settings');
+  if(!el) return;
+  let html='';
+  departments.forEach(dept=>{
+    const active=deptShifts[dept.id]||[];
+    html+=`<div style="background:#f8fafc;border-radius:10px;padding:12px 16px;margin-bottom:10px">
+      <div style="font-weight:700;color:#0f172a;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+        <div style="width:12px;height:12px;border-radius:50%;background:${dept.color}"></div>
+        ${dept.name}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">`;
+    shiftTypes.forEach(shift=>{
+      const isActive=active.includes(shift.id)||active.length===0;
+      const checked=active.includes(shift.id);
+      html+=`<label style="display:inline-flex;align-items:center;gap:5px;background:${checked?shift.color+'33':'white'};border:1.5px solid ${checked?shift.color:'#e2e8f0'};border-radius:20px;padding:4px 10px;cursor:pointer;font-size:12px;font-weight:600;color:${checked?'#0f172a':'#64748b'}">
+        <input type="checkbox" ${checked?'checked':''} onchange="toggleDeptShift('${dept.id}','${shift.id}',this.checked)" style="display:none" />
+        ${shift.name}
+      </label>`;
+    });
+    html+=`</div></div>`;
+  });
+  el.innerHTML=html||'<div style="color:#94a3b8">אין מחלקות</div>';
+}
+
+async function toggleDeptShift(deptId, shiftId, enable){
+  if(enable){
+    // add
+    const existing=deptShifts[deptId]||[];
+    if(!existing.includes(shiftId)){
+      const order=shiftTypes.findIndex(s=>s.id===shiftId);
+      await sb.from('department_shifts').insert({department_id:deptId,shift_id:shiftId,sort_order:order});
+      if(!deptShifts[deptId]) deptShifts[deptId]=[];
+      deptShifts[deptId].push(shiftId);
+      // sort by shiftTypes order
+      deptShifts[deptId].sort((a,b)=>shiftTypes.findIndex(s=>s.id===a)-shiftTypes.findIndex(s=>s.id===b));
+    }
+  } else {
+    // remove
+    await sb.from('department_shifts').delete().eq('department_id',deptId).eq('shift_id',shiftId);
+    if(deptShifts[deptId]) deptShifts[deptId]=deptShifts[deptId].filter(s=>s!==shiftId);
+  }
+  renderDeptShiftSettings();
+  if(activeView==='schedule') renderSchedule();
+}
+
 function renderSettings(){
   // Depts
+  renderDeptShiftSettings();
   document.getElementById('dept-list').innerHTML=departments.map(d=>`
     <div class="item-row"><div class="item-info"><div class="cdot" style="background:${d.color}"></div><span>${d.name}</span></div>
     <button class="btn-del" onclick="delDept('${d.id}')">מחק</button></div>`).join('')||'<div style="color:#94a3b8;padding:8px">אין מחלקות</div>';
@@ -952,9 +1040,8 @@ function showView(v,e){
 }
 function changeWeek(d){
   const role=currentEmp?.role||'employee';
-  // employees can only see current week and past (archive)
   if(role==='employee'&&!isMgr&&weekOffset+d>0) return;
-  weekOffset+=d;openDropdown=null;editingShiftTime=null;
+  weekOffset+=d;openDropdown=null;editingShiftTime=null;editMode=false;
   loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});
 }
 function goToday(){weekOffset=0;openDropdown=null;editingShiftTime=null;loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});}
