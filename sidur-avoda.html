@@ -96,9 +96,10 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
 
 /* CELL */
 .cell-inner { min-height:52px; padding:4px 6px; display:flex; flex-direction:column; gap:3px; }
-.cell-note { width:100%; border:none; border-top:1px dashed #e2e8f0; background:transparent; font-size:11px; color:#64748b; font-family:inherit; padding:2px 2px; outline:none; margin-top:2px; }
-.cell-note:focus { background:#fffbeb; border-radius:3px; }
-.cell-note-view { font-size:11px; color:#64748b; font-style:italic; border-top:1px dashed #e2e8f0; padding-top:2px; margin-top:2px; }
+.cell-note { width:100%; border:none; border-radius:4px; background:#eff6ff; font-size:11px; color:#1e40af; font-family:inherit; padding:3px 6px; outline:none; margin-top:3px; }
+.cell-note:focus { background:#dbeafe; }
+.cell-note::placeholder { color:#93c5fd; }
+.cell-note-view { font-size:11px; color:#1e40af; font-style:italic; background:#eff6ff; border-radius:4px; padding:3px 6px; margin-top:3px; }
 .cell-tags { display:flex; flex-wrap:wrap; gap:3px; min-height:28px; }
 .emp-tag { display:inline-flex; align-items:center; gap:4px; background:#eff6ff; color:#1e40af; border-radius:20px; padding:3px 10px; font-size:12px; font-weight:600; }
 .emp-tag.freelance { background:#f0fdf4; color:#15803d; }
@@ -698,7 +699,8 @@ function renderSchedule(){
         <div class="cell-tags">`;
       const noteKey2=sched?`note_${sched.id}_${shift.id}_${d}`:'';
       const noteVal2=noteKey2&&cellData[noteKey2]?.content||'';
-      names.forEach(name=>{
+      const uniqueNames=[...new Set(names)];
+      uniqueNames.forEach(name=>{
         const isFreelance=freelancers.some(f=>f.name===name&&f.department_id===dept.id);
         const escapedName=name.replace(/\'/g,"\\'");
         const emp2=employees.find(e=>e.full_name===name);
@@ -736,7 +738,7 @@ function renderSchedule(){
           </div>`;
         }
         // free text note
-        html+=`<input class="cell-note" placeholder="הערה..." value="${noteVal2.replace(/"/g,'&quot;')}"
+        html+=`<input class="cell-note" placeholder="" value="${noteVal2.replace(/"/g,'&quot;')}"
           onblur="saveNote('${dept.id}','${shift.id}',${d},this.value)"
           onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" />`;
       } else if(noteVal2){
