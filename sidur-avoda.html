@@ -495,9 +495,8 @@ function updateWeekUI(){
   }
 
   // show manager notification if any dept submitted but not approved
-  const anySubmittedVal=Object.values(schedules).some(s=>s.team_submitted&&s.status!=='approved');
   const mgrNote=document.getElementById('mgr-note');
-  if(mgrNote) mgrNote.style.display=((isMgr||currentEmp?.role==='manager')&&anySubmittedVal)?'block':'none';
+  if(mgrNote) mgrNote.style.display=((isMgr||currentEmp?.role==='manager')&&anySubmitted2)?'block':'none';
 }
 
 async function approveWeek(){
