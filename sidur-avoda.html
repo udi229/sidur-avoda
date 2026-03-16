@@ -471,7 +471,7 @@ function updateWeekUI(){
   document.getElementById('wk-lbl').textContent=lbl;
   document.getElementById('wk-dt').textContent=`${dates[0]} — ${dates[6]}`;
   const allApp=departments.length>0&&departments.every(d=>schedules[d.id]?.status==='approved');
-  const anySubmitted=Object.values(schedules).some(s=>s.team_submitted&&s.status!=='approved');
+  const anySubmitted2=Object.values(schedules).some(s=>s.team_submitted&&s.status!=='approved');
   const sb2=document.getElementById('wk-st');
   // status badge hidden - status shown per dept tab
   sb2.style.display='none';
@@ -495,9 +495,9 @@ function updateWeekUI(){
   }
 
   // show manager notification if any dept submitted but not approved
-  const anySubmitted=Object.values(schedules).some(s=>s.team_submitted&&s.status!=='approved');
+  const anySubmittedVal=Object.values(schedules).some(s=>s.team_submitted&&s.status!=='approved');
   const mgrNote=document.getElementById('mgr-note');
-  if(mgrNote) mgrNote.style.display=((isMgr||currentEmp?.role==='manager')&&anySubmitted)?'block':'none';
+  if(mgrNote) mgrNote.style.display=((isMgr||currentEmp?.role==='manager')&&anySubmittedVal)?'block':'none';
 }
 
 async function approveWeek(){
