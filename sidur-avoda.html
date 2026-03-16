@@ -221,7 +221,8 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
       <div class="wk-badges">
         <span id="wk-st" class="badge b-dft">⏳ טיוטה</span>
         <span id="wk-tp" class="badge" style="display:none"></span>
-        <button class="btn-app" id="app-btn" style="display:none" onclick="approveWeek()">✓ אשר סידור</button>
+        <!-- approval done per-dept in notes panel -->
+        <span id="app-btn" style="display:none"></span>
         <button class="btn-submit" id="submit-btn" style="display:none" onclick="teamSubmit()">סיימתי את הסידור</button>
       </div>
     </div>
@@ -470,14 +471,16 @@ function updateWeekUI(){
   document.getElementById('wk-lbl').textContent=lbl;
   document.getElementById('wk-dt').textContent=`${dates[0]} — ${dates[6]}`;
   const allApp=departments.length>0&&departments.every(d=>schedules[d.id]?.status==='approved');
+  const anySubmitted=Object.values(schedules).some(s=>s.team_submitted&&s.status!=='approved');
   const sb2=document.getElementById('wk-st');
-  sb2.className='badge '+(allApp?'b-app':'b-dft');
-  sb2.textContent=allApp?'✅ מאושר':'⏳ טיוטה';
+  if(allApp){ sb2.className='badge b-app'; sb2.textContent='✅ כל הסידורים מאושרים'; }
+  else if(anySubmitted){ sb2.className='badge'; sb2.style.background='#fef9c3'; sb2.style.color='#854d0e'; sb2.style.borderColor='#fcd34d'; sb2.textContent='📬 ממתין לאישור'; }
+  else { sb2.className='badge b-dft'; sb2.textContent='⏳ טיוטה'; }
   const tb=document.getElementById('wk-tp');
   if(weekOffset<0){tb.style.display='inline-block';tb.className='badge b-arc';tb.textContent='🗂 ארכיון';}
   else if(weekOffset>0){tb.style.display='inline-block';tb.className='badge b-fut';tb.textContent='📅 תכנון עתידי';}
   else tb.style.display='none';
-  document.getElementById('app-btn').style.display=((currentEmp?.role==='manager'||isMgr)&&!allApp)?'inline-block':'none';
+  // global approve button removed - approval per dept in notes panel
 
   // team_lead submit button
   const submitBtn=document.getElementById('submit-btn');
@@ -829,6 +832,13 @@ function renderSchedule(){
           html+=`<div class="emp-dropdown" onclick="event.stopPropagation()">
             <div class="emp-dd-search"><input id="dd-search" placeholder="חפש שם..." oninput="filterDropdown('${dept.id}','${shift.id}',${d})" /></div>
             <div id="dd-items">${ddHtml}</div>
+            <div style="padding:6px 8px;border-top:1px solid #f1f5f9">
+              <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">או כתוב ידנית:</div>
+              <div style="display:flex;gap:4px">
+                <input id="dd-manual" placeholder="שם חופשי..." style="flex:1;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter'){event.preventDefault();const v=this.value.trim();if(v)addName('${dept.id}','${shift.id}',${d},v);}" />
+                <button onclick="const v=document.getElementById('dd-manual').value.trim();if(v)addName('${dept.id}','${shift.id}',${d},v)" style="background:#0f172a;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit">+</button>
+              </div>
+            </div>
           </div>`;
         }
         // free text note
