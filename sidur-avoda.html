@@ -708,7 +708,7 @@ function renderSchedule(){
         const req2=emp2?Math.round((emp2.position_percent/100)*5):0;
         const sc2=emp2?(cnt2<req2?'#ef4444':cnt2>req2?'#3b82f6':'#10b981'):'#94a3b8';
         html+=`<span class="emp-tag${isFreelance?' freelance':''}">
-          ${name}${emp2?`<span style="font-size:9px;font-weight:800;color:${sc2};margin-right:2px"> ${cnt2}</span>`:''}
+          ${name}
           ${ed?`<span class="remove-tag" onclick="removeName('${dept.id}','${shift.id}',${d},'${escapedName}')">×</span>`:''}
         </span>`;
       });
@@ -762,7 +762,7 @@ function renderSchedule(){
     const deptEmpsForStats=employees.filter(e=>e.department_id===activeDeptId);
     const deptSchedForStats=schedules[activeDeptId];
     let statsHtml='<div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:10px">📊 סטטיסטיקות עובדים — '+departments.find(d=>d.id===activeDeptId)?.name+'</div>';
-    statsHtml+='<div style="display:flex;flex-wrap:wrap;gap:8px">';
+    statsHtml+='<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">';
     deptEmpsForStats.forEach(emp=>{
       const cnt=countEmpShifts(emp.full_name,activeDeptId);
       const req=Math.round((emp.position_percent/100)*5);
