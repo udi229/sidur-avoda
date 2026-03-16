@@ -473,9 +473,8 @@ function updateWeekUI(){
   const allApp=departments.length>0&&departments.every(d=>schedules[d.id]?.status==='approved');
   const anySubmitted=Object.values(schedules).some(s=>s.team_submitted&&s.status!=='approved');
   const sb2=document.getElementById('wk-st');
-  if(allApp){ sb2.className='badge b-app'; sb2.textContent='✅ כל הסידורים מאושרים'; }
-  else if(anySubmitted){ sb2.className='badge'; sb2.style.background='#fef9c3'; sb2.style.color='#854d0e'; sb2.style.borderColor='#fcd34d'; sb2.textContent='📬 ממתין לאישור'; }
-  else { sb2.className='badge b-dft'; sb2.textContent='⏳ טיוטה'; }
+  // status badge hidden - status shown per dept tab
+  sb2.style.display='none';
   const tb=document.getElementById('wk-tp');
   if(weekOffset<0){tb.style.display='inline-block';tb.className='badge b-arc';tb.textContent='🗂 ארכיון';}
   else if(weekOffset>0){tb.style.display='inline-block';tb.className='badge b-fut';tb.textContent='📅 תכנון עתידי';}
@@ -560,10 +559,19 @@ function renderDeptTabs(){
     // regular employee sees only their own dept (after approval)
     vis=departments.filter(d=>d.id===currentEmp?.department_id&&isApproved(d.id));
   }
-  document.getElementById('dept-tabs').innerHTML=vis.map(d=>`
-    <button class="dept-tab${activeDeptId===d.id?' active':''}"
+  document.getElementById('dept-tabs').innerHTML=vis.map(d=>{
+    const sc=schedules[d.id];
+    const approved=sc?.status==='approved';
+    const submitted=sc?.team_submitted&&!approved;
+    const returned=sc?.returned_to_edit&&!approved;
+    let indicator='';
+    if(approved) indicator='<span style="font-size:11px;margin-right:4px">✅</span>';
+    else if(returned) indicator='<span style="font-size:11px;margin-right:4px">↩️</span>';
+    else if(submitted) indicator='<span style="font-size:11px;margin-right:4px">📬</span>';
+    return `<button class="dept-tab${activeDeptId===d.id?' active':''}"
       style="border-color:${d.color};${activeDeptId===d.id?`background:${d.color};color:white`:`color:${d.color}`}"
-      onclick="setDept('${d.id}')">${d.name}</button>`).join('');
+      onclick="setDept('${d.id}')">${indicator}${d.name}</button>`;
+  }).join('');
   if(!activeDeptId&&vis.length) activeDeptId=vis[0].id;
 }
 function setDept(id){
