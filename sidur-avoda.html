@@ -374,7 +374,7 @@ async function initApp(user){
   document.getElementById('hdr-nm').textContent=currentEmp.full_name;
   document.getElementById('hdr-rl').textContent=ROLE_HEB[role]||'עובד';
   document.getElementById('nav-stats').style.display=(role==='manager'||role==='team_lead')?'inline-block':'none';
-  document.getElementById('nav-settings').style.display=role==='manager'?'inline-block':'none';
+  document.getElementById('nav-settings').style.display='none'; // settings only via manager PIN
   activeDeptId=currentEmp.department_id||departments[0]?.id||null;
   await loadWeekData();
   renderDeptTabs();
@@ -552,8 +552,29 @@ function canEdit(dId){
   if(isMgr) return true;
   const role=currentEmp?.role||'employee';
   if(role==='manager') return true;
-  if(role==='team_lead'&&currentEmp.department_id===dId&&!isApproved(dId)) return true;
+  // team_lead: own dept, current or future weeks only, not yet approved
+  if(role==='team_lead'&&currentEmp.department_id===dId&&weekOffset>=0&&!isApproved(dId)) return true;
   return false;
+}
+
+// per-cell custom shift time (manager only)
+let editingShiftTime=null;
+async function saveCustomTime(dId,shiftId,dayIdx,time){
+  const sched=await ensureSched(dId);
+  const key=sched.id+'_'+shiftId+'_'+dayIdx;
+  const existing=cellData[key];
+  if(existing){
+    const {data}=await sb.from('schedule_cells').update({custom_time:time}).eq('id',existing.id).select().single();
+    cellData[key]=data;
+  } else {
+    const {data}=await sb.from('schedule_cells').insert({schedule_id:sched.id,shift_type:shiftId,day_index:dayIdx,content:'',custom_time:time}).select().single();
+    cellData[key]=data;
+  }
+  editingShiftTime=null; renderSchedule();
+}
+function getCellTime(schedId,shiftId,dayIdx,defaultTime){
+  const key=schedId+'_'+shiftId+'_'+dayIdx;
+  return cellData[key]?.custom_time||defaultTime;
 }
 
 function renderSchedule(){
@@ -601,6 +622,22 @@ function renderSchedule(){
         </span>`;
       });
       html+=`</div>`;
+      // custom time for manager
+      const cellTime=sched?getCellTime(sched.id,shift.id,d,shift.time):shift.time;
+      const isEditTime=isMgr&&editingShiftTime&&editingShiftTime.dId===dept.id&&editingShiftTime.shiftId===shift.id&&editingShiftTime.dayIdx===d;
+      if(isMgr){
+        if(isEditTime){
+          html+=`<div style="margin-top:4px;display:flex;gap:4px;align-items:center">
+            <input id="ctime-inp" value="${cellTime||''}" placeholder="שעות" style="width:90px;padding:3px 6px;border:1px solid #3b82f6;border-radius:5px;font-size:11px;font-family:inherit" />
+            <button onclick="event.stopPropagation();saveCustomTime('${dept.id}','${shift.id}',${d},document.getElementById('ctime-inp').value)" style="background:#0f172a;color:white;border:none;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer">✓</button>
+            <button onclick="event.stopPropagation();editingShiftTime=null;renderSchedule()" style="background:#f1f5f9;border:none;border-radius:5px;padding:3px 6px;font-size:11px;cursor:pointer">✕</button>
+          </div>`;
+        } else if(cellTime){
+          html+=`<div style="font-size:10px;color:#64748b;margin-top:2px;cursor:pointer" onclick="event.stopPropagation();editingShiftTime={dId:'${dept.id}',shiftId:'${shift.id}',dayIdx:${d}};renderSchedule()" title="לחץ לעריכת שעה">🕐 ${cellTime}</div>`;
+        } else {
+          html+=`<div style="font-size:10px;color:#94a3b8;margin-top:2px;cursor:pointer" onclick="event.stopPropagation();editingShiftTime={dId:'${dept.id}',shiftId:'${shift.id}',dayIdx:${d}};renderSchedule()" title="הוסף שעה ספציפית">+ שעה</div>`;
+        }
+      }
       if(ed){
         html+=`<button class="add-emp-btn" onclick="event.stopPropagation();toggleDropdown('${dept.id}','${shift.id}',${d})">+ הוסף</button>`;
         if(isOpen){
@@ -771,8 +808,14 @@ function showView(v,e){
   if(v==='settings') renderSettings();
   if(v==='schedule'){renderDeptTabs();renderSchedule();}
 }
-function changeWeek(d){weekOffset+=d;openDropdown=null;loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});}
-function goToday(){weekOffset=0;openDropdown=null;loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});}
+function changeWeek(d){
+  const role=currentEmp?.role||'employee';
+  // employees can only see current week and past (archive)
+  if(role==='employee'&&!isMgr&&weekOffset+d>0) return;
+  weekOffset+=d;openDropdown=null;editingShiftTime=null;
+  loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});
+}
+function goToday(){weekOffset=0;openDropdown=null;editingShiftTime=null;loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});}
 
 // ── STARTUP ──
 (async()=>{const {data:{session}}=await sb.auth.getSession();if(session)await initApp(session.user);})();
