@@ -712,6 +712,30 @@ function renderSchedule(){
       });
       html+=`</div>`;
       if(ed){
+        // add from list button + dropdown
+        html+=`<button class="add-emp-btn" title="הוסף עובד" onclick="event.stopPropagation();toggleDropdown('${dept.id}','${shift.id}',${d})">+</button>`;
+        const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===shift.id&&openDropdown.dayIdx===d;
+        if(isOpen){
+          const deptEmps2=employees.filter(e=>e.department_id===dept.id&&!names.includes(e.full_name));
+          const deptFree2=freelancers.filter(f=>f.department_id===dept.id&&!names.includes(f.name));
+          let ddHtml='';
+          if(deptEmps2.length){
+            ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">עובדים קבועים</div>`;
+            deptEmps2.forEach(e=>{ddHtml+=`<div class="emp-dd-item" onclick="addName('${dept.id}','${shift.id}',${d},'${e.full_name.replace(/'/g,"\'")}')">👤 ${e.full_name}</div>`;});
+            ddHtml+=`</div>`;
+          }
+          if(deptFree2.length){
+            ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">פרילנסרים</div>`;
+            deptFree2.forEach(f=>{ddHtml+=`<div class="emp-dd-item freelance-item" onclick="addName('${dept.id}','${shift.id}',${d},'${f.name.replace(/'/g,"\'")}')">🔄 ${f.name}</div>`;});
+            ddHtml+=`</div>`;
+          }
+          if(!deptEmps2.length&&!deptFree2.length) ddHtml='<div class="emp-dd-empty">אין עובדים זמינים</div>';
+          html+=`<div class="emp-dropdown" onclick="event.stopPropagation()">
+            <div class="emp-dd-search"><input id="dd-search" placeholder="חפש שם..." oninput="filterDropdown('${dept.id}','${shift.id}',${d})" /></div>
+            <div id="dd-items">${ddHtml}</div>
+          </div>`;
+        }
+        // free text note
         html+=`<input class="cell-note" placeholder="הערה..." value="${noteVal2.replace(/"/g,'&quot;')}"
           onblur="saveNote('${dept.id}','${shift.id}',${d},this.value)"
           onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" />`;
