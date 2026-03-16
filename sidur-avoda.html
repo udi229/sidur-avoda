@@ -233,6 +233,12 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
       </div>
       <div id="lock-notice" class="notice n-warn" style="display:none">🔒 הסידור עדיין לא אושר — מוצגת רק המחלקה שלך</div>
       <div id="dept-tabs" class="dept-tabs"></div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
+        <input id="sched-search" type="text" placeholder="🔍 חפש שם — יסומן באדום" value=""
+          oninput="searchQuery=this.value;renderSchedule()"
+          style="flex:1;min-width:180px;padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;font-family:inherit;background:white" />
+        <button id="freelance-toggle" onclick="toggleFreelanceHighlight()" style="display:none;padding:8px 14px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:#f1f5f9;color:#64748b">👁 פרילנסרים</button>
+      </div>
       <div id="sched-wrap"><div class="loading">⏳ טוען...</div></div>
     </div>
 
@@ -298,7 +304,9 @@ let weekOffset=0, departments=[], employees=[], freelancers=[], schedules={}, ce
 let activeView='schedule', activeDeptId=null;
 let openDropdown=null;
 let editMode=false;
-let deptShifts={}; // {deptId: [shiftId, ...]}
+let deptShifts={};
+let searchQuery='';       // highlight search name in red
+let showFreelancers=false; // highlight freelancers in yellow
 
 let shiftTypes=[
   {id:'morning', name:'בוקר',   time:'06:00-14:00', color:'#F59E0B'},
@@ -364,7 +372,11 @@ function enterMgr(){
   document.getElementById('hdr-rl').textContent='מנהל מערכת';
   document.getElementById('nav-stats').style.display='inline-block';
   document.getElementById('nav-settings').style.display='inline-block';
-  loadAll().then(()=>{activeDeptId=departments[0]?.id||null;updateWeekUI();renderDeptTabs();renderSchedule();});
+  loadAll().then(()=>{
+    activeDeptId=departments[0]?.id||null;
+    document.getElementById('freelance-toggle').style.display='inline-block';
+    updateWeekUI();renderDeptTabs();renderSchedule();
+  });
 }
 async function logout(){
   if(!isMgr) await sb.auth.signOut();
@@ -394,11 +406,14 @@ async function initApp(user){
   document.getElementById('hdr-nm').textContent=currentEmp.full_name;
   document.getElementById('hdr-rl').textContent=ROLE_HEB[role]||'עובד';
   document.getElementById('nav-stats').style.display=(role==='manager'||role==='team_lead')?'inline-block':'none';
-  document.getElementById('nav-settings').style.display='none'; // settings only via manager PIN
-  // team_lead: default to their own dept
+  document.getElementById('nav-settings').style.display='none';
   if(role==='team_lead'&&currentEmp.department_id) activeDeptId=currentEmp.department_id;
   activeDeptId=currentEmp.department_id||departments[0]?.id||null;
   await loadWeekData();
+  if(currentEmp.role==='team_lead'||currentEmp.role==='manager'){
+    const ftBtn=document.getElementById('freelance-toggle');
+    if(ftBtn) ftBtn.style.display='inline-block';
+  }
   renderDeptTabs();
   renderSchedule();
   sb.channel('rt')
@@ -494,6 +509,16 @@ async function approveWeek(){
 function isApproved(dId){return schedules[dId]?.status==='approved';}
 
 function startEdit(){ editMode=true; renderSchedule(); }
+function toggleFreelanceHighlight(){
+  showFreelancers=!showFreelancers;
+  const btn=document.getElementById('freelance-toggle');
+  if(btn){
+    btn.style.background=showFreelancers?'#fef9c3':'#f1f5f9';
+    btn.style.color=showFreelancers?'#854d0e':'#64748b';
+    btn.style.border=showFreelancers?'2px solid #fcd34d':'2px solid transparent';
+  }
+  renderSchedule();
+}
 function cancelEdit(){ editMode=false; openDropdown=null; renderSchedule(); }
 async function sendEdit(deptId){
   editMode=false; openDropdown=null;
@@ -524,17 +549,26 @@ function renderDeptTabs(){
   let vis=[];
   if(isMgr||role==='manager') vis=departments;
   else if(role==='team_lead'){
-    // team_lead sees all approved depts + own dept always
-    vis=departments.filter(d=>d.id===currentEmp?.department_id||isApproved(d.id));
+    // team_lead sees only their own dept
+    vis=departments.filter(d=>d.id===currentEmp?.department_id);
   }
-  else vis=departments.filter(d=>d.id===currentEmp?.department_id||isApproved(d.id));
+  else {
+    // regular employee sees only their own dept (after approval)
+    vis=departments.filter(d=>d.id===currentEmp?.department_id&&isApproved(d.id));
+  }
   document.getElementById('dept-tabs').innerHTML=vis.map(d=>`
     <button class="dept-tab${activeDeptId===d.id?' active':''}"
       style="border-color:${d.color};${activeDeptId===d.id?`background:${d.color};color:white`:`color:${d.color}`}"
       onclick="setDept('${d.id}')">${d.name}</button>`).join('');
   if(!activeDeptId&&vis.length) activeDeptId=vis[0].id;
 }
-function setDept(id){activeDeptId=id;openDropdown=null;renderDeptTabs();renderSchedule();}
+function setDept(id){
+  activeDeptId=id;openDropdown=null;
+  searchQuery='';
+  const si=document.getElementById('sched-search');
+  if(si) si.value='';
+  renderDeptTabs();renderSchedule();
+}
 
 // ── CELL DATA ──
 function getCellNames(schedId,shiftId,dayIdx){
@@ -683,7 +717,7 @@ function renderSchedule(){
   // employee sees nothing until approved
   if(isEmployee&&!isApproved(activeDeptId)){
     document.getElementById('lock-notice').style.display='block';
-    document.getElementById('sched-wrap').innerHTML='<div class="loading">🔒 הסידור של מחלקה זו טרם אושר</div>';
+    document.getElementById('sched-wrap').innerHTML='<div class="loading" style="padding:40px;text-align:center">🔒 הסידור טרם אושר על ידי המנהל<br><span style="font-size:13px;color:#94a3b8;margin-top:8px;display:block">הסידור יופיע כאן לאחר אישור המנהל</span></div>';
     return;
   }
   document.getElementById('lock-notice').style.display='none';
@@ -748,7 +782,23 @@ function renderSchedule(){
         const cnt2=countEmpShifts(name,dept.id);
         const req2=emp2?Math.round((emp2.position_percent/100)*5):0;
         const sc2=emp2?(cnt2<req2?'#ef4444':cnt2>req2?'#3b82f6':'#10b981'):'#94a3b8';
-        html+=`<span class="emp-tag${isFreelance?' freelance':''}">
+        // determine highlight
+        const isCurrentUser=currentEmp&&currentEmp.full_name===name&&!isMgr;
+        const isSearchMatch=searchQuery&&name.toLowerCase().includes(searchQuery.toLowerCase());
+        let tagBg, tagColor, tagBorder;
+        if(isSearchMatch){
+          tagBg='#fee2e2'; tagColor='#dc2626'; tagBorder='#fca5a5';
+        } else if(isCurrentUser&&isApproved(dept.id)){
+          // own name in red when viewing approved schedule
+          tagBg='#fee2e2'; tagColor='#dc2626'; tagBorder='#fca5a5';
+        } else if(showFreelancers&&isFreelance){
+          tagBg='#fef9c3'; tagColor='#854d0e'; tagBorder='#fcd34d';
+        } else if(isFreelance){
+          tagBg='#dcfce7'; tagColor='#15803d'; tagBorder='#86efac';
+        } else {
+          tagBg='#eff6ff'; tagColor='#1e40af'; tagBorder='#bfdbfe';
+        }
+        html+=`<span class="emp-tag" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder}">
           ${name}
           ${ed?`<span class="remove-tag" onclick="removeName('${dept.id}','${shift.id}',${d},'${escapedName}')">×</span>`:''}
         </span>`;
