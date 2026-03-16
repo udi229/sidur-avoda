@@ -728,6 +728,29 @@ function renderSchedule(){
     const inp=document.getElementById('dd-search');
     if(inp) inp.focus();
   }
+
+  // manager: show dept employee stats below schedule
+  if((isMgr||currentEmp?.role==='manager'||(currentEmp?.role==='team_lead'&&currentEmp?.department_id===activeDeptId))&&activeDeptId){
+    const statDiv=document.createElement('div');
+    statDiv.style.cssText='background:white;border-radius:14px;padding:16px 20px;box-shadow:0 1px 8px rgba(0,0,0,0.07);margin-top:14px';
+    const deptEmpsForStats=employees.filter(e=>e.department_id===activeDeptId);
+    const deptSchedForStats=schedules[activeDeptId];
+    let statsHtml='<div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:10px">📊 סטטיסטיקות עובדים — '+departments.find(d=>d.id===activeDeptId)?.name+'</div>';
+    statsHtml+='<div style="display:flex;flex-wrap:wrap;gap:8px">';
+    deptEmpsForStats.forEach(emp=>{
+      const cnt=countEmpShifts(emp.full_name,activeDeptId);
+      const req=Math.round((emp.position_percent/100)*5);
+      const color=cnt<req?'#ef4444':cnt>req?'#3b82f6':'#10b981';
+      const bg=cnt<req?'#fef2f2':cnt>req?'#eff6ff':'#f0fdf4';
+      statsHtml+=`<div style="background:${bg};border-radius:8px;padding:5px 10px;border-right:3px solid ${color};font-size:12px">
+        <span style="font-weight:600;color:#0f172a">${emp.full_name}</span>
+        <span style="color:${color};font-weight:800;margin-right:4px"> ${cnt}/${req}</span>
+      </div>`;
+    });
+    statsHtml+='</div>';
+    statDiv.innerHTML=statsHtml;
+    wrap.appendChild(statDiv);
+  }
 }
 
 // ── STATS ──
@@ -831,8 +854,11 @@ function renderSettings(){
     return `<div class="item-row">
       <div class="item-info">
         <div class="emp-av" style="background:${dept?.color||'#64748b'};width:30px;height:30px;font-size:12px">${emp.full_name[0]}</div>
-        <div><div style="font-weight:600">${emp.full_name}</div>
-        <div style="font-size:12px;color:#94a3b8">${dept?.name||'ללא מחלקה'} · ${ROLE_HEB[emp.role]||'עובד'} · ${emp.position_percent}%</div></div>
+        <div>
+          <div style="font-weight:600">${emp.full_name}</div>
+          <div style="font-size:12px;color:#64748b">${emp.email}</div>
+          <div style="font-size:11px;color:#94a3b8">${dept?.name||'ללא מחלקה'} · ${ROLE_HEB[emp.role]||'עובד'} · ${emp.position_percent}%</div>
+        </div>
       </div>
       <div class="item-btns">
         <select class="role-sel" onchange="updateRole('${emp.id}',this.value)">
