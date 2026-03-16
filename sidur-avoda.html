@@ -69,6 +69,9 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:#f0f4f8; color:#1a202
 .b-fut { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
 .b-arc { background:#f5f3ff; color:#6d28d9; border-color:#ddd6fe; }
 .btn-app { background:#0f172a; color:white; border:none; border-radius:8px; padding:8px 16px; cursor:pointer; font-weight:700; font-size:13px; font-family:inherit; }
+.btn-submit { border:none; border-radius:8px; padding:8px 16px; cursor:pointer; font-weight:700; font-size:13px; font-family:inherit; transition:all 0.3s; }
+.btn-submit.pending { background:#ef4444; color:white; }
+.btn-submit.done { background:#10b981; color:white; }
 .btn-tod { background:#f1f5f9; border:none; border-radius:8px; padding:7px 13px; cursor:pointer; font-size:13px; font-weight:600; color:#64748b; font-family:inherit; }
 
 /* DEPT TABS */
@@ -214,10 +217,15 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
         <span id="wk-st" class="badge b-dft">⏳ טיוטה</span>
         <span id="wk-tp" class="badge" style="display:none"></span>
         <button class="btn-app" id="app-btn" style="display:none" onclick="approveWeek()">✓ אשר סידור</button>
+        <button class="btn-submit" id="submit-btn" style="display:none" onclick="teamSubmit()">סיימתי את הסידור</button>
       </div>
     </div>
 
     <div id="view-schedule">
+      <div id="mgr-note" class="notice" style="display:none;background:#fef3c7;border:1px solid #fcd34d;color:#92400e">
+        📬 יש סידורים שהוגשו על ידי ראשי צוות וממתינים לאישורך!
+        <button onclick="showView('stats',event)" style="margin-right:10px;background:#0f172a;color:white;border:none;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:12px;font-family:inherit">צפה בסטטוס</button>
+      </div>
       <div id="lock-notice" class="notice n-warn" style="display:none">🔒 הסידור עדיין לא אושר — מוצגת רק המחלקה שלך</div>
       <div id="dept-tabs" class="dept-tabs"></div>
       <div id="sched-wrap"><div class="loading">⏳ טוען...</div></div>
@@ -430,6 +438,24 @@ function updateWeekUI(){
   else if(weekOffset>0){tb.style.display='inline-block';tb.className='badge b-fut';tb.textContent='📅 תכנון עתידי';}
   else tb.style.display='none';
   document.getElementById('app-btn').style.display=((currentEmp?.role==='manager'||isMgr)&&!allApp)?'inline-block':'none';
+
+  // team_lead submit button
+  const submitBtn=document.getElementById('submit-btn');
+  const role2=currentEmp?.role||'employee';
+  if(role2==='team_lead'&&!isMgr&&activeDeptId){
+    const deptSched=schedules[activeDeptId];
+    const submitted=deptSched?.team_submitted||false;
+    submitBtn.style.display='inline-block';
+    submitBtn.className='btn-submit '+(submitted?'done':'pending');
+    submitBtn.textContent=submitted?'✓ סידור הוגש':'סיימתי את הסידור';
+  } else {
+    submitBtn.style.display='none';
+  }
+
+  // show manager notification if any dept submitted but not approved
+  const anySubmitted=Object.values(schedules).some(s=>s.team_submitted&&s.status!=='approved');
+  const mgrNote=document.getElementById('mgr-note');
+  if(mgrNote) mgrNote.style.display=((isMgr||currentEmp?.role==='manager')&&anySubmitted)?'block':'none';
 }
 
 async function approveWeek(){
@@ -441,6 +467,17 @@ async function approveWeek(){
   updateWeekUI();renderSchedule();
 }
 function isApproved(dId){return schedules[dId]?.status==='approved';}
+
+async function teamSubmit(){
+  if(!activeDeptId) return;
+  const sched=await ensureSched(activeDeptId);
+  const alreadySubmitted=sched.team_submitted||false;
+  const newVal=!alreadySubmitted;
+  await sb.from('schedules').update({team_submitted:newVal}).eq('id',sched.id);
+  schedules[activeDeptId].team_submitted=newVal;
+  updateWeekUI();
+  renderSchedule();
+}
 function fullyApproved(){return departments.length>0&&departments.every(d=>isApproved(d.id));}
 
 // ── DEPT TABS ──
@@ -687,7 +724,28 @@ function renderSchedule(){
 
 // ── STATS ──
 function renderStats(){
-  const emps=isMgr||currentEmp?.role==='manager'?employees.filter(e=>e.department_id):employees.filter(e=>e.department_id===currentEmp?.department_id);
+  // show dept submission status for manager
+  const statsWrap=document.getElementById('stats-wrap');
+  const role=currentEmp?.role||'employee';
+  let deptStatusHtml='';
+  if(isMgr||role==='manager'){
+    deptStatusHtml='<div style="grid-column:1/-1;margin-bottom:8px"><div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:10px">סטטוס הגשת סידורים</div><div style="display:flex;flex-wrap:wrap;gap:8px">';
+    departments.forEach(dept=>{
+      const sc=schedules[dept.id];
+      const submitted=sc?.team_submitted||false;
+      const approved=sc?.status==='approved'||false;
+      const color=approved?'#10b981':submitted?'#f59e0b':'#ef4444';
+      const label=approved?'✅ מאושר':submitted?'📬 הוגש — ממתין לאישור':'⏳ בעבודה';
+      deptStatusHtml+=`<div style="background:white;border-radius:10px;padding:10px 16px;box-shadow:0 1px 6px rgba(0,0,0,0.07);border-right:4px solid ${color}">
+        <div style="font-weight:700;color:#0f172a">${dept.name}</div>
+        <div style="font-size:12px;color:${color};font-weight:600;margin-top:2px">${label}</div>
+        ${submitted&&!approved?`<button onclick="approveDept('${dept.id}')" style="margin-top:6px;background:#0f172a;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit">אשר סידור</button>`:''}
+      </div>`;
+    });
+    deptStatusHtml+='</div></div>';
+  }
+
+  const emps=isMgr||role==='manager'?employees.filter(e=>e.department_id):employees.filter(e=>e.department_id===currentEmp?.department_id);
   let html='';
   for(const emp of emps){
     const dept=departments.find(d=>d.id===emp.department_id);
@@ -715,7 +773,19 @@ function renderStats(){
       <span class="stat-lbl ${ok?'s-ok':'s-warn'}">${ok?`✅ עומד ב-${pct}%`:`⚠️ חסרות ${req-cnt} משמרות`}</span>
     </div>`;
   }
-  document.getElementById('stats-wrap').innerHTML=html||'<div class="loading">אין נתונים</div>';
+  document.getElementById('stats-wrap').innerHTML=deptStatusHtml+(html||'<div class="loading">אין נתונים</div>');
+}
+
+async function approveDept(deptId){
+  const ws=weekStartStr();
+  if(!schedules[deptId]){
+    const {data}=await sb.from('schedules').insert({week_start:ws,department_id:deptId,status:'approved',team_submitted:true}).select().single();
+    schedules[deptId]=data;
+  } else {
+    await sb.from('schedules').update({status:'approved'}).eq('id',schedules[deptId].id);
+    schedules[deptId].status='approved';
+  }
+  updateWeekUI();renderStats();renderSchedule();
 }
 
 // ── SETTINGS ──
