@@ -31,7 +31,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:#f0f4f8; color:#1a202
 
 /* PIN */
 .modal-ov { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:1000; padding:16px; }
-.modal-bx { background:white; border-radius:16px; padding:32px; width:100%; max-width:340px; text-align:center; }
+.modal-bx { background:white; border-radius:16px; padding:32px; width:100%; max-width:360px; text-align:center; }
 .modal-bx h2 { font-size:20px; font-weight:800; margin-bottom:8px; }
 .modal-bx p { color:#64748b; font-size:14px; margin-bottom:20px; }
 .pin-inp { width:100%; padding:14px; text-align:center; font-size:28px; font-weight:800; letter-spacing:10px; border:2px solid #e2e8f0; border-radius:10px; outline:none; font-family:inherit; }
@@ -74,12 +74,11 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:#f0f4f8; color:#1a202
 /* DEPT TABS */
 .dept-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
 .dept-tab { padding:8px 16px; border-radius:20px; border:2px solid transparent; cursor:pointer; font-size:13px; font-weight:600; font-family:inherit; transition:all 0.2s; background:white; }
-.dept-tab.active { color:white; }
 
-/* SCHEDULE GRID — row per shift */
+/* SCHEDULE GRID */
 .sched-block { background:white; border-radius:14px; box-shadow:0 1px 8px rgba(0,0,0,0.07); overflow:hidden; margin-bottom:18px; }
-.sched-block-hdr { padding:12px 20px; display:flex; align-items:center; justify-content:space-between; }
-.sched-block-title { color:white; font-weight:700; font-size:16px; }
+.sched-hdr { padding:12px 20px; display:flex; align-items:center; justify-content:space-between; }
+.sched-hdr-title { color:white; font-weight:700; font-size:16px; }
 .edit-badge { background:rgba(255,255,255,0.25); color:white; border-radius:6px; padding:2px 10px; font-size:12px; }
 .tbl-wrap { overflow-x:auto; }
 table { width:100%; border-collapse:collapse; direction:rtl; }
@@ -88,14 +87,31 @@ th { padding:10px 8px; text-align:center; font-weight:700; color:#475569; font-s
 th.shift-col { text-align:right; padding-right:16px; min-width:110px; background:#f1f5f9; }
 td { padding:0; border-bottom:1px solid #f1f5f9; vertical-align:top; }
 td.shift-label { padding:10px 16px; font-weight:700; font-size:13px; background:#f8fafc; border-left:2px solid #e2e8f0; white-space:nowrap; vertical-align:middle; }
-.cell-wrap { min-height:48px; padding:6px; position:relative; }
-.cell-text { width:100%; min-height:36px; border:none; background:transparent; font-family:inherit; font-size:13px; resize:none; outline:none; text-align:right; direction:rtl; color:#0f172a; line-height:1.5; }
-.cell-text:disabled { cursor:default; color:#374151; }
-.cell-text.editable { cursor:text; }
-.cell-text.editable:focus { background:#fffbeb; border-radius:6px; }
 tr:nth-child(even) td { background:#fafafa; }
 tr:nth-child(even) td.shift-label { background:#f1f5f9; }
-.shift-color-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-left:6px; vertical-align:middle; }
+.shift-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-left:6px; vertical-align:middle; }
+
+/* CELL */
+.cell-inner { min-height:52px; padding:4px 6px; display:flex; flex-direction:column; gap:3px; }
+.cell-tags { display:flex; flex-wrap:wrap; gap:3px; min-height:28px; }
+.emp-tag { display:inline-flex; align-items:center; gap:4px; background:#eff6ff; color:#1e40af; border-radius:20px; padding:3px 10px; font-size:12px; font-weight:600; }
+.emp-tag.freelance { background:#f0fdf4; color:#15803d; }
+.emp-tag .remove-tag { cursor:pointer; font-size:14px; line-height:1; opacity:0.6; }
+.emp-tag .remove-tag:hover { opacity:1; }
+.add-emp-btn { background:#f1f5f9; border:1px dashed #cbd5e1; border-radius:6px; padding:3px 8px; font-size:12px; color:#64748b; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:3px; }
+.add-emp-btn:hover { background:#e2e8f0; }
+
+/* DROPDOWN */
+.emp-dropdown { position:absolute; top:100%; right:0; z-index:200; background:white; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.15); min-width:200px; max-height:260px; overflow-y:auto; border:1px solid #e2e8f0; }
+.emp-dd-search { padding:8px 10px; border-bottom:1px solid #f1f5f9; }
+.emp-dd-search input { width:100%; border:1px solid #e2e8f0; border-radius:6px; padding:5px 8px; font-size:13px; outline:none; font-family:inherit; }
+.emp-dd-group { padding:4px 0; }
+.emp-dd-label { padding:4px 12px; font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; }
+.emp-dd-item { padding:8px 14px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:8px; }
+.emp-dd-item:hover { background:#f1f5f9; }
+.emp-dd-item.freelance-item { color:#15803d; }
+.emp-dd-empty { padding:12px; text-align:center; color:#94a3b8; font-size:13px; }
+.cell-rel { position:relative; }
 
 /* NOTICE */
 .notice { border-radius:10px; padding:12px 16px; margin-bottom:16px; font-size:14px; }
@@ -130,6 +146,7 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
 .item-btns { display:flex; gap:6px; align-items:center; }
 .role-sel { padding:5px 8px; border:1px solid #e2e8f0; border-radius:6px; font-size:12px; font-family:inherit; background:white; cursor:pointer; }
 .loading { text-align:center; padding:50px; color:#94a3b8; font-size:15px; }
+.freelance-badge { background:#dcfce7; color:#15803d; border-radius:4px; padding:1px 6px; font-size:11px; font-weight:600; margin-right:4px; }
 
 @media(max-width:640px) { .hdr-nav{display:none;} .wk-title{font-size:14px;} .main{padding:12px 10px;} }
 </style>
@@ -159,8 +176,7 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
 <!-- PIN -->
 <div id="pin-modal" class="modal-ov" style="display:none">
   <div class="modal-bx">
-    <h2>🔐 כניסת מנהל</h2>
-    <p>הזן את קוד המנהל</p>
+    <h2>🔐 כניסת מנהל</h2><p>הזן את קוד המנהל</p>
     <input type="password" class="pin-inp" id="pin-inp" maxlength="10" placeholder="••••" />
     <div id="pin-err" class="auth-err"></div>
     <div class="modal-btns">
@@ -186,9 +202,7 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
       </div>
     </div>
   </div>
-
   <div class="main">
-    <!-- WEEK NAV -->
     <div class="wk-nav" id="wk-nav">
       <div class="wk-ctrl">
         <button class="wk-btn" onclick="changeWeek(-1)">‹</button>
@@ -203,20 +217,17 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
       </div>
     </div>
 
-    <!-- SCHEDULE VIEW -->
     <div id="view-schedule">
-      <div id="lock-notice" class="notice n-warn" style="display:none">🔒 הסידור עדיין לא אושר — מוצג רק הסידור של המחלקה שלך</div>
+      <div id="lock-notice" class="notice n-warn" style="display:none">🔒 הסידור עדיין לא אושר — מוצגת רק המחלקה שלך</div>
       <div id="dept-tabs" class="dept-tabs"></div>
       <div id="sched-wrap"><div class="loading">⏳ טוען...</div></div>
     </div>
 
-    <!-- STATS VIEW -->
     <div id="view-stats" style="display:none">
       <div class="sec-title">סטטיסטיקות עובדים</div>
       <div id="stats-wrap" class="stats-grid"></div>
     </div>
 
-    <!-- SETTINGS VIEW -->
     <div id="view-settings" style="display:none">
       <div class="sec-title">הגדרות מערכת</div>
       <div class="set-sec">
@@ -230,14 +241,22 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
       </div>
       <div class="set-sec">
         <h3>סוגי משמרות</h3>
-        <div class="notice n-info" style="margin-bottom:14px">💡 המשמרות יופיעו כשורות בסידור. ניתן להוסיף סוגים חדשים כאן.</div>
         <div class="set-row">
-          <input class="s-inp" id="ns-nm" placeholder="שם משמרת (בוקר / ערב...)" />
+          <input class="s-inp" id="ns-nm" placeholder="שם משמרת" />
           <input class="s-inp" id="ns-tm" placeholder="שעות (06:00-14:00)" />
           <input type="color" id="ns-cl" value="#FEF3C7" style="width:40px;height:38px;border:none;cursor:pointer;border-radius:8px;flex-shrink:0" />
           <button class="btn-add" onclick="addShiftType()">+ הוסף</button>
         </div>
         <div class="item-list" id="shift-list"></div>
+      </div>
+      <div class="set-sec">
+        <h3>פרילנסרים לפי מחלקה</h3>
+        <div class="set-row">
+          <input class="s-inp" id="nf-nm" placeholder="שם פרילנסר" />
+          <select class="s-inp" id="nf-dept" style="max-width:160px"></select>
+          <button class="btn-add" onclick="addFreelancer()">+ הוסף</button>
+        </div>
+        <div class="item-list" id="freelancer-list"></div>
       </div>
       <div class="set-sec">
         <h3>עובדים רשומים</h3>
@@ -257,17 +276,18 @@ const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser=null, currentEmp=null, isMgr=false;
-let weekOffset=0, departments=[], employees=[], schedules={}, cellData={}, activeView='schedule';
-let activeDeptId=null;
+let weekOffset=0, departments=[], employees=[], freelancers=[], schedules={}, cellData={};
+let activeView='schedule', activeDeptId=null;
+let openDropdown=null; // {deptId, shiftId, dayIdx}
+
 let shiftTypes=[
-  {id:'morning',  name:'בוקר',    time:'06:00-14:00', color:'#F59E0B'},
-  {id:'midday',   name:'אמצע',    time:'10:00-18:00', color:'#3B82F6'},
-  {id:'news',     name:'מהדורה',  time:'18:00-23:00', color:'#8B5CF6'},
-  {id:'night',    name:'לילה',    time:'23:00-06:00', color:'#1E293B'},
-  {id:'arabic',   name:'ערבית',   time:'',            color:'#10B981'},
+  {id:'morning', name:'בוקר',   time:'06:00-14:00', color:'#F59E0B'},
+  {id:'midday',  name:'אמצע',   time:'10:00-18:00', color:'#3B82F6'},
+  {id:'news',    name:'מהדורה', time:'18:00-23:00', color:'#8B5CF6'},
+  {id:'night',   name:'לילה',   time:'23:00-06:00', color:'#1E293B'},
+  {id:'arabic',  name:'ערבית',  time:'',            color:'#10B981'},
 ];
 
-const DAYS=['שבת','שישי','חמישי','רביעי','שלישי','שני','ראשון']; // RTL order — ראשון first displayed
 const DAYS_DISPLAY=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 const ROLE_HEB={employee:'עובד',team_lead:'ראש צוות',manager:'מנהל'};
 
@@ -328,15 +348,19 @@ function enterMgr(){
 }
 async function logout(){
   if(!isMgr) await sb.auth.signOut();
-  isMgr=false;currentUser=null;currentEmp=null;weekOffset=0;activeDeptId=null;
+  isMgr=false;currentUser=null;currentEmp=null;weekOffset=0;activeDeptId=null;openDropdown=null;
   document.getElementById('app').style.display='none';
   document.getElementById('auth-screen').style.display='flex';
 }
 document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') closeDropdown();
   if(e.key==='Enter'){
     if(document.getElementById('pin-modal').style.display!=='none') checkPin();
     else if(document.getElementById('auth-screen').style.display!=='none') handleAuth();
   }
+});
+document.addEventListener('click',e=>{
+  if(openDropdown&&!e.target.closest('.cell-rel')) closeDropdown();
 });
 
 // ── INIT ──
@@ -351,19 +375,25 @@ async function initApp(user){
   document.getElementById('hdr-rl').textContent=ROLE_HEB[role]||'עובד';
   document.getElementById('nav-stats').style.display=(role==='manager'||role==='team_lead')?'inline-block':'none';
   document.getElementById('nav-settings').style.display=role==='manager'?'inline-block':'none';
-  // default tab: own dept or first
   activeDeptId=currentEmp.department_id||departments[0]?.id||null;
   await loadWeekData();
   renderDeptTabs();
   renderSchedule();
   sb.channel('rt')
-    .on('postgres_changes',{event:'*',schema:'public',table:'schedule_cells'},()=>loadWeekData().then(()=>{renderSchedule();}))
+    .on('postgres_changes',{event:'*',schema:'public',table:'schedule_cells'},()=>loadWeekData().then(renderSchedule))
     .on('postgres_changes',{event:'*',schema:'public',table:'schedules'},()=>loadWeekData().then(()=>{updateWeekUI();renderSchedule();}))
     .subscribe();
 }
+
 async function loadAll(){
-  const [d,e]=await Promise.all([sb.from('departments').select('*').order('name'),sb.from('employees').select('*').order('full_name')]);
-  departments=d.data||[];employees=e.data||[];
+  const [d,e,f]=await Promise.all([
+    sb.from('departments').select('*').order('name'),
+    sb.from('employees').select('*').order('full_name'),
+    sb.from('freelancers').select('*').order('name'),
+  ]);
+  departments=d.data||[];
+  employees=e.data||[];
+  freelancers=f.data||[];
 }
 
 // ── WEEK ──
@@ -373,18 +403,13 @@ function weekDates(o=weekOffset){const s=weekStart(o);return DAYS_DISPLAY.map((_
 
 async function loadWeekData(){
   const ws=weekStartStr();
-  // load schedules
   const {data:sc}=await sb.from('schedules').select('*').eq('week_start',ws);
   schedules={};(sc||[]).forEach(s=>{schedules[s.department_id]=s;});
-  // load cells for all schedules
   const ids=Object.values(schedules).map(s=>s.id);
   cellData={};
   if(ids.length){
     const {data:cells}=await sb.from('schedule_cells').select('*').in('schedule_id',ids);
-    (cells||[]).forEach(c=>{
-      const key=`${c.schedule_id}_${c.shift_type}_${c.day_index}`;
-      cellData[key]=c;
-    });
+    (cells||[]).forEach(c=>{cellData[`${c.schedule_id}_${c.shift_type}_${c.day_index}`]=c;});
   }
   updateWeekUI();
 }
@@ -402,8 +427,7 @@ function updateWeekUI(){
   if(weekOffset<0){tb.style.display='inline-block';tb.className='badge b-arc';tb.textContent='🗂 ארכיון';}
   else if(weekOffset>0){tb.style.display='inline-block';tb.className='badge b-fut';tb.textContent='📅 תכנון עתידי';}
   else tb.style.display='none';
-  const role=currentEmp?.role||'employee';
-  document.getElementById('app-btn').style.display=((role==='manager'||isMgr)&&!allApp)?'inline-block':'none';
+  document.getElementById('app-btn').style.display=((currentEmp?.role==='manager'||isMgr)&&!allApp)?'inline-block':'none';
 }
 
 async function approveWeek(){
@@ -421,35 +445,23 @@ function fullyApproved(){return departments.length>0&&departments.every(d=>isApp
 function renderDeptTabs(){
   const role=currentEmp?.role||'employee';
   const fa=fullyApproved();
-  let visibleDepts=[];
-  if(isMgr||role==='manager') visibleDepts=departments;
-  else if(role==='team_lead') visibleDepts=departments;
-  else {
-    // employee: own dept always, others only if approved
-    visibleDepts=departments.filter(d=>d.id===currentEmp?.department_id||(fa&&isApproved(d.id)));
-  }
-  const tabs=document.getElementById('dept-tabs');
-  tabs.innerHTML=visibleDepts.map(d=>`
+  let vis=[];
+  if(isMgr||role==='manager') vis=departments;
+  else if(role==='team_lead') vis=departments;
+  else vis=departments.filter(d=>d.id===currentEmp?.department_id||(fa&&isApproved(d.id)));
+  document.getElementById('dept-tabs').innerHTML=vis.map(d=>`
     <button class="dept-tab${activeDeptId===d.id?' active':''}"
-      style="border-color:${d.color};${activeDeptId===d.id?`background:${d.color};`:'color:'+d.color}"
+      style="border-color:${d.color};${activeDeptId===d.id?`background:${d.color};color:white`:`color:${d.color}`}"
       onclick="setDept('${d.id}')">${d.name}</button>`).join('');
-  if(!activeDeptId&&visibleDepts.length) activeDeptId=visibleDepts[0].id;
+  if(!activeDeptId&&vis.length) activeDeptId=vis[0].id;
 }
+function setDept(id){activeDeptId=id;openDropdown=null;renderDeptTabs();renderSchedule();}
 
-function setDept(id){activeDeptId=id;renderDeptTabs();renderSchedule();}
-
-// ── SCHEDULE (row-per-shift) ──
-function canEdit(dId){
-  if(isMgr) return true;
-  const role=currentEmp?.role||'employee';
-  if(role==='manager') return true;
-  if(role==='team_lead'&&currentEmp.department_id===dId&&!isApproved(dId)) return true;
-  return false;
-}
-
-function getCellValue(schedId,shiftId,dayIdx){
+// ── CELL DATA ──
+function getCellNames(schedId,shiftId,dayIdx){
   const key=`${schedId}_${shiftId}_${dayIdx}`;
-  return cellData[key]?.content||'';
+  const val=cellData[key]?.content||'';
+  return val?val.split('|').filter(Boolean):[];
 }
 
 async function ensureSched(dId){
@@ -459,9 +471,10 @@ async function ensureSched(dId){
   schedules[dId]=data;return data;
 }
 
-async function saveCell(dId,shiftId,dayIdx,content){
+async function saveNames(dId,shiftId,dayIdx,names){
   const sched=await ensureSched(dId);
   const key=`${sched.id}_${shiftId}_${dayIdx}`;
+  const content=names.join('|');
   const existing=cellData[key];
   if(existing){
     const {data}=await sb.from('schedule_cells').update({content}).eq('id',existing.id).select().single();
@@ -472,6 +485,77 @@ async function saveCell(dId,shiftId,dayIdx,content){
   }
 }
 
+async function removeName(dId,shiftId,dayIdx,name){
+  const sched=schedules[dId]; if(!sched) return;
+  const names=getCellNames(sched.id,shiftId,dayIdx).filter(n=>n!==name);
+  await saveNames(dId,shiftId,dayIdx,names);
+  renderSchedule();
+}
+
+async function addName(dId,shiftId,dayIdx,name){
+  const sched=await ensureSched(dId);
+  const names=getCellNames(sched.id,shiftId,dayIdx);
+  if(names.includes(name)) return;
+  names.push(name);
+  await saveNames(dId,shiftId,dayIdx,names);
+  closeDropdown();
+  renderSchedule();
+}
+
+// ── DROPDOWN ──
+function closeDropdown(){openDropdown=null;renderSchedule();}
+
+function toggleDropdown(dId,shiftId,dayIdx){
+  if(openDropdown&&openDropdown.dId===dId&&openDropdown.shiftId===shiftId&&openDropdown.dayIdx===dayIdx){
+    closeDropdown();return;
+  }
+  openDropdown={dId,shiftId,dayIdx};
+  renderSchedule();
+  setTimeout(()=>{
+    const inp=document.getElementById('dd-search');
+    if(inp) inp.focus();
+  },50);
+}
+
+function filterDropdown(dId,shiftId,dayIdx){
+  const q=(document.getElementById('dd-search')?.value||'').toLowerCase();
+  renderDropdownItems(dId,shiftId,dayIdx,q);
+}
+
+function renderDropdownItems(dId,shiftId,dayIdx,q=''){
+  const sched=schedules[dId];
+  const currentNames=sched?getCellNames(sched.id,shiftId,dayIdx):[];
+  const deptEmps=employees.filter(e=>e.department_id===dId&&!currentNames.includes(e.full_name));
+  const deptFree=freelancers.filter(f=>f.department_id===dId&&!currentNames.includes(f.name));
+  const filtEmps=q?deptEmps.filter(e=>e.full_name.toLowerCase().includes(q)):deptEmps;
+  const filtFree=q?deptFree.filter(f=>f.name.toLowerCase().includes(q)):deptFree;
+
+  const container=document.getElementById('dd-items');
+  if(!container) return;
+  let html='';
+  if(filtEmps.length){
+    html+=`<div class="emp-dd-group"><div class="emp-dd-label">עובדים קבועים</div>`;
+    filtEmps.forEach(e=>{html+=`<div class="emp-dd-item" onclick="addName('${dId}','${shiftId}',${dayIdx},'${e.full_name.replace(/'/g,"\\'")}')">👤 ${e.full_name}</div>`;});
+    html+=`</div>`;
+  }
+  if(filtFree.length){
+    html+=`<div class="emp-dd-group"><div class="emp-dd-label">פרילנסרים</div>`;
+    filtFree.forEach(f=>{html+=`<div class="emp-dd-item freelance-item" onclick="addName('${dId}','${shiftId}',${dayIdx},'${f.name.replace(/'/g,"\\'")}')">🔄 ${f.name}</div>`;});
+    html+=`</div>`;
+  }
+  if(!filtEmps.length&&!filtFree.length) html='<div class="emp-dd-empty">אין תוצאות</div>';
+  container.innerHTML=html;
+}
+
+// ── RENDER SCHEDULE ──
+function canEdit(dId){
+  if(isMgr) return true;
+  const role=currentEmp?.role||'employee';
+  if(role==='manager') return true;
+  if(role==='team_lead'&&currentEmp.department_id===dId&&!isApproved(dId)) return true;
+  return false;
+}
+
 function renderSchedule(){
   if(activeView!=='schedule') return;
   const role=currentEmp?.role||'employee';
@@ -480,61 +564,76 @@ function renderSchedule(){
   const wrap=document.getElementById('sched-wrap');
   if(!departments.length){wrap.innerHTML='<div class="loading">אין מחלקות — הוסף מחלקות בהגדרות</div>';return;}
   if(!activeDeptId){wrap.innerHTML='<div class="loading">בחר מחלקה</div>';return;}
-
   const dept=departments.find(d=>d.id===activeDeptId);
-  if(!dept){wrap.innerHTML='<div class="loading">מחלקה לא נמצאה</div>';return;}
+  if(!dept){wrap.innerHTML='';return;}
 
   const ed=canEdit(dept.id);
   const sched=schedules[dept.id];
   const dates=weekDates();
 
   let html=`<div class="sched-block">
-    <div class="sched-block-hdr" style="background:${dept.color}">
-      <span class="sched-block-title">${dept.name} — ${document.getElementById('wk-lbl').textContent}</span>
+    <div class="sched-hdr" style="background:${dept.color}">
+      <span class="sched-hdr-title">${dept.name} — ${document.getElementById('wk-lbl').textContent}</span>
       ${ed?'<span class="edit-badge">✏️ עריכה פעילה</span>':''}
     </div>
     <div class="tbl-wrap"><table>
     <thead><tr>
       <th class="shift-col">משמרת</th>
       ${DAYS_DISPLAY.map((d,i)=>`<th>${d}<br><span style="font-size:10px;font-weight:400;color:#94a3b8">${dates[i]}</span></th>`).join('')}
-    </tr></thead>
-    <tbody>`;
+    </tr></thead><tbody>`;
 
   for(const shift of shiftTypes){
-    html+=`<tr>
-      <td class="shift-label">
-        <span class="shift-color-dot" style="background:${shift.color}"></span>
-        ${shift.name}
-        ${shift.time?`<br><span style="font-size:10px;color:#94a3b8;font-weight:400">${shift.time}</span>`:''}
-      </td>`;
+    html+=`<tr><td class="shift-label">
+      <span class="shift-dot" style="background:${shift.color}"></span>${shift.name}
+      ${shift.time?`<br><span style="font-size:10px;color:#94a3b8;font-weight:400">${shift.time}</span>`:''}
+    </td>`;
     for(let d=0;d<7;d++){
-      const val=sched?getCellValue(sched.id,shift.id,d):'';
+      const names=sched?getCellNames(sched.id,shift.id,d):[];
+      const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===shift.id&&openDropdown.dayIdx===d;
+      html+=`<td><div class="cell-inner cell-rel">
+        <div class="cell-tags">`;
+      names.forEach(name=>{
+        const isFreelance=freelancers.some(f=>f.name===name&&f.department_id===dept.id);
+        const escapedName=name.replace(/'/g,"\\'");
+        html+=`<span class="emp-tag${isFreelance?' freelance':''}">
+          ${name}
+          ${ed?`<span class="remove-tag" onclick="removeName('${dept.id}','${shift.id}',${d},'${escapedName}')">×</span>`:''}
+        </span>`;
+      });
+      html+=`</div>`;
       if(ed){
-        html+=`<td><div class="cell-wrap">
-          <textarea class="cell-text editable" rows="2"
-            data-dept="${dept.id}" data-shift="${shift.id}" data-day="${d}"
-            onblur="handleCellBlur(this)"
-            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur();}"
-          >${val}</textarea>
-        </div></td>`;
-      } else {
-        html+=`<td><div class="cell-wrap">
-          <textarea class="cell-text" rows="2" disabled>${val}</textarea>
-        </div></td>`;
+        html+=`<button class="add-emp-btn" onclick="event.stopPropagation();toggleDropdown('${dept.id}','${shift.id}',${d})">+ הוסף</button>`;
+        if(isOpen){
+          const deptEmps=employees.filter(e=>e.department_id===dept.id&&!names.includes(e.full_name));
+          const deptFree=freelancers.filter(f=>f.department_id===dept.id&&!names.includes(f.name));
+          let ddHtml='';
+          if(deptEmps.length){
+            ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">עובדים קבועים</div>`;
+            deptEmps.forEach(e=>{ddHtml+=`<div class="emp-dd-item" onclick="addName('${dept.id}','${shift.id}',${d},'${e.full_name.replace(/'/g,"\\'")}')">👤 ${e.full_name}</div>`;});
+            ddHtml+=`</div>`;
+          }
+          if(deptFree.length){
+            ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">פרילנסרים</div>`;
+            deptFree.forEach(f=>{ddHtml+=`<div class="emp-dd-item freelance-item" onclick="addName('${dept.id}','${shift.id}',${d},'${f.name.replace(/'/g,"\\'")}')">🔄 ${f.name}</div>`;});
+            ddHtml+=`</div>`;
+          }
+          if(!deptEmps.length&&!deptFree.length) ddHtml='<div class="emp-dd-empty">אין עובדים זמינים</div>';
+          html+=`<div class="emp-dropdown" onclick="event.stopPropagation()">
+            <div class="emp-dd-search"><input id="dd-search" placeholder="חפש שם..." oninput="filterDropdown('${dept.id}','${shift.id}',${d})" /></div>
+            <div id="dd-items">${ddHtml}</div>
+          </div>`;
+        }
       }
+      html+=`</div></td>`;
     }
     html+=`</tr>`;
   }
   html+=`</tbody></table></div></div>`;
   wrap.innerHTML=html;
-}
-
-async function handleCellBlur(el){
-  const dId=el.dataset.dept;
-  const shiftId=el.dataset.shift;
-  const dayIdx=parseInt(el.dataset.day);
-  const content=el.value;
-  await saveCell(dId,shiftId,dayIdx,content);
+  if(openDropdown){
+    const inp=document.getElementById('dd-search');
+    if(inp) inp.focus();
+  }
 }
 
 // ── STATS ──
@@ -547,7 +646,10 @@ function renderStats(){
     let cnt=0;
     if(sched){
       Object.values(cellData).forEach(c=>{
-        if(c.schedule_id===sched.id&&c.content&&c.content.includes(emp.full_name)) cnt++;
+        if(c.schedule_id===sched.id&&c.content){
+          const names=c.content.split('|');
+          if(names.includes(emp.full_name)) cnt++;
+        }
       });
     }
     const req=Math.round((emp.position_percent/100)*5);
@@ -569,19 +671,34 @@ function renderStats(){
 
 // ── SETTINGS ──
 function renderSettings(){
+  // Depts
   document.getElementById('dept-list').innerHTML=departments.map(d=>`
     <div class="item-row"><div class="item-info"><div class="cdot" style="background:${d.color}"></div><span>${d.name}</span></div>
     <button class="btn-del" onclick="delDept('${d.id}')">מחק</button></div>`).join('')||'<div style="color:#94a3b8;padding:8px">אין מחלקות</div>';
 
+  // Shifts
   document.getElementById('shift-list').innerHTML=shiftTypes.map((s,i)=>`
     <div class="item-row"><div class="item-info"><div class="cdot" style="background:${s.color}"></div>
     <span style="font-weight:600">${s.name}</span>${s.time?`<span style="color:#94a3b8;font-size:12px;margin-right:8px">${s.time}</span>`:''}</div>
-    ${s.id!=='off'?`<div class="item-btns">
-      <button class="btn-del" onclick="moveShift(${i},-1)" title="העלה">↑</button>
-      <button class="btn-del" onclick="moveShift(${i},1)" title="הורד">↓</button>
+    <div class="item-btns">
+      <button class="btn-del" style="background:#f1f5f9;color:#374151;border-color:#e2e8f0" onclick="moveShift(${i},-1)">↑</button>
+      <button class="btn-del" style="background:#f1f5f9;color:#374151;border-color:#e2e8f0" onclick="moveShift(${i},1)">↓</button>
       <button class="btn-del" onclick="delShift('${s.id}')">מחק</button>
-    </div>`:''}</div>`).join('');
+    </div></div>`).join('');
 
+  // Freelancers
+  const nfSel=document.getElementById('nf-dept');
+  nfSel.innerHTML=departments.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+  document.getElementById('freelancer-list').innerHTML=freelancers.map(f=>{
+    const dept=departments.find(d=>d.id===f.department_id);
+    return `<div class="item-row"><div class="item-info">
+      <span class="freelance-badge">פרילנס</span>
+      <span style="font-weight:600">${f.name}</span>
+      ${dept?`<span style="color:#94a3b8;font-size:12px">· ${dept.name}</span>`:''}
+    </div><button class="btn-del" onclick="delFreelancer('${f.id}')">מחק</button></div>`;
+  }).join('')||'<div style="color:#94a3b8;padding:8px">אין פרילנסרים</div>';
+
+  // Employees
   document.getElementById('emp-list').innerHTML=employees.map(emp=>{
     const dept=departments.find(d=>d.id===emp.department_id);
     return `<div class="item-row">
@@ -623,15 +740,21 @@ function addShiftType(){
   document.getElementById('ns-nm').value='';document.getElementById('ns-tm').value='';
   renderSettings();renderSchedule();
 }
-function delShift(id){
-  if(!confirm('למחוק משמרת זו?'))return;
-  shiftTypes=shiftTypes.filter(s=>s.id!==id);renderSettings();renderSchedule();
-}
+function delShift(id){shiftTypes=shiftTypes.filter(s=>s.id!==id);renderSettings();renderSchedule();}
 function moveShift(idx,dir){
-  const ni=idx+dir;
-  if(ni<0||ni>=shiftTypes.length)return;
+  const ni=idx+dir;if(ni<0||ni>=shiftTypes.length)return;
   [shiftTypes[idx],shiftTypes[ni]]=[shiftTypes[ni],shiftTypes[idx]];
   renderSettings();renderSchedule();
+}
+async function addFreelancer(){
+  const n=document.getElementById('nf-nm').value.trim(),d=document.getElementById('nf-dept').value;
+  if(!n||!d)return;
+  await sb.from('freelancers').insert({name:n,department_id:d});
+  await loadAll();document.getElementById('nf-nm').value='';renderSettings();
+}
+async function delFreelancer(id){
+  await sb.from('freelancers').delete().eq('id',id);
+  await loadAll();renderSettings();
 }
 async function updateRole(id,role){await sb.from('employees').update({role}).eq('id',id);await loadAll();renderSettings();}
 async function updatePos(id,pos){await sb.from('employees').update({position_percent:parseInt(pos)||100}).eq('id',id);await loadAll();renderSettings();}
@@ -639,17 +762,17 @@ async function delEmp(id){if(!confirm('למחוק עובד?'))return;await sb.fr
 
 // ── NAV ──
 function showView(v,e){
-  activeView=v;
+  activeView=v;openDropdown=null;
   ['schedule','stats','settings'].forEach(x=>document.getElementById('view-'+x).style.display=x===v?'block':'none');
   document.getElementById('wk-nav').style.display=v==='settings'?'none':'block';
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   if(e) e.target.classList.add('active');
-  if(v==='stats'){renderStats();}
-  if(v==='settings'){renderSettings();}
+  if(v==='stats') renderStats();
+  if(v==='settings') renderSettings();
   if(v==='schedule'){renderDeptTabs();renderSchedule();}
 }
-function changeWeek(d){weekOffset+=d;loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});}
-function goToday(){weekOffset=0;loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});}
+function changeWeek(d){weekOffset+=d;openDropdown=null;loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});}
+function goToday(){weekOffset=0;openDropdown=null;loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});}
 
 // ── STARTUP ──
 (async()=>{const {data:{session}}=await sb.auth.getSession();if(session)await initApp(session.user);})();
