@@ -10,7 +10,7 @@
 body { font-family:'Segoe UI',Arial,sans-serif; background:#f0f4f8; color:#1a202c; direction:rtl; min-height:100vh; }
 
 /* AUTH */
-#auth-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#0f172a,#1e3a5f); padding:16px; }
+#auth-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; background:#dde6f2; padding:16px; position:relative; overflow:hidden; }
 .auth-box { background:white; border-radius:20px; padding:36px; width:100%; max-width:420px; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
 .auth-logo { text-align:center; font-size:48px; margin-bottom:8px; }
 .auth-title { font-size:24px; font-weight:800; color:#0f172a; text-align:center; margin-bottom:4px; }
@@ -164,28 +164,53 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
 
 <!-- AUTH -->
 <div id="auth-screen">
-  <div class="auth-box">
-    <div class="auth-logo">📋</div>
-    <div class="auth-title">סידורי עבודה</div>
-    <div class="auth-sub" id="auth-sub">כניסה למערכת</div>
-    <div class="fg"><label>אימייל</label><input type="email" id="a-email" placeholder="your@email.com" /></div>
-    <div class="fg"><label>סיסמה</label><input type="password" id="a-pass" placeholder="••••••••" /></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(160deg,#c8d8ee 0%,#e4edf8 60%,#dde6f2 100%);z-index:0"></div>
+  <img src="cameraman.png" style="position:absolute;bottom:0;right:0;height:80%;opacity:0.3;z-index:0;pointer-events:none;object-fit:contain;object-position:bottom right" />
+
+  <div class="auth-box" style="position:relative;z-index:1;background:rgba(255,255,255,0.92);border:1px solid #c8d4e8;box-shadow:0 8px 40px rgba(80,100,160,0.18)">
+    <div class="auth-logo" style="font-size:38px">📋</div>
+    <div class="auth-title" style="color:#1a2030">סידורי עבודה</div>
+    <div class="auth-sub" id="auth-sub" style="color:#6a7890">כניסה למערכת</div>
+    <div class="fg"><label style="color:#5a6880">אימייל</label><input type="email" id="a-email" placeholder="your@email.com" style="background:white;border-color:#c0cce0;color:#1a2030" /></div>
+    <div class="fg"><label style="color:#5a6880">סיסמה</label><input type="password" id="a-pass" placeholder="••••••••" style="background:white;border-color:#c0cce0;color:#1a2030" /></div>
     <div id="reg-f" style="display:none">
-      <div class="fg"><label>שם מלא</label><input type="text" id="a-name" placeholder="ישראל ישראלי" /></div>
-      <div class="fg"><label>מחלקה</label><select id="a-dept"><option value="">-- בחר מחלקה --</option></select></div>
+      <div class="fg"><label style="color:#5a6880">שם מלא</label><input type="text" id="a-name" placeholder="ישראל ישראלי" style="background:white;border-color:#c0cce0;color:#1a2030" /></div>
+      <div class="fg"><label style="color:#5a6880">מחלקה</label><select id="a-dept" style="background:white;border-color:#c0cce0;color:#1a2030"><option value="">-- בחר מחלקה --</option></select></div>
     </div>
-    <button class="btn-p" id="a-btn" onclick="handleAuth()">כניסה</button>
+
+    <button class="btn-p" id="a-btn" onclick="handleAuth()" style="animation:onair 1.2s ease-in-out infinite;font-size:20px;font-weight:900;letter-spacing:6px;border:2px solid #ff2200">ON AIR</button>
+    <style>
+      @keyframes onair{0%,100%{background:#cc0000;box-shadow:0 0 12px #ff000066}50%{background:#ff1111;box-shadow:0 0 24px #ff000099}}
+    </style>
+
     <div id="a-msg" class="auth-err"></div>
-    <div class="auth-tog"><span id="tog-txt">אין לך חשבון?</span><a onclick="toggleMode()"> הרשמה</a></div>
-    <div class="auth-div">— או —</div>
-    <button class="btn-mgr" onclick="showPin()">🔐 כניסת מנהל</button>
+    <div class="auth-tog" style="color:#8090a8"><span id="tog-txt">אין לך חשבון?</span><a onclick="toggleMode()" style="color:#6366f1"> הרשמה</a></div>
+
+    <div class="auth-div" style="color:#c0cce0">— כניסת מנהל —</div>
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:4px">
+      <div style="text-align:center">
+        <button onclick="showPinFor('primary')" title="מנהל ראשי"
+          style="width:56px;height:56px;border-radius:50%;background:#f0f4ff;border:2px solid #6366f1;cursor:pointer;font-size:28px;display:flex;align-items:center;justify-content:center">
+          👨‍💼
+        </button>
+        <div style="font-size:10px;color:#6366f1;margin-top:3px;font-weight:600">ראשי</div>
+      </div>
+      <div style="text-align:center">
+        <button onclick="showPinFor('secondary')" title="מנהלת משנית"
+          style="width:56px;height:56px;border-radius:50%;background:#fff0f8;border:2px solid #ec4899;cursor:pointer;font-size:28px;display:flex;align-items:center;justify-content:center">
+          👩‍💼
+        </button>
+        <div style="font-size:10px;color:#ec4899;margin-top:3px;font-weight:600">משנית</div>
+      </div>
+    </div>
   </div>
-</div>
+</div></div>
 
 <!-- PIN -->
 <div id="pin-modal" class="modal-ov" style="display:none">
   <div class="modal-bx">
-    <h2>🔐 כניסת מנהל</h2><p>הזן את קוד המנהל</p>
+    <h2 id="pin-title">🔐 כניסת מנהל</h2>
+    <p id="pin-subtitle">הזן קוד</p>
     <input type="password" class="pin-inp" id="pin-inp" maxlength="10" placeholder="••••" />
     <div id="pin-err" class="auth-err"></div>
     <div class="modal-btns">
@@ -307,6 +332,8 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
 const SUPABASE_URL = 'https://efkcnuzbmwnslhgvpxws.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_c_45pz-jdrrfTlVkf_Pi1Q_nzZ_MSjE';
 const MANAGER_PIN  = '2209';
+const MANAGER_PIN2 = '1612';
+let pinTarget = 'primary'; // 'primary' or 'secondary'
 
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -370,16 +397,27 @@ async function handleAuth(){
     authMode='login'; setTimeout(toggleMode,1500);
   }
 }
-function showPin(){document.getElementById('pin-modal').style.display='flex';document.getElementById('pin-inp').focus();}
+function showPin(){showPinFor('primary');}
+function showPinFor(target){
+  pinTarget=target;
+  document.getElementById('pin-modal').style.display='flex';
+  document.getElementById('pin-inp').focus();
+  document.getElementById('pin-title').textContent=target==='primary'?'👨‍💼 מנהל ראשי':'👩‍💼 מנהלת משנית';
+  document.getElementById('pin-subtitle').textContent='הזן קוד';
+  document.getElementById('pin-err').textContent='';
+  document.getElementById('pin-inp').value='';
+}
 function hidePin(){document.getElementById('pin-modal').style.display='none';document.getElementById('pin-err').textContent='';document.getElementById('pin-inp').value='';}
 function checkPin(){
-  if(document.getElementById('pin-inp').value===MANAGER_PIN){hidePin();enterMgr();}
+  const val=document.getElementById('pin-inp').value;
+  if(pinTarget==='primary'&&val===MANAGER_PIN){hidePin();enterMgr('מנהל ראשי','primary');}
+  else if(pinTarget==='secondary'&&val===MANAGER_PIN2){hidePin();enterMgr('מנהלת משנית','secondary');}
   else document.getElementById('pin-err').textContent='❌ קוד שגוי';
 }
-function enterMgr(){
+function enterMgr(label='מנהל',type='primary'){
   isMgr=true;
   currentUser={email:'manager@local',id:'manager-local'};
-  currentEmp={id:'manager-local',full_name:'מנהל',email:'manager@local',role:'manager',department_id:null,position_percent:100};
+  currentEmp={id:'manager-local',full_name:label,email:'manager@local',role:'manager',department_id:null,position_percent:100};
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('hdr-nm').textContent='מנהל';
