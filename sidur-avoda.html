@@ -790,6 +790,7 @@ function renderCombinedView(){
   const wrap=document.getElementById('sched-wrap');
   document.getElementById('lock-notice').style.display='none';
 
+  // get shifts union
   const allShiftIds=new Set();
   depts.forEach(dept=>{
     const ds=deptShifts[dept.id];
@@ -798,62 +799,49 @@ function renderCombinedView(){
   });
   const activeShifts=shiftTypes.filter(s=>allShiftIds.has(s.id));
 
-  // CSS grid: 8 columns (1 for shift label + 7 days), equal width for day cols
-  const dayColW = `calc((100% - 90px) / 7)`;
+  const CELL = 'padding:5px 4px;border:1px solid #e2e8f0;text-align:center;vertical-align:middle;min-width:80px';
+  const LABEL_CELL = 'padding:5px 8px;border:1px solid #e2e8f0;text-align:right;vertical-align:middle;background:#f8fafc;white-space:nowrap;min-width:90px';
 
   let html=`<div class="sched-block">
     <div class="sched-hdr" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
       <span class="sched-hdr-title">🎬 ${cv.name} — ${document.getElementById('wk-lbl').textContent}</span>
       <span style="background:rgba(255,255,255,0.2);color:white;border-radius:6px;padding:2px 10px;font-size:12px">צפייה בלבד</span>
     </div>
-    <div style="overflow-x:auto">
-    <div style="display:grid;grid-template-columns:90px repeat(7,1fr);min-width:600px;direction:rtl">
-
-      <!-- HEADER ROW -->
-      <div style="background:#f1f5f9;padding:8px 6px;font-weight:700;font-size:12px;color:#475569;border-bottom:2px solid #e2e8f0;text-align:right">משמרת</div>
-      ${DAYS_DISPLAY.map((d,i)=>`
-      <div style="background:#f1f5f9;padding:8px 4px;text-align:center;font-weight:700;font-size:12px;color:#475569;border-bottom:2px solid #e2e8f0;border-right:1px solid #e2e8f0">
-        ${d}<br><span style="font-size:10px;font-weight:400;color:#94a3b8">${dates[i]}</span>
-      </div>`).join('')}`;
+    <div style="overflow-x:auto;padding:0">
+    <table style="width:100%;border-collapse:collapse;direction:rtl;table-layout:fixed">
+    <colgroup>
+      <col style="width:100px">
+      ${DAYS_DISPLAY.map(()=>'<col>').join('')}
+    </colgroup>
+    <thead>
+      <tr style="background:#f1f5f9">
+        <th style="${LABEL_CELL};font-size:12px;color:#475569">משמרת</th>
+        ${DAYS_DISPLAY.map((d,i)=>`<th style="padding:8px 4px;border:1px solid #e2e8f0;text-align:center;font-size:12px;color:#475569;font-weight:700">
+          ${d}<br><span style="font-size:10px;font-weight:400;color:#94a3b8">${dates[i]}</span>
+        </th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>`;
 
   activeShifts.forEach(shift=>{
-    const deptsForShift=depts.filter(dept=>{
-      const ds=deptShifts[dept.id];
-      return !ds||ds.length===0||ds.includes(shift.id);
-    });
-
-    deptsForShift.forEach((dept,di)=>{
-      const isFirst=di===0;
-      const isLast=di===deptsForShift.length-1;
-      const deptAbbr=dept.name==='ע.במאי'?'ע':(dept.name==='במאים'?'במאי':dept.name.slice(0,4));
-      const rowBorder=isLast?'border-bottom:2px solid #e2e8f0':'border-bottom:1px dashed #f1f5f9';
-      const rowBg=di%2===0?'#fafafa':'white';
-
-      // SHIFT LABEL CELL (only first dept row, spans all dept rows via manual rowspan emulation)
-      if(isFirst){
-        html+=`<div style="grid-column:1;grid-row:span ${deptsForShift.length};
-          background:#f8fafc;border-left:3px solid ${shift.color};
-          padding:5px 6px;text-align:right;display:flex;flex-direction:column;
-          justify-content:center;border-bottom:2px solid #e2e8f0">
-          <div style="font-weight:700;color:#0f172a;font-size:11px;display:flex;align-items:center;gap:2px;justify-content:flex-end">
-            <span>${shift.name}</span>
-            <span style="width:6px;height:6px;border-radius:50%;background:${shift.color};flex-shrink:0"></span>
-          </div>
-          ${shift.time?`<div style="font-size:9px;color:#94a3b8">${shift.time}</div>`:''}
-        </div>`;
-      } else {
-        html+=`<div style="background:#f8fafc;padding:5px 6px;border-bottom:1px dashed #f1f5f9"></div>`;
-      }
-
-      // DAY CELLS
+    depts.forEach((dept,di)=>{
+      const deptShiftIds=deptShifts[dept.id];
+      if(deptShiftIds&&deptShiftIds.length>0&&!deptShiftIds.includes(shift.id)) return;
+      const rowBg=di===0?'#fafafa':'white';
+      const isLastDept=di===depts.length-1;
+      html+=`<tr style="background:${rowBg}">
+        <td style="${LABEL_CELL};border-right:3px solid ${shift.color}">
+          ${di===0?`<span style="font-weight:700;color:#0f172a;font-size:12px">
+            <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${shift.color};vertical-align:middle;margin-left:3px"></span>
+            ${shift.name}</span>
+            ${shift.time?`<br><span style="font-size:10px;color:#94a3b8">${shift.time}</span>`:''}
+            <br>`:''}
+          <span style="font-size:11px;font-weight:600;color:${dept.color}">${dept.name}</span>
+        </td>`;
       for(let d=0;d<7;d++){
         const sched=schedules[dept.id];
         const names=sched?getCellNames(sched.id,shift.id,d):[];
-        const noteKey=sched?`note_${sched.id}_${shift.id}_${d}`:'';
-        const noteVal=noteKey&&cellData[noteKey]?.content||'';
-        html+=`<div style="background:${rowBg};padding:4px 3px;text-align:center;
-          ${rowBorder};border-right:1px solid #f1f5f9;
-          display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:32px">`;
+        html+=`<td style="${CELL};background:${rowBg}">`;
         if(names.length){
           names.forEach(name=>{
             const isMe=currentEmp&&currentEmp.full_name===name&&!isMgr;
@@ -861,21 +849,20 @@ function renderCombinedView(){
             let col,bg;
             if(isSearch){col='#dc2626';bg='#fee2e2';}
             else if(isMe&&showMyShifts){col='#15803d';bg='#dcfce7';}
-            else if(showMyShifts&&!isMe){col='#cbd5e1';bg='#f8fafc';}
-            else{col='#1e40af';bg='#eff6ff';}
-            html+=`<span style="font-size:11px;font-weight:600;color:${col};background:${bg};
-              border-radius:10px;padding:1px 6px;margin:1px;white-space:nowrap;display:inline-block">${name}</span>`;
+            else if(showMyShifts&&!isMe){col='#cbd5e1';bg='transparent';}
+            else{col='#1e40af';bg='transparent';}
+            html+=`<span style="font-size:12px;font-weight:600;color:${col};background:${bg};border-radius:8px;padding:1px 4px;display:inline-block">${name}</span> `;
           });
         } else {
-          html+=`<span style="color:#e2e8f0;font-size:12px">—</span>`;
+          html+=`<span style="color:#d1d5db;font-size:12px">—</span>`;
         }
-        if(noteVal) html+=`<div style="font-size:9px;color:#1e40af;background:#eff6ff;border-radius:3px;padding:1px 3px;margin-top:1px">${noteVal}</div>`;
-        html+=`</div>`;
+        html+=`</td>`;
       }
+      html+=`</tr>`;
     });
   });
 
-  html+=`</div></div></div>`;
+  html+=`</tbody></table></div></div>`;
   wrap.innerHTML=html;
 }
 
