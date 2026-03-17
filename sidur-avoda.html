@@ -239,7 +239,6 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
           oninput="searchQuery=this.value;renderSchedule()"
           style="flex:1;min-width:160px;padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;font-family:inherit;background:white" />
         <button id="my-shifts-btn" onclick="toggleMyShifts()" style="padding:8px 14px;border:2px solid transparent;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:#f1f5f9;color:#64748b;white-space:nowrap">המשמרות שלי</button>
-        <button id="self-highlight-btn" onclick="toggleSelfHighlight()" style="padding:8px 14px;border:2px solid transparent;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:#f1f5f9;color:#64748b" title="סמן את עצמי">👤 אני</button>
         <button id="freelance-toggle" onclick="toggleFreelanceHighlight()" style="display:none;padding:8px 14px;border:2px solid transparent;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:#f1f5f9;color:#64748b">👁 פרילנסרים</button>
       </div>
       <div id="sched-wrap"><div class="loading">⏳ טוען...</div></div>
@@ -319,7 +318,6 @@ let editMode=false;
 let deptShifts={};
 let searchQuery='';
 let showFreelancers=false;
-let highlightSelf=false;
 let combinedViews=[]; // [{id, name, dept_ids}]
 let activeCombinedId=null; // if viewing a combined view
 
@@ -541,16 +539,7 @@ function toggleMyShifts(){
   }
   renderSchedule();
 }
-function toggleSelfHighlight(){
-  highlightSelf=!highlightSelf;
-  const btn=document.getElementById('self-highlight-btn');
-  if(btn){
-    btn.style.background=highlightSelf?'#dcfce7':'#f1f5f9';
-    btn.style.color=highlightSelf?'#15803d':'#64748b';
-    btn.style.borderColor=highlightSelf?'#86efac':'transparent';
-  }
-  renderSchedule();
-}
+
 function toggleFreelanceHighlight(){
   showFreelancers=!showFreelancers;
   const btn=document.getElementById('freelance-toggle');
@@ -833,22 +822,23 @@ function renderCombinedView(){
       const isLast=di===deptsForShift.length-1;
       html+=`<tr>`;
       // shift name cell: only on first row, rowspan all dept rows
-      const deptAbbr=dept.name==='ע.במאי'?'ע':(dept.name.length>4?dept.name.slice(0,4):dept.name);
+      const deptAbbr=dept.name==='ע.במאי'?'ע':(dept.name==='במאים'?'במ':dept.name.slice(0,3));
       if(isFirst){
         html+=`<td rowspan="${deptsForShift.length}"
-          style="padding:4px 10px;vertical-align:top;border-left:3px solid ${shift.color};
-          background:#f8fafc;white-space:nowrap;text-align:right;min-width:90px;max-width:110px">
-          <div style="display:flex;align-items:center;gap:3px;justify-content:flex-end">
+          style="padding:3px 8px;vertical-align:middle;border-left:3px solid ${shift.color};
+          background:#f8fafc;white-space:nowrap;text-align:right;width:85px">
+          <div style="font-size:10px;font-weight:700;color:${dept.color};line-height:1.2">${deptAbbr}</div>
+          <div style="display:flex;align-items:center;gap:2px;justify-content:flex-end;margin:1px 0">
             <strong style="font-size:12px;color:#0f172a">${shift.name}</strong>
-            <span style="width:8px;height:8px;border-radius:50%;background:${shift.color};flex-shrink:0"></span>
+            <span style="width:7px;height:7px;border-radius:50%;background:${shift.color};flex-shrink:0"></span>
           </div>
-          ${shift.time?`<div style="font-size:9px;color:#94a3b8">${shift.time}</div>`:''}
-          <div style="font-size:10px;font-weight:700;color:${dept.color};margin-top:2px">${deptAbbr}</div>
+          ${shift.time?`<div style="font-size:9px;color:#94a3b8;line-height:1.2">${shift.time}</div>`:''}
         </td>`;
       } else {
-        html+=`<td style="padding:4px 10px;background:#f8fafc;text-align:right;
+        html+=`<td style="padding:3px 8px;background:#f8fafc;text-align:right;
           border-bottom:${isLast?'2px solid #e2e8f0':'1px dashed #f1f5f9'};
-          font-size:10px;font-weight:700;color:${dept.color};white-space:nowrap">${deptAbbr}</td>`;
+          font-size:10px;font-weight:700;color:${dept.color};white-space:nowrap;
+          vertical-align:middle">${deptAbbr}</td>`;
       }
       // day cells
       for(let d=0;d<7;d++){
@@ -863,8 +853,11 @@ function renderCombinedView(){
           names.forEach(name=>{
             const isMe=currentEmp&&currentEmp.full_name===name&&!isMgr;
             const isSearch=searchQuery&&name.toLowerCase().includes(searchQuery.toLowerCase());
-            const col=isMe||isSearch?'#dc2626':'#1e40af';
-            const bg=isMe||isSearch?'#fee2e2':'#eff6ff';
+            let col,bg;
+            if(isSearch){ col='#dc2626'; bg='#fee2e2'; }
+            else if(isMe&&showMyShifts){ col='#15803d'; bg='#dcfce7'; }
+            else if(showMyShifts&&!isMe){ col='#cbd5e1'; bg='#f8fafc'; }
+            else { col='#1e40af'; bg='#eff6ff'; }
             html+=`<span style="font-size:11px;font-weight:600;color:${col};background:${bg};
               border-radius:10px;padding:1px 6px;white-space:nowrap">${name}</span>`;
           });
@@ -969,10 +962,9 @@ function renderSchedule(){
         let tagBg, tagColor, tagBorder;
         if(isSearchMatch){
           tagBg='#fee2e2'; tagColor='#dc2626'; tagBorder='#fca5a5';
-        } else if(isCurrentUser&&highlightSelf){
+        } else if(isCurrentUser&&showMyShifts){
           tagBg='#dcfce7'; tagColor='#15803d'; tagBorder='#86efac';
         } else if(showMyShifts&&!isCurrentUser){
-          // dim others when "my shifts" mode is on
           tagBg='#f8fafc'; tagColor='#cbd5e1'; tagBorder='#f1f5f9';
         } else if(showFreelancers&&isFreelance){
           tagBg='#fef9c3'; tagColor='#854d0e'; tagBorder='#fcd34d';
