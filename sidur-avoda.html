@@ -237,7 +237,8 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
       <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
         <input id="sched-search" type="text" placeholder="🔍 חפש שם..." value=""
           oninput="searchQuery=this.value;renderSchedule()"
-          style="flex:1;min-width:180px;padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;font-family:inherit;background:white" />
+          style="flex:1;min-width:160px;padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;font-family:inherit;background:white" />
+        <button id="my-shifts-btn" onclick="toggleMyShifts()" style="padding:8px 14px;border:2px solid transparent;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:#f1f5f9;color:#64748b;white-space:nowrap">המשמרות שלי</button>
         <button id="self-highlight-btn" onclick="toggleSelfHighlight()" style="padding:8px 14px;border:2px solid transparent;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:#f1f5f9;color:#64748b" title="סמן את עצמי">👤 אני</button>
         <button id="freelance-toggle" onclick="toggleFreelanceHighlight()" style="display:none;padding:8px 14px;border:2px solid transparent;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:#f1f5f9;color:#64748b">👁 פרילנסרים</button>
       </div>
@@ -528,6 +529,18 @@ async function approveWeek(){
 function isApproved(dId){return schedules[dId]?.status==='approved';}
 
 function startEdit(){ editMode=true; renderSchedule(); }
+let showMyShifts=false;
+function toggleMyShifts(){
+  showMyShifts=!showMyShifts;
+  const btn=document.getElementById('my-shifts-btn');
+  if(btn){
+    btn.style.background=showMyShifts?'#eff6ff':'#f1f5f9';
+    btn.style.color=showMyShifts?'#1d4ed8':'#64748b';
+    btn.style.borderColor=showMyShifts?'#bfdbfe':'transparent';
+    btn.textContent=showMyShifts?'✓ המשמרות שלי':'המשמרות שלי';
+  }
+  renderSchedule();
+}
 function toggleSelfHighlight(){
   highlightSelf=!highlightSelf;
   const btn=document.getElementById('self-highlight-btn');
@@ -820,22 +833,22 @@ function renderCombinedView(){
       const isLast=di===deptsForShift.length-1;
       html+=`<tr>`;
       // shift name cell: only on first row, rowspan all dept rows
-      // dept abbreviation: take first word or shorten
-      const deptAbbr=dept.name==='ע.במאי'?'ע':(dept.name.length>4?dept.name.slice(0,3):dept.name);
+      const deptAbbr=dept.name==='ע.במאי'?'ע':(dept.name.length>4?dept.name.slice(0,4):dept.name);
       if(isFirst){
-        html+=`<td class="shift-label" rowspan="${deptsForShift.length}"
-          style="vertical-align:top;border-left:3px solid ${shift.color};padding:6px 12px">
-          <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">
-            <span class="shift-dot" style="background:${shift.color}"></span>
-            <strong style="font-size:13px">${shift.name}</strong>
+        html+=`<td rowspan="${deptsForShift.length}"
+          style="padding:4px 10px;vertical-align:top;border-left:3px solid ${shift.color};
+          background:#f8fafc;white-space:nowrap;text-align:right;min-width:90px;max-width:110px">
+          <div style="display:flex;align-items:center;gap:3px;justify-content:flex-end">
+            <strong style="font-size:12px;color:#0f172a">${shift.name}</strong>
+            <span style="width:8px;height:8px;border-radius:50%;background:${shift.color};flex-shrink:0"></span>
           </div>
-          ${shift.time?`<div style="font-size:10px;color:#94a3b8;margin-bottom:4px">${shift.time}</div>`:''}
-          <div style="font-size:11px;font-weight:700;color:${dept.color}">${deptAbbr}</div>
+          ${shift.time?`<div style="font-size:9px;color:#94a3b8">${shift.time}</div>`:''}
+          <div style="font-size:10px;font-weight:700;color:${dept.color};margin-top:2px">${deptAbbr}</div>
         </td>`;
       } else {
-        html+=`<td class="shift-label" style="vertical-align:middle;padding:6px 12px;
+        html+=`<td style="padding:4px 10px;background:#f8fafc;text-align:right;
           border-bottom:${isLast?'2px solid #e2e8f0':'1px dashed #f1f5f9'};
-          font-size:11px;font-weight:700;color:${dept.color}">${deptAbbr}</td>`;
+          font-size:10px;font-weight:700;color:${dept.color};white-space:nowrap">${deptAbbr}</td>`;
       }
       // day cells
       for(let d=0;d<7;d++){
@@ -844,8 +857,8 @@ function renderCombinedView(){
         const noteKey=sched?`note_${sched.id}_${shift.id}_${d}`:'';
         const noteVal=noteKey&&cellData[noteKey]?.content||'';
         html+=`<td style="border-bottom:${isLast?'2px solid #e2e8f0':'1px dashed #f1f5f9'};
-          background:${isFirst?'#fafafa':'white'};text-align:center;padding:5px 4px">
-          <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center">`;
+          background:${isFirst?'#fafafa':'white'};text-align:center;padding:3px 2px">
+          <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;min-height:20px">`;
         if(names.length){
           names.forEach(name=>{
             const isMe=currentEmp&&currentEmp.full_name===name&&!isMgr;
@@ -853,7 +866,7 @@ function renderCombinedView(){
             const col=isMe||isSearch?'#dc2626':'#1e40af';
             const bg=isMe||isSearch?'#fee2e2':'#eff6ff';
             html+=`<span style="font-size:11px;font-weight:600;color:${col};background:${bg};
-              border-radius:10px;padding:2px 8px">${name}</span>`;
+              border-radius:10px;padding:1px 6px;white-space:nowrap">${name}</span>`;
           });
         } else {
           html+=`<span style="font-size:12px;color:#d1d5db">—</span>`;
@@ -957,12 +970,13 @@ function renderSchedule(){
         if(isSearchMatch){
           tagBg='#fee2e2'; tagColor='#dc2626'; tagBorder='#fca5a5';
         } else if(isCurrentUser&&highlightSelf){
-          // green when self-highlight is ON
           tagBg='#dcfce7'; tagColor='#15803d'; tagBorder='#86efac';
+        } else if(showMyShifts&&!isCurrentUser){
+          // dim others when "my shifts" mode is on
+          tagBg='#f8fafc'; tagColor='#cbd5e1'; tagBorder='#f1f5f9';
         } else if(showFreelancers&&isFreelance){
           tagBg='#fef9c3'; tagColor='#854d0e'; tagBorder='#fcd34d';
         } else {
-          // default: everyone blue
           tagBg='#eff6ff'; tagColor='#1e40af'; tagBorder='#bfdbfe';
         }
         html+=`<span class="emp-tag" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder}">
