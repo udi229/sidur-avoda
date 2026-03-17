@@ -822,22 +822,21 @@ function renderCombinedView(){
       const isLast=di===deptsForShift.length-1;
       html+=`<tr>`;
       // shift name cell: only on first row, rowspan all dept rows
-      // abbreviation: במאים→במאי, ע.במאי→ע
       const deptAbbr=dept.name==='ע.במאי'?'ע':(dept.name==='במאים'?'במאי':dept.name.slice(0,4));
       if(isFirst){
-        // first row: shift name + color dot + time. NO dept abbr here (shown in non-first rows only)
+        // סדר: במאי (שם מחלקה) → שם משמרת + נקודה → שעות
         html+=`<td rowspan="${deptsForShift.length}"
           style="padding:3px 8px;vertical-align:middle;border-left:3px solid ${shift.color};
           background:#f8fafc;white-space:nowrap;text-align:right;width:85px">
+          <div style="font-size:10px;font-weight:700;color:${dept.color};line-height:1.4">${deptAbbr}</div>
           <div style="display:flex;align-items:center;gap:2px;justify-content:flex-end">
             <strong style="font-size:12px;color:#0f172a">${shift.name}</strong>
             <span style="width:7px;height:7px;border-radius:50%;background:${shift.color};flex-shrink:0"></span>
           </div>
           ${shift.time?`<div style="font-size:9px;color:#94a3b8;line-height:1.4">${shift.time}</div>`:''}
-          <div style="font-size:10px;font-weight:700;color:${dept.color};margin-top:1px">${deptAbbr}</div>
         </td>`;
       } else {
-        // subsequent rows: only dept abbr, below the time visually
+        // שורת ע — מתחת לשעות — רק האות, צמוד לימין
         html+=`<td style="padding:3px 8px;background:#f8fafc;text-align:right;
           border-bottom:${isLast?'2px solid #e2e8f0':'1px dashed #f1f5f9'};
           font-size:10px;font-weight:700;color:${dept.color};white-space:nowrap;
