@@ -235,10 +235,11 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
       <div id="lock-notice" class="notice n-warn" style="display:none">🔒 הסידור עדיין לא אושר — מוצגת רק המחלקה שלך</div>
       <div id="dept-tabs" class="dept-tabs"></div>
       <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
-        <input id="sched-search" type="text" placeholder="🔍 חפש שם — יסומן באדום" value=""
+        <input id="sched-search" type="text" placeholder="🔍 חפש שם..." value=""
           oninput="searchQuery=this.value;renderSchedule()"
           style="flex:1;min-width:180px;padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;font-family:inherit;background:white" />
-        <button id="freelance-toggle" onclick="toggleFreelanceHighlight()" style="display:none;padding:8px 14px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:#f1f5f9;color:#64748b">👁 פרילנסרים</button>
+        <button id="self-highlight-btn" onclick="toggleSelfHighlight()" style="padding:8px 14px;border:2px solid transparent;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:#f1f5f9;color:#64748b" title="סמן את עצמי">👤 אני</button>
+        <button id="freelance-toggle" onclick="toggleFreelanceHighlight()" style="display:none;padding:8px 14px;border:2px solid transparent;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:#f1f5f9;color:#64748b">👁 פרילנסרים</button>
       </div>
       <div id="sched-wrap"><div class="loading">⏳ טוען...</div></div>
     </div>
@@ -317,6 +318,7 @@ let editMode=false;
 let deptShifts={};
 let searchQuery='';
 let showFreelancers=false;
+let highlightSelf=false;
 let combinedViews=[]; // [{id, name, dept_ids}]
 let activeCombinedId=null; // if viewing a combined view
 
@@ -426,6 +428,9 @@ async function initApp(user){
     const ftBtn=document.getElementById('freelance-toggle');
     if(ftBtn) ftBtn.style.display='inline-block';
   }
+  // self highlight button always visible
+  const shBtn=document.getElementById('self-highlight-btn');
+  if(shBtn) shBtn.style.display='inline-block';
   renderDeptTabs();
   renderSchedule();
   sb.channel('rt')
@@ -523,6 +528,16 @@ async function approveWeek(){
 function isApproved(dId){return schedules[dId]?.status==='approved';}
 
 function startEdit(){ editMode=true; renderSchedule(); }
+function toggleSelfHighlight(){
+  highlightSelf=!highlightSelf;
+  const btn=document.getElementById('self-highlight-btn');
+  if(btn){
+    btn.style.background=highlightSelf?'#dcfce7':'#f1f5f9';
+    btn.style.color=highlightSelf?'#15803d':'#64748b';
+    btn.style.borderColor=highlightSelf?'#86efac':'transparent';
+  }
+  renderSchedule();
+}
 function toggleFreelanceHighlight(){
   showFreelancers=!showFreelancers;
   const btn=document.getElementById('freelance-toggle');
@@ -805,18 +820,23 @@ function renderCombinedView(){
       const isLast=di===deptsForShift.length-1;
       html+=`<tr>`;
       // shift name cell: only on first row, rowspan all dept rows
+      // dept abbreviation: take first word or shorten
+      const deptAbbr=dept.name==='ע.במאי'?'ע':(dept.name.length>4?dept.name.slice(0,3):dept.name);
       if(isFirst){
         html+=`<td class="shift-label" rowspan="${deptsForShift.length}"
-          style="vertical-align:middle;border-left:3px solid ${shift.color}">
-          <span class="shift-dot" style="background:${shift.color}"></span><strong>${shift.name}</strong>
-          ${shift.time?`<br><span style="font-size:10px;color:#94a3b8">${shift.time}</span>`:''}
+          style="vertical-align:top;border-left:3px solid ${shift.color};padding:6px 12px">
+          <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">
+            <span class="shift-dot" style="background:${shift.color}"></span>
+            <strong style="font-size:13px">${shift.name}</strong>
+          </div>
+          ${shift.time?`<div style="font-size:10px;color:#94a3b8;margin-bottom:4px">${shift.time}</div>`:''}
+          <div style="font-size:11px;font-weight:700;color:${dept.color}">${deptAbbr}</div>
         </td>`;
+      } else {
+        html+=`<td class="shift-label" style="vertical-align:middle;padding:6px 12px;
+          border-bottom:${isLast?'2px solid #e2e8f0':'1px dashed #f1f5f9'};
+          font-size:11px;font-weight:700;color:${dept.color}">${deptAbbr}</td>`;
       }
-      // dept name cell
-      html+=`<td style="padding:6px 10px;font-size:11px;font-weight:700;color:${dept.color};
-        background:${isFirst?'#fafafa':'white'};white-space:nowrap;min-width:70px;
-        border-bottom:${isLast?'2px solid #e2e8f0':'1px dashed #f1f5f9'};
-        vertical-align:middle">${dept.name}</td>`;
       // day cells
       for(let d=0;d<7;d++){
         const sched=schedules[dept.id];
@@ -936,13 +956,13 @@ function renderSchedule(){
         let tagBg, tagColor, tagBorder;
         if(isSearchMatch){
           tagBg='#fee2e2'; tagColor='#dc2626'; tagBorder='#fca5a5';
-        } else if(isCurrentUser&&isApproved(dept.id)){
-          tagBg='#fee2e2'; tagColor='#dc2626'; tagBorder='#fca5a5';
+        } else if(isCurrentUser&&highlightSelf){
+          // green when self-highlight is ON
+          tagBg='#dcfce7'; tagColor='#15803d'; tagBorder='#86efac';
         } else if(showFreelancers&&isFreelance){
-          // yellow highlight only when freelancer toggle is ON
           tagBg='#fef9c3'; tagColor='#854d0e'; tagBorder='#fcd34d';
         } else {
-          // all names same color by default (blue) - no distinction freelance/regular
+          // default: everyone blue
           tagBg='#eff6ff'; tagColor='#1e40af'; tagBorder='#bfdbfe';
         }
         html+=`<span class="emp-tag" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder}">
