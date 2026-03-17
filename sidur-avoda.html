@@ -822,19 +822,20 @@ function renderCombinedView(){
       const isLast=di===deptsForShift.length-1;
       html+=`<tr>`;
       // shift name cell: only on first row, rowspan all dept rows
-            const deptAbbr=dept.name==='ע.במאי'?'ע':(dept.name==='במאים'?'במאי':dept.name.slice(0,4));
+                  const deptAbbr=dept.name==='ע.במאי'?'ע':(dept.name==='במאים'?'במאי':dept.name.slice(0,4));
       if(isFirst){
         html+=`<td rowspan="${deptsForShift.length}"
           style="width:68px;max-width:68px;min-width:68px;padding:4px 6px;
           vertical-align:middle;border-left:3px solid ${shift.color};
           background:#f8fafc;text-align:right;
           border-bottom:${isLast?'2px solid #e2e8f0':'none'}">
-          <div style="font-size:11px;line-height:1.7;white-space:nowrap;overflow:hidden">
+          <div style="font-size:11px;line-height:1.7;white-space:nowrap">
             <div style="font-weight:700;color:${dept.color}">${deptAbbr}</div>
-            <div style="font-weight:700;color:#0f172a">
-              <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${shift.color};vertical-align:middle;margin-left:2px"></span>${shift.name}
+            <div style="font-weight:700;color:#0f172a;display:flex;align-items:center;gap:3px;justify-content:flex-end">
+              ${shift.time?`<span style="font-size:9px;color:#94a3b8;font-weight:400">${shift.time}</span>`:''}
+              <span>${shift.name}</span>
+              <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${shift.color};flex-shrink:0"></span>
             </div>
-            ${shift.time?`<div style="font-size:9px;color:#94a3b8">${shift.time}</div>`:''}
           </div>
         </td>`;
       } else {
