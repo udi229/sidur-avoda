@@ -806,8 +806,8 @@ function renderCombinedView(){
     </div>
     <div class="tbl-wrap"><table>
     <thead><tr>
-      <th class="shift-col" style="min-width:140px">משמרת / תפקיד</th>
-      ${DAYS_DISPLAY.map((d,i)=>`<th>${d}<br><span style="font-size:10px;font-weight:400;color:#94a3b8">${dates[i]}</span></th>`).join('')}
+      <th style="width:80px;min-width:80px;max-width:80px;text-align:right;padding:8px 6px;background:#f1f5f9">משמרת</th>
+      ${DAYS_DISPLAY.map((d,i)=>`<th style="min-width:80px;width:calc((100% - 80px)/7)">${d}<br><span style="font-size:10px;font-weight:400;color:#94a3b8">${dates[i]}</span></th>`).join('')}
     </tr></thead><tbody>`;
 
   // each shift × each dept = one row
@@ -822,24 +822,24 @@ function renderCombinedView(){
       const isLast=di===deptsForShift.length-1;
       html+=`<tr>`;
       // shift name cell: only on first row, rowspan all dept rows
-                  const deptAbbr=dept.name==='ע.במאי'?'ע':(dept.name==='במאים'?'במאי':dept.name.slice(0,4));
+                        const deptAbbr=dept.name==='ע.במאי'?'ע':(dept.name==='במאים'?'במאי':dept.name.slice(0,4));
       if(isFirst){
         html+=`<td rowspan="${deptsForShift.length}"
-          style="width:68px;max-width:68px;min-width:68px;padding:4px 6px;
+          style="width:80px;min-width:80px;max-width:80px;padding:4px 8px;
           vertical-align:middle;border-left:3px solid ${shift.color};
           background:#f8fafc;text-align:right;
           border-bottom:${isLast?'2px solid #e2e8f0':'none'}">
-          <div style="font-size:11px;line-height:1.7;white-space:nowrap">
+          <div style="font-size:11px;line-height:1.8">
             <div style="font-weight:700;color:${dept.color}">${deptAbbr}</div>
-            <div style="font-weight:700;color:#0f172a;display:flex;align-items:center;gap:3px;justify-content:flex-end">
-              ${shift.time?`<span style="font-size:9px;color:#94a3b8;font-weight:400">${shift.time}</span>`:''}
-              <span>${shift.name}</span>
-              <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${shift.color};flex-shrink:0"></span>
+            <div style="display:flex;align-items:center;justify-content:flex-end;gap:3px">
+              <span style="font-weight:700;color:#0f172a;font-size:11px">${shift.name}</span>
+              ${shift.time?`<span style="font-size:9px;color:#94a3b8">${shift.time}</span>`:''}
+              <span style="width:6px;height:6px;border-radius:50%;background:${shift.color};flex-shrink:0;display:inline-block"></span>
             </div>
           </div>
         </td>`;
       } else {
-        html+=`<td style="width:68px;max-width:68px;min-width:68px;padding:4px 6px;
+        html+=`<td style="width:80px;min-width:80px;max-width:80px;padding:4px 8px;
           background:#f8fafc;text-align:right;vertical-align:middle;
           font-size:11px;font-weight:700;color:${dept.color};
           border-bottom:${isLast?'2px solid #e2e8f0':'1px dashed #f1f5f9'}">${deptAbbr}</td>`;
