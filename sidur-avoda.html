@@ -484,7 +484,7 @@ async function initApp(user){
   const role=currentEmp.role;
   document.getElementById('hdr-nm').textContent=currentEmp.full_name;
   const dept4role=departments.find(d=>d.id===currentEmp.department_id);
-  const deptTitle=dept4role?.title||(role==='team_lead'?'ראש צוות':role==='manager'?'מנהל':'עובד');
+  const deptTitle=dept4role?.title||(role==='manager'?'מנהל':'עובד');
   document.getElementById('hdr-rl').textContent=deptTitle;
   document.getElementById('nav-stats').style.display=(role==='manager'||role==='team_lead')?'inline-block':'none';
   document.getElementById('nav-settings').style.display='none';
@@ -894,16 +894,12 @@ function renderCombinedView(){
     <div style="overflow-x:auto">
     <table style="width:100%;border-collapse:collapse;direction:rtl;table-layout:fixed">
     <colgroup>
-      <col style="width:85px">
-      <col style="width:75px">
+      <col style="width:90px">
       ${DAYS_DISPLAY.map(()=>'<col>').join('')}
     </colgroup>
     <thead>
       <tr style="background:#f1f5f9">
         <th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">משמרת</th>
-        <th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">
-          ${depts.map(d=>`<div style="color:${d.color};font-weight:700">${d.name}</div>`).join('')}
-        </th>
         ${DAYS_DISPLAY.map((d,i)=>`<th style="${B};padding:8px 4px;text-align:center;font-size:12px;color:#475569;font-weight:700">
           ${d}<br><span style="font-size:10px;font-weight:400;color:#94a3b8">${dates[i]}</span>
         </th>`).join('')}
@@ -928,9 +924,7 @@ function renderCombinedView(){
         </div>
         ${shift.time?`<div style="font-size:10px;color:#94a3b8;margin-top:1px">${shift.time}</div>`:''}
       </td>
-      <!-- עמודה 2: שם המחלקה הראשונה -->
-      <td style="${B};padding:6px 8px;text-align:right;vertical-align:middle;
-        font-size:12px;font-weight:700;color:${deptsForShift[0].color};background:#fafafa">${deptsForShift[0].name}</td>
+
       <!-- ימים לשורה הראשונה -->
       ${Array.from({length:7},(_,d)=>{
         const sched=schedules[deptsForShift[0].id];
@@ -954,8 +948,7 @@ function renderCombinedView(){
     // שורות נוספות לשאר המחלקות
     deptsForShift.slice(1).forEach((dept,di)=>{
       html+=`<tr>
-        <td style="${B};padding:6px 8px;text-align:right;vertical-align:middle;
-          font-size:12px;font-weight:700;color:${dept.color};background:white">${dept.name}</td>
+
         ${Array.from({length:7},(_,d)=>{
           const sched=schedules[dept.id];
           const names=sched?getCellNames(sched.id,shift.id,d):[];
