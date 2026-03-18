@@ -939,7 +939,7 @@ function renderCombinedView(){
             else if(showMyShifts&&!isMe){col='#94a3b8';bg='transparent';}
             else if(showFreelancers&&freelancers.some(f=>f.name===name)){col='#854d0e';bg='#fef9c3';}
             else{col='#1e40af';bg='#eff6ff';}
-            return `<span style="font-size:12px;font-weight:600;color:${col};background:${bg};border-radius:8px;padding:1px 4px">${name}</span>`;
+            return `<span style="font-size:12px;font-weight:600;color:${col};background:${bg};border-radius:8px;padding:1px 4px">${name.split(' ')[0]}</span>`;
           }).join(' '):`<span style="color:#d1d5db">—</span>`}
         </td>`;
       }).join('')}
@@ -962,7 +962,7 @@ function renderCombinedView(){
               else if(showMyShifts&&!isMe){col='#94a3b8';bg='transparent';}
               else if(showFreelancers&&freelancers.some(f=>f.name===name)){col='#854d0e';bg='#fef9c3';}
               else{col='#1e40af';bg='#eff6ff';}
-              return `<span style="font-size:12px;font-weight:600;color:${col};background:${bg};border-radius:8px;padding:1px 4px">${name}</span>`;
+              return `<span style="font-size:12px;font-weight:600;color:${col};background:${bg};border-radius:8px;padding:1px 4px">${name.split(' ')[0]}</span>`;
             }).join(' '):`<span style="color:#d1d5db">—</span>`}
           </td>`;
         }).join('')}
