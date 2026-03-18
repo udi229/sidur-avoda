@@ -353,7 +353,13 @@ const MANAGER_PIN2 = '1612';
 let pinTarget = 'primary'; // 'primary' or 'secondary'
 
 const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    storageKey: 'olphanim-auth',
+  }
+});
 
 let currentUser=null, currentEmp=null, isMgr=false;
 let weekOffset=0, departments=[], employees=[], freelancers=[], schedules={}, cellData={};
@@ -436,6 +442,8 @@ function enterMgr(label='מנהל',type='primary'){
   isMgr=true;
   currentUser={email:'manager@local',id:'manager-local'};
   currentEmp={id:'manager-local',full_name:label,email:'manager@local',role:'manager',department_id:null,position_percent:100};
+  // save manager session
+  try{ localStorage.setItem('mgr-session', JSON.stringify({label,type,ts:Date.now()})); } catch(e){}
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('hdr-nm').textContent='מנהל';
@@ -459,6 +467,7 @@ function enterMgr(label='מנהל',type='primary'){
 }
 async function logout(){
   if(!isMgr) await sb.auth.signOut();
+  try{ localStorage.removeItem('mgr-session'); } catch(e){}
   isMgr=false;currentUser=null;currentEmp=null;weekOffset=0;activeDeptId=null;openDropdown=null;
   document.getElementById('app').style.display='none';
   document.getElementById('auth-screen').style.display='flex';
@@ -534,7 +543,7 @@ async function loadAll(){
   departments=d.data||[];
   employees=e.data||[];
   freelancers=f.data||[];
-  combinedViews=(cv.data||[]).map(v=>({...v, dept_ids: v.dept_ids.split(',')}));
+  combinedViews=(cv.data||[]).map(v=>({...v, dept_ids: v.dept_ids.split(','), published: v.published||false}));
   // build deptShifts map
   deptShifts={};
   (ds.data||[]).forEach(r=>{
@@ -676,13 +685,11 @@ function renderDeptTabs(){
   // combined view tabs - show only if both depts are approved and user is in one of them
   const role4=currentEmp?.role||'employee';
   const cvTabs=combinedViews.filter(cv=>{
-    const deptIds=cv.dept_ids;
-    const allApprovedCV=deptIds.every(id=>schedules[id]?.status==='approved');
-    // manager always sees combined view
+    // manager always sees all combined views
     if(isMgr||role4==='manager') return true;
-    // employees/team_leads: only if all depts approved AND user is in one of them
-    if(!allApprovedCV) return false;
-    return deptIds.includes(currentEmp?.department_id);
+    // employees/team_leads: only if published AND user is in one of the depts
+    if(!cv.published) return false;
+    return cv.dept_ids.includes(currentEmp?.department_id);
   });
 
   const deptTabsHtml=vis.map(d=>{
@@ -702,9 +709,18 @@ function renderDeptTabs(){
 
   const cvTabsHtml=cvTabs.map(cv=>{
     const isActive=activeCombinedId===cv.id;
-    return `<button class="dept-tab${isActive?' active':''}"
-      style="border-color:#7c3aed;${isActive?'background:#7c3aed;color:white':'color:#7c3aed'}"
-      onclick="setCombined('${cv.id}')">🎬 ${cv.name}</button>`;
+    const pubIcon=cv.published?'🔓':'🔒';
+    const pubTitle=cv.published?'מפורסם לעובדים':'לא מפורסם';
+    return `<div style="display:inline-flex;align-items:center;gap:0">
+      <button class="dept-tab${isActive?' active':''}"
+        style="border-color:#7c3aed;border-left:none;border-radius:20px 0 0 20px;${isActive?'background:#7c3aed;color:white':'color:#7c3aed'}"
+        onclick="setCombined('${cv.id}')">🎬 ${cv.name}</button>
+      ${(isMgr||currentEmp?.role==='manager')?`<button title="${pubTitle}"
+        onclick="toggleCVPublish('${cv.id}')"
+        style="border:2px solid #7c3aed;border-right:none;border-radius:0 20px 20px 0;
+          background:${cv.published?'#7c3aed':'white'};color:${cv.published?'white':'#7c3aed'};
+          padding:6px 8px;cursor:pointer;font-size:12px;font-family:inherit">${pubIcon}</button>`:''}
+    </div>`;
   }).join('');
 
   document.getElementById('dept-tabs').innerHTML=deptTabsHtml+cvTabsHtml;
@@ -716,6 +732,14 @@ function setDept(id){
   const si=document.getElementById('sched-search');
   if(si) si.value='';
   renderDeptTabs();renderSchedule();
+}
+async function toggleCVPublish(id){
+  const cv=combinedViews.find(v=>v.id===id);
+  if(!cv) return;
+  const newVal=!cv.published;
+  await sb.from('combined_views').update({published:newVal}).eq('id',id);
+  cv.published=newVal;
+  renderDeptTabs();
 }
 function setCombined(id){
   activeCombinedId=id;activeDeptId=null;openDropdown=null;
@@ -890,6 +914,7 @@ function renderCombinedView(){
     <div class="sched-hdr" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
       <span class="sched-hdr-title">🎬 ${cv.name} — ${document.getElementById('wk-lbl').textContent}</span>
       <span style="background:rgba(255,255,255,0.2);color:white;border-radius:6px;padding:2px 10px;font-size:12px">צפייה בלבד</span>
+      ${(isMgr||currentEmp?.role==='manager')?`<span style="background:${cv.published?'#10b981':'#f59e0b'};color:white;border-radius:6px;padding:2px 10px;font-size:12px;margin-right:6px;cursor:pointer" onclick="toggleCVPublish('${cv.id}')">${cv.published?'🔓 מפורסם — לחץ לביטול':'🔒 לא מפורסם — לחץ לפרסום'}</span>`:''}
     </div>
     <div style="overflow-x:auto">
     <table style="width:100%;border-collapse:collapse;direction:rtl;table-layout:fixed">
@@ -1578,7 +1603,25 @@ function changeWeek(d){
 function goToday(){weekOffset=0;openDropdown=null;editingShiftTime=null;loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});}
 
 // ── STARTUP ──
-(async()=>{const {data:{session}}=await sb.auth.getSession();if(session)await initApp(session.user);})();
+(async()=>{
+  // check for saved manager session (valid for 30 days)
+  try{
+    const saved=localStorage.getItem('mgr-session');
+    if(saved){
+      const s=JSON.parse(saved);
+      const age=(Date.now()-s.ts)/(1000*60*60*24); // days
+      if(age<30){
+        enterMgr(s.label||'מנהל', s.type||'primary');
+        return;
+      } else {
+        localStorage.removeItem('mgr-session');
+      }
+    }
+  } catch(e){}
+  // regular user session
+  const {data:{session}}=await sb.auth.getSession();
+  if(session) await initApp(session.user);
+})();
 </script>
 </body>
 </html>
