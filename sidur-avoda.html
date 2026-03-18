@@ -677,11 +677,11 @@ function renderDeptTabs(){
   const role4=currentEmp?.role||'employee';
   const cvTabs=combinedViews.filter(cv=>{
     const deptIds=cv.dept_ids;
-    // all depts in combined view must be approved
     const allApprovedCV=deptIds.every(id=>schedules[id]?.status==='approved');
-    if(!allApprovedCV) return false;
-    // user must be in one of the depts, or be manager
+    // manager always sees combined view
     if(isMgr||role4==='manager') return true;
+    // employees/team_leads: only if all depts approved AND user is in one of them
+    if(!allApprovedCV) return false;
     return deptIds.includes(currentEmp?.department_id);
   });
 
