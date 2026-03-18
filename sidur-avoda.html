@@ -1442,10 +1442,17 @@ function renderSettings(){
   renderDeptShiftSettings();
   renderCVSettings();
   document.getElementById('dept-list').innerHTML=departments.map(d=>`
-    <div class="item-row"><div class="item-info"><div class="cdot" style="background:${d.color}"></div>
-    <span>${d.name}</span>${d.title?`<span style="font-size:11px;color:#94a3b8;margin-right:6px">(${d.title})</span>`:''}
-    </div>
-    <button class="btn-del" onclick="delDept('${d.id}')">מחק</button></div>`).join('')||'<div style="color:#94a3b8;padding:8px">אין מחלקות</div>';
+    <div class="item-row" id="dept-row-${d.id}">
+      <div class="item-info" style="flex:1;flex-wrap:wrap;gap:8px">
+        <input type="color" value="${d.color}" onchange="updateDeptColor('${d.id}',this.value)"
+          style="width:28px;height:28px;border:none;cursor:pointer;border-radius:50%;flex-shrink:0" />
+        <input value="${d.name}" onblur="updateDeptField('${d.id}','name',this.value)"
+          style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:13px;font-weight:600;width:100px;font-family:inherit" />
+        <input value="${d.title||''}" placeholder="תואר (במאי...)" onblur="updateDeptField('${d.id}','title',this.value)"
+          style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:12px;color:#64748b;width:100px;font-family:inherit" />
+      </div>
+      <button class="btn-del" onclick="delDept('${d.id}')">מחק</button>
+    </div>`).join('')||'<div style="color:#94a3b8;padding:8px">אין מחלקות</div>';
 
   // Shifts
   document.getElementById('shift-list').innerHTML=shiftTypes.map((s,i)=>`
@@ -1495,6 +1502,18 @@ function renderSettings(){
   }).join('')||'<div style="color:#94a3b8;padding:8px">אין עובדים עדיין</div>';
 }
 
+async function updateDeptField(id, field, value){
+  const update={};
+  update[field]=value;
+  await sb.from('departments').update(update).eq('id',id);
+  await loadAll();
+  renderSettings();renderDeptTabs();
+}
+async function updateDeptColor(id, color){
+  await sb.from('departments').update({color}).eq('id',id);
+  await loadAll();
+  renderSettings();renderDeptTabs();renderSchedule();
+}
 async function addDept(){
   const n=document.getElementById('nd-nm').value.trim();
   const t=document.getElementById('nd-title').value.trim();
