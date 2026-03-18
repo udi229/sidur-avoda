@@ -912,7 +912,7 @@ function renderCombinedView(){
 
   let html=`<div class="sched-block">
     <div class="sched-hdr" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
-      <span class="sched-hdr-title">🎬 ${cv.name} — ${document.getElementById('wk-lbl').textContent}</span>
+      <span class="sched-hdr-title" style="flex:1;text-align:center;font-size:17px">🎬 ${cv.name} — ${document.getElementById('wk-lbl').textContent} 🎬</span>
       <span style="background:rgba(255,255,255,0.2);color:white;border-radius:6px;padding:2px 10px;font-size:12px">צפייה בלבד</span>
       ${(isMgr||currentEmp?.role==='manager')?`<span style="background:${cv.published?'#10b981':'#f59e0b'};color:white;border-radius:6px;padding:2px 10px;font-size:12px;margin-right:6px;cursor:pointer" onclick="toggleCVPublish('${cv.id}')">${cv.published?'🔓 מפורסם — לחץ לביטול':'🔒 לא מפורסם — לחץ לפרסום'}</span>`:''}
     </div>
@@ -1000,6 +1000,19 @@ function renderCombinedView(){
 }
 
 
+function getDeptIcon(name){
+  const n=name.toLowerCase();
+  if(n.includes('במא')||n.includes('בימ')) return '🎬';
+  if(n.includes('סאונד')||n.includes('שמע')) return '🎵';
+  if(n.includes('נתב')||n.includes('שידור')) return '📡';
+  if(n.includes('מנהל')||n.includes('במה')) return '🎭';
+  if(n.includes('תאור')||n.includes('אור')) return '💡';
+  if(n.includes('עריכ')||n.includes('edit')) return '🎞';
+  if(n.includes('סיג')||n.includes('פרומפ')) return '📺';
+  if(n.includes('כלל')) return '⭐';
+  return '📋';
+}
+
 function renderSchedule(){
   if(activeView!=='schedule') return;
 
@@ -1029,9 +1042,9 @@ function renderSchedule(){
   const dates=weekDates();
 
   let html=`<div class="sched-block">
-    <div class="sched-hdr" style="background:${dept.color}">
-      <span class="sched-hdr-title">${dept.name} — ${document.getElementById('wk-lbl').textContent}</span>
-      ${ed?'<span class="edit-badge">✏️ עריכה פעילה</span>':''}
+    <div class="sched-hdr" style="background:${dept.color};text-align:center;position:relative">
+      <span class="sched-hdr-title" style="font-size:17px">${getDeptIcon(dept.name)} ${dept.name} — ${document.getElementById('wk-lbl').textContent} ${getDeptIcon(dept.name)}</span>
+      ${ed?'<span class="edit-badge" style="position:absolute;left:12px;top:50%;transform:translateY(-50%)">✏️ עריכה</span>':''}
       ${((currentEmp?.role==='team_lead'&&currentEmp?.department_id===dept.id&&weekOffset>=0&&isApproved(dept.id)&&!isMgr)||(isMgr||currentEmp?.role==='manager')) ?
         (editMode ?
           `<button onclick="sendEdit('${dept.id}')" style="background:#10b981;color:white;border:none;border-radius:8px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✓ שלח</button>
