@@ -483,7 +483,8 @@ async function initApp(user){
   document.getElementById('app').style.display='block';
   const role=currentEmp.role;
   document.getElementById('hdr-nm').textContent=currentEmp.full_name;
-  const deptTitle=departments.find(d=>d.id===currentEmp.department_id)?.title||ROLE_HEB[role]||'עובד';
+  const dept4role=departments.find(d=>d.id===currentEmp.department_id);
+  const deptTitle=dept4role?.title||(role==='team_lead'?'ראש צוות':role==='manager'?'מנהל':'עובד');
   document.getElementById('hdr-rl').textContent=deptTitle;
   document.getElementById('nav-stats').style.display=(role==='manager'||role==='team_lead')?'inline-block':'none';
   document.getElementById('nav-settings').style.display='none';
