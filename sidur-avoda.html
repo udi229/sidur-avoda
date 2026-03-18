@@ -268,6 +268,7 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
     </div>
 
     <div id="view-schedule">
+      <div id="online-list" style="display:none"></div>
       <div id="mgr-note" class="notice" style="display:none;background:#fef3c7;border:1px solid #fcd34d;color:#92400e">
         📬 יש סידורים שהוגשו על ידי ראשי צוות וממתינים לאישורך!
         <button onclick="showView('stats',event)" style="margin-right:10px;background:#0f172a;color:white;border:none;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:12px;font-family:inherit">צפה בסטטוס</button>
@@ -295,6 +296,7 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
         <h3>מחלקות</h3>
         <div class="set-row">
           <input class="s-inp" id="nd-nm" placeholder="שם מחלקה" />
+          <input class="s-inp" id="nd-title" placeholder='תואר (למשל "במאי")' style="max-width:160px" />
           <input type="color" id="nd-cl" value="#3B82F6" style="width:40px;height:38px;border:none;cursor:pointer;border-radius:8px;flex-shrink:0" />
           <button class="btn-add" onclick="addDept()">+ הוסף</button>
         </div>
@@ -360,6 +362,7 @@ let editMode=false;
 let deptShifts={};
 let searchQuery='';
 let showFreelancers=false;
+let onlineUsers=new Set(); // emails of online users
 let combinedViews=[]; // [{id, name, dept_ids}]
 let activeCombinedId=null; // if viewing a combined view
 
@@ -443,6 +446,13 @@ function enterMgr(label='מנהל',type='primary'){
     document.getElementById('freelance-toggle').style.display='inline-block';
     updateWeekUI();renderDeptTabs();renderSchedule();
   });
+  // presence for manager
+  const mgrCh=sb.channel('online-users',{config:{presence:{key:'manager@local'}}});
+  mgrCh
+    .on('presence',{event:'sync'},()=>{const state=mgrCh.presenceState();onlineUsers=new Set(Object.keys(state));renderOnlineList();})
+    .on('presence',{event:'join'},({key})=>{onlineUsers.add(key);renderOnlineList();})
+    .on('presence',{event:'leave'},({key})=>{onlineUsers.delete(key);renderOnlineList();})
+    .subscribe(async(status)=>{if(status==='SUBSCRIBED') await mgrCh.track({email:'manager@local',name:'מנהל',online_at:new Date().toISOString()});});
 }
 async function logout(){
   if(!isMgr) await sb.auth.signOut();
@@ -470,7 +480,8 @@ async function initApp(user){
   document.getElementById('app').style.display='block';
   const role=currentEmp.role;
   document.getElementById('hdr-nm').textContent=currentEmp.full_name;
-  document.getElementById('hdr-rl').textContent=ROLE_HEB[role]||'עובד';
+  const deptTitle=departments.find(d=>d.id===currentEmp.department_id)?.title||ROLE_HEB[role]||'עובד';
+  document.getElementById('hdr-rl').textContent=deptTitle;
   document.getElementById('nav-stats').style.display=(role==='manager'||role==='team_lead')?'inline-block':'none';
   document.getElementById('nav-settings').style.display='none';
   if(role==='team_lead'&&currentEmp.department_id) activeDeptId=currentEmp.department_id;
@@ -489,6 +500,22 @@ async function initApp(user){
     .on('postgres_changes',{event:'*',schema:'public',table:'schedule_cells'},()=>loadWeekData().then(renderSchedule))
     .on('postgres_changes',{event:'*',schema:'public',table:'schedules'},()=>loadWeekData().then(()=>{updateWeekUI();renderSchedule();}))
     .subscribe();
+
+  // presence channel
+  const presenceCh=sb.channel('online-users',{config:{presence:{key:currentUser.email}}});
+  presenceCh
+    .on('presence',{event:'sync'},()=>{
+      const state=presenceCh.presenceState();
+      onlineUsers=new Set(Object.keys(state));
+      renderOnlineList();
+    })
+    .on('presence',{event:'join'},({key})=>{onlineUsers.add(key);renderOnlineList();})
+    .on('presence',{event:'leave'},({key})=>{onlineUsers.delete(key);renderOnlineList();})
+    .subscribe(async(status)=>{
+      if(status==='SUBSCRIBED'){
+        await presenceCh.track({email:currentUser.email,name:currentEmp?.full_name||currentUser.email,online_at:new Date().toISOString()});
+      }
+    });
 }
 
 async function loadAll(){
@@ -709,6 +736,8 @@ async function ensureSched(dId){
 
 async function saveNames(dId,shiftId,dayIdx,names){
   const sched=await ensureSched(dId);
+  sb.from('schedules').update({updated_at:new Date().toISOString()}).eq('id',sched.id);
+  if(schedules[dId]) schedules[dId].updated_at=new Date().toISOString();
   const key=`${sched.id}_${shiftId}_${dayIdx}`;
   const content=names.join('|');
   const existing=cellData[key];
@@ -1040,8 +1069,9 @@ function renderSchedule(){
         } else {
           tagBg='#eff6ff'; tagColor='#1e40af'; tagBorder='#bfdbfe';
         }
+        const firstName=name.split(' ')[0];
         html+=`<span class="emp-tag" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder}">
-          ${name}
+          ${firstName}
           ${ed?`<span class="remove-tag" onclick="removeName('${dept.id}','${shift.id}',${d},'${escapedName}')">×</span>`:''}
         </span>`;
       });
@@ -1094,6 +1124,7 @@ function renderSchedule(){
     const inp=document.getElementById('dd-search');
     if(inp) inp.focus();
   }
+  renderOnlineList();
 
   // ── NOTES PANEL ──
   const noteDiv=document.createElement('div');
@@ -1102,7 +1133,14 @@ function renderSchedule(){
   const role3=currentEmp?.role||'employee';
   const isTeamLead3=role3==='team_lead'&&currentEmp?.department_id===activeDeptId;
   const isMgrView=isMgr||role3==='manager';
-  let noteHtml='<div style="display:flex;gap:16px;flex-wrap:wrap">';
+  // last updated
+  const lastUpdated=deptSchedNote?.updated_at?new Date(deptSchedNote.updated_at).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+  let noteHtml=`<div style="display:flex;gap:16px;flex-wrap:wrap">`;
+  if(isMgrView){
+    noteHtml=`<div style="background:#f8fafc;border-radius:10px;padding:10px 16px;margin-bottom:12px;font-size:12px;color:#64748b;display:flex;align-items:center;gap:6px">
+      <span>🕐</span><span>עדכון אחרון: <strong style="color:#0f172a">${lastUpdated}</strong></span>
+    </div>`+noteHtml;
+  }
 
   // team note
   if(isTeamLead3||isMgrView){
@@ -1173,6 +1211,34 @@ function renderSchedule(){
     statDiv.innerHTML=statsHtml;
     wrap.appendChild(statDiv);
   }
+}
+
+// ── ONLINE LIST ──
+function renderOnlineList(){
+  const el=document.getElementById('online-list');
+  if(!el) return;
+  const isMgrView=isMgr||currentEmp?.role==='manager';
+  if(!isMgrView){el.style.display='none';return;}
+  el.style.display='block';
+
+  let html=`<div style="background:white;border-radius:14px;padding:16px 20px;box-shadow:0 1px 8px rgba(0,0,0,0.07);margin-bottom:18px">
+    <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:12px">👥 משתמשים מחוברים</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">`;
+
+  employees.forEach(emp=>{
+    const isOnline=onlineUsers.has(emp.email.toLowerCase())||onlineUsers.has(emp.email);
+    const dept=departments.find(d=>d.id===emp.department_id);
+    html+=`<div style="display:flex;align-items:center;gap:6px;background:#f8fafc;border-radius:20px;padding:5px 12px;border:1px solid ${isOnline?'#bbf7d0':'#fee2e2'}">
+      <span style="width:9px;height:9px;border-radius:50%;background:${isOnline?'#10b981':'#ef4444'};flex-shrink:0;
+        ${isOnline?'box-shadow:0 0 6px #10b98188':''}"></span>
+      <span style="font-size:13px;font-weight:600;color:#0f172a">${emp.full_name.split(' ')[0]}</span>
+      ${dept?`<span style="font-size:10px;color:#94a3b8">${dept.name}</span>`:''}
+    </div>`;
+  });
+
+  if(!employees.length) html+='<div style="color:#94a3b8;font-size:13px">אין עובדים רשומים</div>';
+  html+=`</div></div>`;
+  el.innerHTML=html;
 }
 
 // ── STATS ──
@@ -1373,7 +1439,9 @@ function renderSettings(){
   renderDeptShiftSettings();
   renderCVSettings();
   document.getElementById('dept-list').innerHTML=departments.map(d=>`
-    <div class="item-row"><div class="item-info"><div class="cdot" style="background:${d.color}"></div><span>${d.name}</span></div>
+    <div class="item-row"><div class="item-info"><div class="cdot" style="background:${d.color}"></div>
+    <span>${d.name}</span>${d.title?`<span style="font-size:11px;color:#94a3b8;margin-right:6px">(${d.title})</span>`:''}
+    </div>
     <button class="btn-del" onclick="delDept('${d.id}')">מחק</button></div>`).join('')||'<div style="color:#94a3b8;padding:8px">אין מחלקות</div>';
 
   // Shifts
@@ -1425,10 +1493,15 @@ function renderSettings(){
 }
 
 async function addDept(){
-  const n=document.getElementById('nd-nm').value.trim(),c=document.getElementById('nd-cl').value;
+  const n=document.getElementById('nd-nm').value.trim();
+  const t=document.getElementById('nd-title').value.trim();
+  const c=document.getElementById('nd-cl').value;
   if(!n)return;
-  await sb.from('departments').insert({name:n,color:c});
-  await loadAll();document.getElementById('nd-nm').value='';renderSettings();renderDeptTabs();
+  await sb.from('departments').insert({name:n,color:c,title:t||null});
+  await loadAll();
+  document.getElementById('nd-nm').value='';
+  document.getElementById('nd-title').value='';
+  renderSettings();renderDeptTabs();
 }
 async function delDept(id){
   if(!confirm('למחוק מחלקה זו?'))return;
