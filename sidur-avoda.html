@@ -268,7 +268,7 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
     </div>
 
     <div id="view-schedule">
-      <div id="online-list" style="display:none"></div>
+
       <div id="mgr-note" class="notice" style="display:none;background:#fef3c7;border:1px solid #fcd34d;color:#92400e">
         📬 יש סידורים שהוגשו על ידי ראשי צוות וממתינים לאישורך!
         <button onclick="showView('stats',event)" style="margin-right:10px;background:#0f172a;color:white;border:none;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:12px;font-family:inherit">צפה בסטטוס</button>
@@ -288,6 +288,7 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
     <div id="view-stats" style="display:none">
       <div class="sec-title">סטטיסטיקות עובדים</div>
       <div id="stats-wrap" class="stats-grid"></div>
+      <div id="online-list" style="display:none;margin-top:20px"></div>
     </div>
 
     <div id="view-settings" style="display:none">
@@ -441,10 +442,12 @@ function enterMgr(label='מנהל',type='primary'){
   document.getElementById('hdr-rl').textContent='מנהל מערכת';
   document.getElementById('nav-stats').style.display='inline-block';
   document.getElementById('nav-settings').style.display='inline-block';
-  loadAll().then(()=>{
+  document.getElementById('sched-wrap').innerHTML='<div class="loading">⏳ טוען נתונים...</div>';
+  loadAll().then(()=>loadWeekData()).then(()=>{
     activeDeptId=departments[0]?.id||null;
-    document.getElementById('freelance-toggle').style.display='inline-block';
-    updateWeekUI();renderDeptTabs();renderSchedule();
+    const ftBtn=document.getElementById('freelance-toggle');
+    if(ftBtn) ftBtn.style.display='inline-block';
+    updateWeekUI();renderDeptTabs();renderSchedule();renderOnlineList();
   });
   // presence for manager
   const mgrCh=sb.channel('online-users',{config:{presence:{key:'manager@local'}}});
@@ -486,6 +489,7 @@ async function initApp(user){
   document.getElementById('nav-settings').style.display='none';
   if(role==='team_lead'&&currentEmp.department_id) activeDeptId=currentEmp.department_id;
   activeDeptId=currentEmp.department_id||departments[0]?.id||null;
+  document.getElementById('sched-wrap').innerHTML='<div class="loading">⏳ טוען נתונים...</div>';
   await loadWeekData();
   if(currentEmp.role==='team_lead'||currentEmp.role==='manager'){
     const ftBtn=document.getElementById('freelance-toggle');
@@ -507,7 +511,7 @@ async function initApp(user){
     .on('presence',{event:'sync'},()=>{
       const state=presenceCh.presenceState();
       onlineUsers=new Set(Object.keys(state));
-      renderOnlineList();
+    
     })
     .on('presence',{event:'join'},({key})=>{onlineUsers.add(key);renderOnlineList();})
     .on('presence',{event:'leave'},({key})=>{onlineUsers.delete(key);renderOnlineList();})
@@ -938,7 +942,8 @@ function renderCombinedView(){
             if(isSearch){col='#dc2626';bg='#fee2e2';}
             else if(isMe&&showMyShifts){col='#15803d';bg='#dcfce7';}
             else if(showMyShifts&&!isMe){col='#94a3b8';bg='transparent';}
-            else{col='#1e40af';bg='transparent';}
+            else if(showFreelancers&&freelancers.some(f=>f.name===name)){col='#854d0e';bg='#fef9c3';}
+            else{col='#1e40af';bg='#eff6ff';}
             return `<span style="font-size:12px;font-weight:600;color:${col};background:${bg};border-radius:8px;padding:1px 4px">${name}</span>`;
           }).join(' '):`<span style="color:#d1d5db">—</span>`}
         </td>`;
@@ -961,7 +966,8 @@ function renderCombinedView(){
               if(isSearch){col='#dc2626';bg='#fee2e2';}
               else if(isMe&&showMyShifts){col='#15803d';bg='#dcfce7';}
               else if(showMyShifts&&!isMe){col='#94a3b8';bg='transparent';}
-              else{col='#1e40af';bg='transparent';}
+              else if(showFreelancers&&freelancers.some(f=>f.name===name)){col='#854d0e';bg='#fef9c3';}
+              else{col='#1e40af';bg='#eff6ff';}
               return `<span style="font-size:12px;font-weight:600;color:${col};background:${bg};border-radius:8px;padding:1px 4px">${name}</span>`;
             }).join(' '):`<span style="color:#d1d5db">—</span>`}
           </td>`;
@@ -1543,7 +1549,7 @@ function showView(v,e){
   document.getElementById('wk-nav').style.display=v==='settings'?'none':'block';
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   if(e) e.target.classList.add('active');
-  if(v==='stats') renderStats();
+  if(v==='stats'){renderStats();renderOnlineList();}
   if(v==='settings') renderSettings();
   if(v==='schedule'){renderDeptTabs();renderSchedule();}
 }
