@@ -283,12 +283,12 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
         <button id="freelance-toggle" onclick="toggleFreelanceHighlight()" style="display:none;padding:8px 14px;border:2px solid transparent;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:#f1f5f9;color:#64748b">👁 פרילנסרים</button>
       </div>
       <div id="sched-wrap"><div class="loading">⏳ טוען...</div></div>
+      <div id="online-list" style="display:none;margin-top:16px"></div>
     </div>
 
     <div id="view-stats" style="display:none">
       <div class="sec-title">סטטיסטיקות עובדים</div>
       <div id="stats-wrap" class="stats-grid"></div>
-      <div id="online-list" style="display:none;margin-top:20px"></div>
     </div>
 
     <div id="view-settings" style="display:none">
@@ -1217,6 +1217,9 @@ function renderSchedule(){
     statDiv.innerHTML=statsHtml;
     wrap.appendChild(statDiv);
   }
+
+  // online list after stats
+  renderOnlineList();
 }
 
 // ── ONLINE LIST ──
@@ -1224,7 +1227,7 @@ function renderOnlineList(){
   const el=document.getElementById('online-list');
   if(!el) return;
   const isMgrView=isMgr||currentEmp?.role==='manager';
-  if(!isMgrView){el.style.display='none';return;}
+  if(!isMgrView||activeView!=='schedule'){el.style.display='none';return;}
   el.style.display='block';
 
   let html=`<div style="background:white;border-radius:14px;padding:16px 20px;box-shadow:0 1px 8px rgba(0,0,0,0.07);margin-bottom:18px">
@@ -1549,7 +1552,7 @@ function showView(v,e){
   document.getElementById('wk-nav').style.display=v==='settings'?'none':'block';
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   if(e) e.target.classList.add('active');
-  if(v==='stats'){renderStats();renderOnlineList();}
+  if(v==='stats') renderStats();
   if(v==='settings') renderSettings();
   if(v==='schedule'){renderDeptTabs();renderSchedule();}
 }
