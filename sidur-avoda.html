@@ -33,7 +33,7 @@
   .main { padding:20px; max-width:1400px; margin:0 auto; }
 
   /* WEEK NAV */
-  .week-nav { display:flex; align-items:center; gap:12px; justify-content:flex-end; margin-bottom:16px; background:white; border-radius:14px; padding:12px 16px; box-shadow:0 1px 6px rgba(0,0,0,0.07); }
+  .week-nav { display:flex; align-items:center; gap:8px; justify-content:flex-end; margin-bottom:16px; background:white; border-radius:14px; padding:10px 16px; box-shadow:0 1px 6px rgba(0,0,0,0.07); flex-wrap:nowrap; flex-direction:row-reverse; }
   .wk-lbl { font-size:15px; font-weight:700; color:#0f172a; }
   .wk-sub { font-size:12px; color:#94a3b8; }
   .btn-wk { background:white; border:1.5px solid #e2e8f0; color:#64748b; width:32px; height:32px; border-radius:10px; cursor:pointer; font-size:16px; transition:all 0.2s; display:flex; align-items:center; justify-content:center; }
@@ -295,7 +295,7 @@
       </div>
       <div id="lock-notice" class="notice n-warn" style="display:none">🔒 הסידור עדיין לא אושר — מוצגת רק המחלקה שלך</div>
       <div id="dept-tabs" class="dept-tabs"></div>
-      <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
+      <div id="sched-toolbar" style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
         <input id="sched-search" type="text" placeholder="🔍 חפש שם..." value=""
           oninput="searchQuery=this.value;renderSchedule()"
           style="display:none;flex:1;min-width:160px;padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;font-family:inherit;background:white" />
@@ -612,6 +612,10 @@ async function initApp(user){
     if(ftBtn) ftBtn.style.display='inline-block';
     const srchBtn=document.getElementById('sched-search');
     if(srchBtn) srchBtn.style.display='block';
+  } else {
+    // regular employee - hide search toolbar entirely
+    const tb=document.getElementById('sched-toolbar');
+    if(tb) tb.style.display='none';
   }
   renderDeptTabs();
   renderSchedule();
