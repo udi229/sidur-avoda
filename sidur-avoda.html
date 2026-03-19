@@ -1105,7 +1105,12 @@ function renderSchedule(){
     // if no roles defined - render single row (old behavior)
     // if roles defined - render one sub-row per role
     const rowCount=roles.length||1;
-    html+=`<tr><td class="shift-label" rowspan="${rowCount}">
+    // build role names list for inside shift label
+    const rolesListHtml=roles.length>0?`<div style="margin-top:4px;border-top:1px solid #e2e8f0;padding-top:3px">
+      ${roles.map((r,ri)=>`<div style="font-size:10px;font-weight:600;color:#64748b;padding:2px 0;
+        border-bottom:${ri<roles.length-1?'1px dashed #f1f5f9':'none'};line-height:1.8">${r.role_name}</div>`).join('')}
+    </div>`:'';
+    html+=`<tr><td class="shift-label" rowspan="${rowCount}" style="vertical-align:top">
       <span class="shift-dot" style="background:${shift.color}"></span>${shift.name}
       ${isMgr ? (isEditShiftTime ?
         `<br><div style="display:flex;gap:3px;margin-top:3px;align-items:center">
@@ -1115,6 +1120,7 @@ function renderSchedule(){
         </div>` :
         `${shift.time?`<br><span style="font-size:10px;color:#94a3b8;font-weight:400;cursor:pointer" onclick="event.stopPropagation();editingShiftTime={shiftId:'${shift.id}'};renderSchedule()" title="ערוך שעות">${shift.time} ✎</span>`:`<br><span style="font-size:10px;color:#bfdbfe;cursor:pointer" onclick="event.stopPropagation();editingShiftTime={shiftId:'${shift.id}'};renderSchedule()">+ שעות</span>`}`)
         : (shift.time?`<br><span style="font-size:10px;color:#94a3b8;font-weight:400">${shift.time}</span>`:'')}
+    ${rolesListHtml}
     </td>`;
     if(roles.length===0){
     // single row - no sub-roles
@@ -1200,10 +1206,7 @@ function renderSchedule(){
     // role sub-rows
     roles.forEach((role,ri)=>{
       if(ri>0) html+=`<tr>`;
-      // role name goes IN the shift label column (no separate td)
-      html+=`<td style="padding:4px 10px;background:#f8fafc;border-bottom:${ri===roles.length-1?'2px solid #e2e8f0':'1px dashed #f1f5f9'};
-        font-size:11px;font-weight:600;color:#475569;text-align:right;white-space:nowrap;
-        border-left:3px solid ${shift.color}aa">${role.role_name}</td>`;
+      // NO separate td for role name - it's inside the shift-label rowspan cell
       for(let d=0;d<7;d++){
         const roleKey='r_'+role.id;
         const sched2=schedules[dept.id];
