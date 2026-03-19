@@ -1190,7 +1190,7 @@ function renderSchedule(){
         font-size:11px;font-weight:600;color:#475569;border-left:1px solid #e2e8f0;
         white-space:nowrap">${role.role_name}</td>`;
       for(let d=0;d<7;d++){
-        const roleKey=shift.id+'_role_'+role.id;
+        const roleKey='r_'+role.id;
         const sched2=schedules[dept.id];
         const roleNames=sched2?getCellNames(sched2.id,roleKey,d):[];
         const noteKey2=sched2?`note_${sched2.id}_${roleKey}_${d}`:'';
