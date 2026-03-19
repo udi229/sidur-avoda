@@ -751,8 +751,8 @@ function setDept(id){
   if(si) si.value='';
   const btn=document.getElementById('my-shifts-btn');
   if(btn){btn.style.background='#f1f5f9';btn.style.color='#64748b';btn.style.borderColor='transparent';btn.textContent='המשמרות שלי';}
-  document.getElementById('sched-wrap').innerHTML='';
-  renderDeptTabs();renderSchedule();
+  renderDeptTabs();
+  renderSchedule();
 }
 async function toggleCVPublish(id){
   const cv=combinedViews.find(v=>v.id===id);
@@ -763,7 +763,7 @@ async function toggleCVPublish(id){
   renderDeptTabs();
 }
 function setCombined(id){
-  activeCombinedId=id;activeDeptId=null;openDropdown=null;
+  activeCombinedId=id;openDropdown=null;
   searchQuery='';
   const si=document.getElementById('sched-search');
   if(si) si.value='';
