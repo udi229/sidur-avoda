@@ -427,6 +427,7 @@ async function handleAuth(){
     const name=document.getElementById('a-name').value.trim();
     const dept=document.getElementById('a-dept').value;
     if(!name){setMsg('נא למלא שם מלא');return;}
+    if(!dept){setMsg('נא לבחור מחלקה');return;}
     const {data,error}=await sb.auth.signUp({email,password:pass});
     if(error){setMsg('שגיאה: '+error.message);return;}
     await sb.from('employees').insert({full_name:name,email,role:'employee',department_id:dept||null,position_percent:100});
@@ -1073,12 +1074,14 @@ function renderSchedule(){
   const isSoundDept=dept.name.toLowerCase().includes('סאונד')||dept.name.toLowerCase().includes('שמע');
   let html=`<div class="sched-block" style="position:relative;overflow:hidden">
     ${isSoundDept?`<div style="position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden">
-      <span style="position:absolute;font-size:180px;opacity:0.04;top:50%;left:50%;transform:translate(-50%,-50%);
-        animation:musicnote 6s ease-in-out infinite;user-select:none;line-height:1">♪</span>
-      <span style="position:absolute;font-size:100px;opacity:0.03;top:20%;left:15%;
-        animation:musicnote 8s ease-in-out infinite reverse;user-select:none">♫</span>
-      <span style="position:absolute;font-size:80px;opacity:0.03;bottom:10%;right:10%;
-        animation:musicnote 7s ease-in-out infinite 2s;user-select:none">♩</span>
+      <span style="position:absolute;font-size:220px;opacity:0.07;top:50%;left:50%;transform:translate(-50%,-50%);
+        animation:musicnote 6s ease-in-out infinite;user-select:none;line-height:1;color:#1e40af">♪</span>
+      <span style="position:absolute;font-size:120px;opacity:0.05;top:15%;left:10%;
+        animation:musicnote 8s ease-in-out infinite reverse;user-select:none;color:#1e40af">♫</span>
+      <span style="position:absolute;font-size:90px;opacity:0.05;bottom:8%;right:8%;
+        animation:musicnote 7s ease-in-out infinite 2s;user-select:none;color:#1e40af">♩</span>
+      <span style="position:absolute;font-size:70px;opacity:0.04;top:30%;right:20%;
+        animation:musicnote 9s ease-in-out infinite 1s;user-select:none;color:#1e40af">♬</span>
     </div>`:''}
     <div class="sched-hdr" style="background:${dept.color};text-align:center;position:relative;z-index:1">
       <span class="sched-hdr-title" style="font-size:17px">${getDeptIcon(dept.name)} ${dept.name} — ${document.getElementById('wk-lbl').textContent} ${getDeptIcon(dept.name)}</span>
