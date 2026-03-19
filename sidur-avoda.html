@@ -1105,55 +1105,45 @@ function renderSchedule(){
     // if no roles defined - render single row (old behavior)
     // if roles defined - render one sub-row per role
     const rowCount=roles.length||1;
-    // build role names list for inside shift label
-    const rolesListHtml=roles.length>0?`<div style="margin-top:4px;border-top:1px solid #e2e8f0;padding-top:3px">
-      ${roles.map((r,ri)=>`<div style="font-size:10px;font-weight:600;color:#64748b;padding:2px 0;
-        border-bottom:${ri<roles.length-1?'1px dashed #f1f5f9':'none'};line-height:1.8">${r.role_name}</div>`).join('')}
-    </div>`:'';
-    html+=`<tr><td class="shift-label" rowspan="${rowCount}" style="vertical-align:top">
-      <span class="shift-dot" style="background:${shift.color}"></span>${shift.name}
+    html+=`<tr><td class="shift-label" rowspan="${rowCount}" style="vertical-align:top;padding:6px 10px">
+      <div style="display:flex;align-items:center;gap:3px;margin-bottom:2px">
+        <span class="shift-dot" style="background:${shift.color}"></span>
+        <strong style="font-size:13px;color:#0f172a">${shift.name}</strong>
+      </div>
       ${isMgr ? (isEditShiftTime ?
-        `<br><div style="display:flex;gap:3px;margin-top:3px;align-items:center">
+        `<div style="display:flex;gap:3px;margin-top:3px;align-items:center">
           <input id="stime-${shift.id}" value="${shift.time||''}" placeholder="שעות" style="width:80px;padding:2px 5px;border:1px solid #3b82f6;border-radius:4px;font-size:10px;font-family:inherit" />
           <button onclick="event.stopPropagation();saveShiftTime('${shift.id}',document.getElementById('stime-${shift.id}').value)" style="background:#0f172a;color:white;border:none;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer">✓</button>
           <button onclick="event.stopPropagation();editingShiftTime=null;renderSchedule()" style="background:#f1f5f9;border:none;border-radius:4px;padding:2px 5px;font-size:10px;cursor:pointer">✕</button>
         </div>` :
-        `${shift.time?`<br><span style="font-size:10px;color:#94a3b8;font-weight:400;cursor:pointer" onclick="event.stopPropagation();editingShiftTime={shiftId:'${shift.id}'};renderSchedule()" title="ערוך שעות">${shift.time} ✎</span>`:`<br><span style="font-size:10px;color:#bfdbfe;cursor:pointer" onclick="event.stopPropagation();editingShiftTime={shiftId:'${shift.id}'};renderSchedule()">+ שעות</span>`}`)
-        : (shift.time?`<br><span style="font-size:10px;color:#94a3b8;font-weight:400">${shift.time}</span>`:'')}
-    ${rolesListHtml}
+        `${shift.time?`<div style="font-size:9px;color:#94a3b8;cursor:pointer" onclick="event.stopPropagation();editingShiftTime={shiftId:'${shift.id}'};renderSchedule()">${shift.time} ✎</div>`:`<div style="font-size:9px;color:#bfdbfe;cursor:pointer" onclick="event.stopPropagation();editingShiftTime={shiftId:'${shift.id}'};renderSchedule()">+ שעות</div>`}`)
+        : (shift.time?`<div style="font-size:9px;color:#94a3b8">${shift.time}</div>`:'')}
+      ${roles.length>0?`<div style="margin-top:4px">
+        ${roles.map((r,ri)=>`<div style="font-size:10px;font-weight:600;color:#64748b;
+          padding:2px 0;line-height:${rowCount===1?1.4:2.8}">${r.role_name}</div>`).join('')}
+      </div>`:''}
     </td>`;
     if(roles.length===0){
-    // single row - no sub-roles
+    // single row
     for(let d=0;d<7;d++){
-      const names=sched?getCellNames(sched.id,shift.id,d):[];
-      const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===shift.id&&openDropdown.dayIdx===d;
-      html+=`<td><div class="cell-inner cell-rel">
-        <div class="cell-tags">`;
       const noteKey2=sched?`note_${sched.id}_${shift.id}_${d}`:'';
       const noteVal2=noteKey2&&cellData[noteKey2]?.content||'';
+      const names=sched?getCellNames(sched.id,shift.id,d):[];
+      const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===shift.id&&openDropdown.dayIdx===d;
+      html+=`<td><div class="cell-inner cell-rel" style="position:relative">
+        <div class="cell-tags">`;
       const uniqueNames=[...new Set(names)];
       uniqueNames.forEach(name=>{
         const isFreelance=freelancers.some(f=>f.name===name&&f.department_id===dept.id);
         const escapedName=name.replace(/\'/g,"\\'");
-        const emp2=employees.find(e=>e.full_name===name);
-        const cnt2=countEmpShifts(name,dept.id);
-        const req2=emp2?Math.round((emp2.position_percent/100)*5):0;
-        const sc2=emp2?(cnt2<req2?'#ef4444':cnt2>req2?'#3b82f6':'#10b981'):'#94a3b8';
-        // determine highlight
         const isCurrentUser=currentEmp&&currentEmp.full_name===name&&!isMgr;
         const isSearchMatch=searchQuery&&name.toLowerCase().includes(searchQuery.toLowerCase());
-        let tagBg, tagColor, tagBorder;
-        if(isSearchMatch){
-          tagBg='#fee2e2'; tagColor='#dc2626'; tagBorder='#fca5a5';
-        } else if(isCurrentUser&&showMyShifts){
-          tagBg='#dcfce7'; tagColor='#15803d'; tagBorder='#86efac';
-        } else if(showMyShifts&&!isCurrentUser){
-          tagBg='#f8fafc'; tagColor='#cbd5e1'; tagBorder='#f1f5f9';
-        } else if(showFreelancers&&isFreelance){
-          tagBg='#fef9c3'; tagColor='#854d0e'; tagBorder='#fcd34d';
-        } else {
-          tagBg='#eff6ff'; tagColor='#1e40af'; tagBorder='#bfdbfe';
-        }
+        let tagBg,tagColor,tagBorder;
+        if(isSearchMatch){tagBg='#fee2e2';tagColor='#dc2626';tagBorder='#fca5a5';}
+        else if(isCurrentUser&&showMyShifts){tagBg='#dcfce7';tagColor='#15803d';tagBorder='#86efac';}
+        else if(showMyShifts&&!isCurrentUser){tagBg='#f8fafc';tagColor='#cbd5e1';tagBorder='#f1f5f9';}
+        else if(showFreelancers&&isFreelance){tagBg='#fef9c3';tagColor='#854d0e';tagBorder='#fcd34d';}
+        else{tagBg='#eff6ff';tagColor='#1e40af';tagBorder='#bfdbfe';}
         const firstName=name.split(' ')[0];
         html+=`<span class="emp-tag" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder}">
           ${firstName}
@@ -1162,37 +1152,23 @@ function renderSchedule(){
       });
       html+=`</div>`;
       if(ed){
-        // add from list button + dropdown
-        html+=`<button class="add-emp-btn" title="הוסף עובד" onclick="event.stopPropagation();toggleDropdown('${dept.id}','${shift.id}',${d})">+</button>`;
-        const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===shift.id&&openDropdown.dayIdx===d;
+        html+=`<button class="add-emp-btn" title="הוסף" onclick="event.stopPropagation();toggleDropdown('${dept.id}','${shift.id}',${d})">+</button>`;
         if(isOpen){
           const deptEmps2=employees.filter(e=>e.department_id===dept.id&&!names.includes(e.full_name));
           const deptFree2=freelancers.filter(f=>f.department_id===dept.id&&!names.includes(f.name));
           let ddHtml='';
-          if(deptEmps2.length){
-            ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">עובדים קבועים</div>`;
-            deptEmps2.forEach(e=>{ddHtml+=`<div class="emp-dd-item" onclick="addName('${dept.id}','${shift.id}',${d},'${e.full_name.replace(/'/g,"\'")}')">👤 ${e.full_name}</div>`;});
-            ddHtml+=`</div>`;
-          }
-          if(deptFree2.length){
-            ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">פרילנסרים</div>`;
-            deptFree2.forEach(f=>{ddHtml+=`<div class="emp-dd-item freelance-item" onclick="addName('${dept.id}','${shift.id}',${d},'${f.name.replace(/'/g,"\'")}')">🔄 ${f.name}</div>`;});
-            ddHtml+=`</div>`;
-          }
-          if(!deptEmps2.length&&!deptFree2.length) ddHtml='<div class="emp-dd-empty">אין עובדים זמינים</div>';
+          if(deptEmps2.length){ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">עובדים</div>`;deptEmps2.forEach(e=>{ddHtml+=`<div class="emp-dd-item" onclick="addName('${dept.id}','${shift.id}',${d},'${e.full_name.replace(/'/g,"\'")}')">👤 ${e.full_name}</div>`;});ddHtml+=`</div>`;}
+          if(deptFree2.length){ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">פרילנסרים</div>`;deptFree2.forEach(f=>{ddHtml+=`<div class="emp-dd-item freelance-item" onclick="addName('${dept.id}','${shift.id}',${d},'${f.name.replace(/'/g,"\'")}')">🔄 ${f.name}</div>`;});ddHtml+=`</div>`;}
+          if(!deptEmps2.length&&!deptFree2.length) ddHtml='<div class="emp-dd-empty">אין עובדים</div>';
           html+=`<div class="emp-dropdown" onclick="event.stopPropagation()">
-            <div class="emp-dd-search"><input id="dd-search" placeholder="חפש שם..." oninput="filterDropdown('${dept.id}','${shift.id}',${d})" /></div>
+            <div class="emp-dd-search"><input id="dd-search" placeholder="חפש..." oninput="filterDropdown('${dept.id}','${shift.id}',${d})" /></div>
             <div id="dd-items">${ddHtml}</div>
-            <div style="padding:6px 8px;border-top:1px solid #f1f5f9">
-              <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">או כתוב ידנית:</div>
-              <div style="display:flex;gap:4px">
-                <input id="dd-manual" placeholder="שם חופשי..." style="flex:1;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter'){event.preventDefault();const v=this.value.trim();if(v)addName('${dept.id}','${shift.id}',${d},v);}" />
-                <button onclick="const v=document.getElementById('dd-manual').value.trim();if(v)addName('${dept.id}','${shift.id}',${d},v)" style="background:#0f172a;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit">+</button>
-              </div>
+            <div style="padding:6px 8px;border-top:1px solid #f1f5f9"><div style="font-size:11px;color:#94a3b8;margin-bottom:4px">כתוב ידנית:</div>
+              <div style="display:flex;gap:4px"><input id="dd-manual" placeholder="שם..." style="flex:1;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter'){event.preventDefault();const v=this.value.trim();if(v)addName('${dept.id}','${shift.id}',${d},v);}" />
+              <button onclick="const v=document.getElementById('dd-manual').value.trim();if(v)addName('${dept.id}','${shift.id}',${d},v)" style="background:#0f172a;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit">+</button></div>
             </div>
           </div>`;
         }
-        // free text note
         html+=`<input class="cell-note" placeholder="" value="${noteVal2.replace(/"/g,'&quot;')}"
           onblur="saveNote('${dept.id}','${shift.id}',${d},this.value)"
           onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" />`;
@@ -1203,21 +1179,20 @@ function renderSchedule(){
     }
     html+=`</tr>`;
     } else {
-    // role sub-rows
+    // role sub-rows — NO extra td for role name
     roles.forEach((role,ri)=>{
       if(ri>0) html+=`<tr>`;
-      // NO separate td for role name - it's inside the shift-label rowspan cell
+      const roleKey='r_'+role.id;
       for(let d=0;d<7;d++){
-        const roleKey='r_'+role.id;
         const sched2=schedules[dept.id];
         const roleNames=sched2?getCellNames(sched2.id,roleKey,d):[];
         const noteKey2=sched2?`note_${sched2.id}_${roleKey}_${d}`:'';
         const noteVal2=noteKey2&&cellData[noteKey2]?.content||'';
         const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===roleKey&&openDropdown.dayIdx===d;
-        html+=`<td style="position:relative"><div class="cell-inner cell-rel" style="position:relative">
+        html+=`<td style="position:relative;border-bottom:${ri===roles.length-1?'2px solid #e2e8f0':'1px dashed #f1f5f9'}"><div class="cell-inner cell-rel" style="position:relative">
           <div class="cell-tags">`;
-        const uniqueNames=[...new Set(roleNames)];
-        uniqueNames.forEach(name=>{
+        const uniqueRoleNames=[...new Set(roleNames)];
+        uniqueRoleNames.forEach(name=>{
           const isFreelance=freelancers.some(f=>f.name===name&&f.department_id===dept.id);
           const escapedName=name.replace(/\'/g,"\\'");
           const isCurrentUser=currentEmp&&currentEmp.full_name===name&&!isMgr;
@@ -1247,12 +1222,9 @@ function renderSchedule(){
             html+=`<div class="emp-dropdown" onclick="event.stopPropagation()">
               <div class="emp-dd-search"><input id="dd-search" placeholder="חפש..." oninput="filterDropdown('${dept.id}','${roleKey}',${d})" /></div>
               <div id="dd-items">${ddHtml}</div>
-              <div style="padding:6px 8px;border-top:1px solid #f1f5f9">
-                <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">או כתוב ידנית:</div>
-                <div style="display:flex;gap:4px">
-                  <input id="dd-manual" placeholder="שם..." style="flex:1;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter'){event.preventDefault();const v=this.value.trim();if(v)addName('${dept.id}','${roleKey}',${d},v);}" />
-                  <button onclick="const v=document.getElementById('dd-manual').value.trim();if(v)addName('${dept.id}','${roleKey}',${d},v)" style="background:#0f172a;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit">+</button>
-                </div>
+              <div style="padding:6px 8px;border-top:1px solid #f1f5f9"><div style="font-size:11px;color:#94a3b8;margin-bottom:4px">כתוב ידנית:</div>
+                <div style="display:flex;gap:4px"><input id="dd-manual" placeholder="שם..." style="flex:1;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter'){event.preventDefault();const v=this.value.trim();if(v)addName('${dept.id}','${roleKey}',${d},v);}" />
+                <button onclick="const v=document.getElementById('dd-manual').value.trim();if(v)addName('${dept.id}','${roleKey}',${d},v)" style="background:#0f172a;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit">+</button></div>
               </div>
             </div>`;
           }
