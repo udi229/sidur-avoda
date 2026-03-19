@@ -271,8 +271,8 @@
     </div>
   </div>
   <div class="main">
-    <div class="wk-nav" id="wk-nav">
-      <div class="wk-ctrl">
+    <div class="wk-nav" id="wk-nav" style="text-align:center">
+      <div class="wk-ctrl" style="display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:nowrap">
         <button class="wk-btn" onclick="changeWeek(-1)">‹</button>
         <div><div class="wk-title" id="wk-lbl">שבוע נוכחי</div><div class="wk-dates" id="wk-dt"></div></div>
         <button class="wk-btn" onclick="changeWeek(1)">›</button>
@@ -613,9 +613,11 @@ async function initApp(user){
     const srchBtn=document.getElementById('sched-search');
     if(srchBtn) srchBtn.style.display='block';
   } else {
-    // regular employee - hide search toolbar entirely
-    const tb=document.getElementById('sched-toolbar');
-    if(tb) tb.style.display='none';
+    // regular employee - hide search and freelancer, show only my-shifts-btn
+    const srchBtn=document.getElementById('sched-search');
+    if(srchBtn) srchBtn.style.display='none';
+    const ftBtn2=document.getElementById('freelance-toggle');
+    if(ftBtn2) ftBtn2.style.display='none';
   }
   renderDeptTabs();
   renderSchedule();
