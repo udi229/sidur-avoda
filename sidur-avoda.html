@@ -1020,6 +1020,20 @@ function renderCombinedView(){
 }
 
 
+function getDeptIcon(name){
+  const n=(name||'').toLowerCase();
+  if(n.includes('במא')||n.includes('בימ')) return '🎬';
+  if(n.includes('סאונד')||n.includes('שמע')) return '🎵';
+  if(n.includes('נתב')||n.includes('שידור')) return '📡';
+  if(n.includes('מנהל')&&n.includes('במה')) return '🎭';
+  if(n.includes('תאור')||n.includes('אור')) return '💡';
+  if(n.includes('עריכ')) return '🎞';
+  if(n.includes('סיג')||n.includes('פרומפ')||n.includes('צלמ')) return '📷';
+  if(n.includes('כלל')) return '⭐';
+  if(n.includes('אולפ')) return '🎙';
+  return '📋';
+}
+
 function renderSchedule(){
   if(activeView!=='schedule') return;
 
