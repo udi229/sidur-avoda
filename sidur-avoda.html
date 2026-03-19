@@ -1473,10 +1473,20 @@ function renderShiftRolesList(){
   const deptSel=document.getElementById('sr-dept');
   const shiftSel=document.getElementById('sr-shift');
   if(!deptSel) return;
-  // populate dept select
-  deptSel.innerHTML=departments.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
-  // populate shift select
-  shiftSel.innerHTML=shiftTypes.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  // save current selection
+  const prevDept=deptSel.value;
+  const prevShift=shiftSel.value;
+  // populate dept select only if empty
+  if(!deptSel.innerHTML||deptSel.options.length===0){
+    deptSel.innerHTML=departments.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+  }
+  // populate shift select only if empty
+  if(!shiftSel.innerHTML||shiftSel.options.length===0){
+    shiftSel.innerHTML=shiftTypes.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  }
+  // restore selection
+  if(prevDept) deptSel.value=prevDept;
+  if(prevShift) shiftSel.value=prevShift;
   const deptId=deptSel.value;
   const shiftId=shiftSel.value;
   const list=document.getElementById('shift-roles-list');
@@ -1618,6 +1628,11 @@ function renderSettings(){
   // Depts
   renderDeptShiftSettings();
   renderCVSettings();
+  // reset shift roles selects so they repopulate
+  const srDept=document.getElementById('sr-dept');
+  const srShift=document.getElementById('sr-shift');
+  if(srDept) srDept.innerHTML='';
+  if(srShift) srShift.innerHTML='';
   renderShiftRolesList();
   document.getElementById('dept-list').innerHTML=departments.map(d=>`
     <div class="item-row" id="dept-row-${d.id}">
