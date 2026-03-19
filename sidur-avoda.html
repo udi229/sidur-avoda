@@ -539,14 +539,17 @@ function playWelcome(name, role, deptTitle){
   // welcome sound
   try{
     const ac=new(window.AudioContext||window.webkitAudioContext)();
-    [[523,0],[659,0.15],[784,0.3],[1047,0.45],[1319,0.6]].forEach(([freq,t])=>{
-      const o=ac.createOscillator(),g=ac.createGain();
-      o.connect(g);g.connect(ac.destination);
-      o.frequency.value=freq;o.type='triangle';
-      g.gain.setValueAtTime(0,ac.currentTime+t);
-      g.gain.linearRampToValueAtTime(0.15,ac.currentTime+t+0.05);
-      g.gain.linearRampToValueAtTime(0,ac.currentTime+t+0.3);
-      o.start(ac.currentTime+t);o.stop(ac.currentTime+t+0.35);
+    const resume=ac.state==='suspended'?ac.resume():Promise.resolve();
+    resume.then(()=>{
+      [[523,0],[659,0.18],[784,0.36],[1047,0.54],[1319,0.72]].forEach(([freq,t])=>{
+        const o=ac.createOscillator(),g=ac.createGain();
+        o.connect(g);g.connect(ac.destination);
+        o.frequency.value=freq;o.type='sine';
+        g.gain.setValueAtTime(0,ac.currentTime+t);
+        g.gain.linearRampToValueAtTime(0.3,ac.currentTime+t+0.06);
+        g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+t+0.5);
+        o.start(ac.currentTime+t);o.stop(ac.currentTime+t+0.55);
+      });
     });
   }catch(e){}
 
