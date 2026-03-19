@@ -931,20 +931,21 @@ function renderCombinedView(){
   const B='border:1px solid #e2e8f0';
 
   let html=`<div class="sched-block">
-    <div class="sched-hdr" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
+    <div class="sched-hdr" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);text-align:center;position:relative">
       <span class="sched-hdr-title" style="flex:1;text-align:center;font-size:17px">🎬 ${cv.name} — ${document.getElementById('wk-lbl').textContent} 🎬</span>
-      <span style="background:rgba(255,255,255,0.2);color:white;border-radius:6px;padding:2px 10px;font-size:12px">צפייה בלבד</span>
-      ${(isMgr||currentEmp?.role==='manager')?`<span style="background:${cv.published?'#10b981':'#f59e0b'};color:white;border-radius:6px;padding:2px 10px;font-size:12px;margin-right:6px;cursor:pointer" onclick="toggleCVPublish('${cv.id}')">${cv.published?'🔓 מפורסם — לחץ לביטול':'🔒 לא מפורסם — לחץ לפרסום'}</span>`:''}
+      ${(isMgr||currentEmp?.role==='manager')?`<span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:${cv.published?'#10b981':'#f59e0b'};color:white;border-radius:6px;padding:2px 10px;font-size:12px;cursor:pointer" onclick="toggleCVPublish('${cv.id}')">${cv.published?'🔓 מפורסם':'🔒 לא מפורסם'}</span>`:''}
     </div>
     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-    <table style="border-collapse:collapse;direction:rtl;table-layout:fixed;min-width:500px">
+    <table style="border-collapse:collapse;direction:rtl;min-width:500px;width:100%">
     <colgroup>
-      <col style="width:75px;min-width:75px">
+      <col style="width:80px;min-width:80px">
+      <col style="width:75px;min-width:65px">
       ${DAYS_DISPLAY.map(()=>'<col style="min-width:65px">').join('')}
     </colgroup>
     <thead>
       <tr style="background:#f1f5f9">
         <th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">משמרת</th>
+        <th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">תפקיד</th>
         ${DAYS_DISPLAY.map((d,i)=>`<th style="${B};padding:8px 4px;text-align:center;font-size:12px;color:#475569;font-weight:700">
           ${d}<br><span style="font-size:10px;font-weight:400;color:#94a3b8">${dates[i]}</span>
         </th>`).join('')}
@@ -953,100 +954,77 @@ function renderCombinedView(){
     <tbody>`;
 
   activeShifts.forEach(shift=>{
-    // check roles for each dept in this shift
-    // get all unique role sets across depts
-    const deptRolesMap={};
-    let deptsForShift2=depts.filter(dept=>{
+    // collect all role rows across all depts
+    const allRows=[];
+    depts.forEach(dept=>{
       const ds=deptShifts[dept.id];
-      return !ds||ds.length===0||ds.includes(shift.id);
+      if(ds&&ds.length>0&&!ds.includes(shift.id)) return;
+      const roles=shiftRoles[dept.id+'_'+shift.id]||[];
+      if(roles.length>0){
+        roles.forEach(role=>{
+          allRows.push({dept,role,key:'r_'+role.id,label:role.role_name});
+        });
+      } else {
+        allRows.push({dept,role:null,key:shift.id,label:dept.name});
+      }
     });
+    if(!allRows.length) return;
 
-    if(deptsForShift2.length===0) return;
+    allRows.forEach((row,ri)=>{
+      const isFirst=ri===0;
+      const isLast=ri===allRows.length-1;
+      const rowBg=ri%2===0?'white':'#fafafa';
+      html+=`<tr style="background:${rowBg}">`;
 
-    deptsForShift2.forEach(dept=>{
-      const key=dept.id+'_'+shift.id;
-      deptRolesMap[dept.id]=shiftRoles[key]||[];
-    });
-
-    const maxRoles=Math.max(...deptsForShift2.map(d=>deptRolesMap[d.id].length||1));
-
-    for(let ri=0;ri<maxRoles;ri++){
-      const isFirstRole=ri===0;
-      html+=`<tr>`;
-
-      // shift label (rowspan=maxRoles, only on first role row)
-      if(isFirstRole){
-        html+=`<td rowspan="${maxRoles}" style="${B};padding:6px 8px;text-align:right;
+      // shift name cell (rowspan, first row only)
+      if(isFirst){
+        html+=`<td rowspan="${allRows.length}" style="${B};padding:6px 8px;text-align:right;
           vertical-align:middle;background:#f8fafc;border-right:3px solid ${shift.color}">
           <div style="font-weight:700;color:#0f172a;font-size:12px">
             <span style="display:inline-block;width:7px;height:7px;border-radius:50%;
               background:${shift.color};vertical-align:middle;margin-left:3px"></span>${shift.name}
           </div>
-          ${shift.time?`<div style="font-size:10px;color:#94a3b8;margin-top:1px">${shift.time}</div>`:''}
+          ${shift.time?`<div style="font-size:10px;color:#94a3b8">${shift.time}</div>`:''}
         </td>`;
       }
 
-      // one cell per dept
-      deptsForShift2.forEach(dept=>{
-        const roles=deptRolesMap[dept.id];
-        const role=roles[ri];
-        const shiftKey=role?('r_'+role.id):shift.id;
-        const sched=schedules[dept.id];
-        const names=sched?getCellNames(sched.id,shiftKey,ri===0&&!role?0:0):[];
+      // role/dept name cell
+      html+=`<td style="${B};padding:5px 8px;text-align:right;vertical-align:middle;
+        font-size:11px;font-weight:700;color:${row.dept.color};background:${isFirst?'#fafafa':'white'};
+        border-bottom:${isLast?'2px solid #e2e8f0':'1px solid #f1f5f9'}">${row.label}</td>`;
 
-        // role label in dept column (first col only)
-        const roleName=role?role.role_name:(roles.length===0&&ri===0?'':dept.name);
-
-        html+=`<td style="${B};padding:3px 6px;background:#f8fafc;text-align:right;
-          vertical-align:middle;font-size:10px;font-weight:700;color:${dept.color};
-          white-space:nowrap;border-bottom:${ri===maxRoles-1?'2px solid #e2e8f0':'1px dashed #f1f5f9'}">
-          ${roleName||dept.name}</td>`;
-
-        // day cells for this role
-        for(let d=0;d<7;d++){
-          const cellNames=sched?getCellNames(sched.id,shiftKey,d):[];
-          html+=`<td style="${B};padding:3px 2px;text-align:center;vertical-align:middle;
-            min-width:65px;border-bottom:${ri===maxRoles-1?'2px solid #e2e8f0':'1px dashed #f1f5f9'}">`;
-          if(cellNames.length){
-            cellNames.forEach(name=>{
-              const isMe=currentEmp&&currentEmp.full_name===name&&!isMgr;
-              const isSearch=searchQuery&&name.toLowerCase().includes(searchQuery.toLowerCase());
-              let col,bg;
-              if(isSearch){col='#dc2626';bg='#fee2e2';}
-              else if(isMe&&showMyShifts){col='#15803d';bg='#dcfce7';}
-              else if(showMyShifts&&!isMe){col='#94a3b8';bg='transparent';}
-              else if(showFreelancers&&freelancers.some(f=>f.name===name)){col='#854d0e';bg='#fef9c3';}
-              else{col='#1e40af';bg='#eff6ff';}
-              html+=`<span style="font-size:11px;font-weight:600;color:${col};background:${bg};
-                border-radius:8px;padding:1px 4px;white-space:nowrap;display:inline-block">${name.split(' ')[0]}</span> `;
-            });
-          } else {
-            html+=`<span style="color:#d1d5db">—</span>`;
-          }
-          html+=`</td>`;
+      // day cells
+      for(let d=0;d<7;d++){
+        const sched=schedules[row.dept.id];
+        const names=sched?getCellNames(sched.id,row.key,d):[];
+        html+=`<td style="${B};padding:3px 2px;text-align:center;vertical-align:middle;
+          background:${rowBg};border-bottom:${isLast?'2px solid #e2e8f0':'1px solid #f1f5f9'}">`;
+        if(names.length){
+          names.forEach(name=>{
+            const isMe=currentEmp&&currentEmp.full_name===name&&!isMgr;
+            const isSearch=searchQuery&&name.toLowerCase().includes(searchQuery.toLowerCase());
+            let col,bg;
+            if(isSearch){col='#dc2626';bg='#fee2e2';}
+            else if(isMe&&showMyShifts){col='#15803d';bg='#dcfce7';}
+            else if(showMyShifts&&!isMe){col='#94a3b8';bg='transparent';}
+            else if(showFreelancers&&freelancers.some(f=>f.name===name)){col='#854d0e';bg='#fef9c3';}
+            else{col='#1e40af';bg='#eff6ff';}
+            html+=`<span style="font-size:11px;font-weight:600;color:${col};background:${bg};
+              border-radius:8px;padding:1px 5px;white-space:nowrap;display:inline-block">${name.split(' ')[0]}</span> `;
+          });
+        } else {
+          html+=`<span style="color:#d1d5db;font-size:12px">—</span>`;
         }
-      });
+        html+=`</td>`;
+      }
       html+=`</tr>`;
-    }
+    });
   });
 
   html+=`</tbody></table></div></div>`;
   wrap.innerHTML=html;
 }
 
-
-function getDeptIcon(name){
-  const n=name.toLowerCase();
-  if(n.includes('במא')||n.includes('בימ')) return '🎬';
-  if(n.includes('סאונד')||n.includes('שמע')) return '🎵';
-  if(n.includes('נתב')||n.includes('שידור')) return '📡';
-  if(n.includes('מנהל')||n.includes('במה')) return '🎭';
-  if(n.includes('תאור')||n.includes('אור')) return '💡';
-  if(n.includes('עריכ')||n.includes('edit')) return '🎞';
-  if(n.includes('סיג')||n.includes('פרומפ')) return '📺';
-  if(n.includes('כלל')) return '⭐';
-  return '📋';
-}
 
 function renderSchedule(){
   if(activeView!=='schedule') return;
