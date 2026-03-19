@@ -492,7 +492,7 @@ document.addEventListener('keydown',e=>{
   }
 });
 document.addEventListener('click',e=>{
-  if(openDropdown&&!e.target.closest('.cell-rel')) closeDropdown();
+  if(openDropdown&&!e.target.closest('.cell-rel')&&!e.target.closest('.emp-dropdown')) closeDropdown();
 });
 
 // ── INIT ──
@@ -1196,7 +1196,7 @@ function renderSchedule(){
         const noteKey2=sched2?`note_${sched2.id}_${roleKey}_${d}`:'';
         const noteVal2=noteKey2&&cellData[noteKey2]?.content||'';
         const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===roleKey&&openDropdown.dayIdx===d;
-        html+=`<td><div class="cell-inner cell-rel">
+        html+=`<td style="position:relative"><div class="cell-inner cell-rel" style="position:relative">
           <div class="cell-tags">`;
         const uniqueNames=[...new Set(roleNames)];
         uniqueNames.forEach(name=>{
