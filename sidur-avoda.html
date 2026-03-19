@@ -84,7 +84,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:#f0f4f8; color:#1a202
 .sched-hdr { padding:12px 20px; display:flex; align-items:center; justify-content:space-between; }
 .sched-hdr-title { color:white; font-weight:700; font-size:16px; }
 .edit-badge { background:rgba(255,255,255,0.25); color:white; border-radius:6px; padding:2px 10px; font-size:12px; }
-.tbl-wrap { overflow-x:auto; }
+.tbl-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
 table { width:100%; border-collapse:collapse; direction:rtl; }
 thead tr { background:#f8fafc; }
 th { padding:10px 8px; text-align:center; font-weight:700; color:#475569; font-size:13px; border-bottom:2px solid #e2e8f0; white-space:nowrap; }
@@ -916,11 +916,11 @@ function renderCombinedView(){
       <span style="background:rgba(255,255,255,0.2);color:white;border-radius:6px;padding:2px 10px;font-size:12px">צפייה בלבד</span>
       ${(isMgr||currentEmp?.role==='manager')?`<span style="background:${cv.published?'#10b981':'#f59e0b'};color:white;border-radius:6px;padding:2px 10px;font-size:12px;margin-right:6px;cursor:pointer" onclick="toggleCVPublish('${cv.id}')">${cv.published?'🔓 מפורסם — לחץ לביטול':'🔒 לא מפורסם — לחץ לפרסום'}</span>`:''}
     </div>
-    <div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;direction:rtl;table-layout:fixed">
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+    <table style="border-collapse:collapse;direction:rtl;table-layout:fixed;min-width:500px">
     <colgroup>
-      <col style="width:90px">
-      ${DAYS_DISPLAY.map(()=>'<col>').join('')}
+      <col style="width:75px;min-width:75px">
+      ${DAYS_DISPLAY.map(()=>'<col style="min-width:65px">').join('')}
     </colgroup>
     <thead>
       <tr style="background:#f1f5f9">
