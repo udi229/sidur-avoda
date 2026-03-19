@@ -953,52 +953,62 @@ function renderCombinedView(){
     <tbody>`;
 
   activeShifts.forEach(shift=>{
-    const deptsForShift=depts.filter(dept=>{
+    // check roles for each dept in this shift
+    // get all unique role sets across depts
+    const deptRolesMap={};
+    let deptsForShift2=depts.filter(dept=>{
       const ds=deptShifts[dept.id];
       return !ds||ds.length===0||ds.includes(shift.id);
     });
-    if(!deptsForShift.length) return;
 
-    html+=`<tr>
-      <!-- עמודה 1: שם משמרת + שעות, rowspan לכל השורות -->
-      <td rowspan="${deptsForShift.length}" style="${B};padding:6px 8px;text-align:right;
-        vertical-align:middle;background:#f8fafc;border-right:3px solid ${shift.color}">
-        <div style="font-weight:700;color:#0f172a;font-size:12px">
-          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;
-            background:${shift.color};vertical-align:middle;margin-left:3px"></span>${shift.name}
-        </div>
-        ${shift.time?`<div style="font-size:10px;color:#94a3b8;margin-top:1px">${shift.time}</div>`:''}
-      </td>
+    if(deptsForShift2.length===0) return;
 
-      <!-- ימים לשורה הראשונה -->
-      ${Array.from({length:7},(_,d)=>{
-        const sched=schedules[deptsForShift[0].id];
-        const names=sched?getCellNames(sched.id,shift.id,d):[];
-        return `<td style="${B};padding:4px 3px;text-align:center;vertical-align:middle;background:#fafafa">
-          ${names.length?names.map(name=>{
-            const isMe=currentEmp&&currentEmp.full_name===name&&!isMgr;
-            const isSearch=searchQuery&&name.toLowerCase().includes(searchQuery.toLowerCase());
-            let col,bg;
-            if(isSearch){col='#dc2626';bg='#fee2e2';}
-            else if(isMe&&showMyShifts){col='#15803d';bg='#dcfce7';}
-            else if(showMyShifts&&!isMe){col='#94a3b8';bg='transparent';}
-            else if(showFreelancers&&freelancers.some(f=>f.name===name)){col='#854d0e';bg='#fef9c3';}
-            else{col='#1e40af';bg='#eff6ff';}
-            return `<span style="font-size:12px;font-weight:600;color:${col};background:${bg};border-radius:8px;padding:1px 4px">${name.split(' ')[0]}</span>`;
-          }).join(' '):`<span style="color:#d1d5db">—</span>`}
+    deptsForShift2.forEach(dept=>{
+      const key=dept.id+'_'+shift.id;
+      deptRolesMap[dept.id]=shiftRoles[key]||[];
+    });
+
+    const maxRoles=Math.max(...deptsForShift2.map(d=>deptRolesMap[d.id].length||1));
+
+    for(let ri=0;ri<maxRoles;ri++){
+      const isFirstRole=ri===0;
+      html+=`<tr>`;
+
+      // shift label (rowspan=maxRoles, only on first role row)
+      if(isFirstRole){
+        html+=`<td rowspan="${maxRoles}" style="${B};padding:6px 8px;text-align:right;
+          vertical-align:middle;background:#f8fafc;border-right:3px solid ${shift.color}">
+          <div style="font-weight:700;color:#0f172a;font-size:12px">
+            <span style="display:inline-block;width:7px;height:7px;border-radius:50%;
+              background:${shift.color};vertical-align:middle;margin-left:3px"></span>${shift.name}
+          </div>
+          ${shift.time?`<div style="font-size:10px;color:#94a3b8;margin-top:1px">${shift.time}</div>`:''}
         </td>`;
-      }).join('')}
-    </tr>`;
+      }
 
-    // שורות נוספות לשאר המחלקות
-    deptsForShift.slice(1).forEach((dept,di)=>{
-      html+=`<tr>
+      // one cell per dept
+      deptsForShift2.forEach(dept=>{
+        const roles=deptRolesMap[dept.id];
+        const role=roles[ri];
+        const shiftKey=role?('r_'+role.id):shift.id;
+        const sched=schedules[dept.id];
+        const names=sched?getCellNames(sched.id,shiftKey,ri===0&&!role?0:0):[];
 
-        ${Array.from({length:7},(_,d)=>{
-          const sched=schedules[dept.id];
-          const names=sched?getCellNames(sched.id,shift.id,d):[];
-          return `<td style="${B};padding:4px 3px;text-align:center;vertical-align:middle;background:white">
-            ${names.length?names.map(name=>{
+        // role label in dept column (first col only)
+        const roleName=role?role.role_name:(roles.length===0&&ri===0?'':dept.name);
+
+        html+=`<td style="${B};padding:3px 6px;background:#f8fafc;text-align:right;
+          vertical-align:middle;font-size:10px;font-weight:700;color:${dept.color};
+          white-space:nowrap;border-bottom:${ri===maxRoles-1?'2px solid #e2e8f0':'1px dashed #f1f5f9'}">
+          ${roleName||dept.name}</td>`;
+
+        // day cells for this role
+        for(let d=0;d<7;d++){
+          const cellNames=sched?getCellNames(sched.id,shiftKey,d):[];
+          html+=`<td style="${B};padding:3px 2px;text-align:center;vertical-align:middle;
+            min-width:65px;border-bottom:${ri===maxRoles-1?'2px solid #e2e8f0':'1px dashed #f1f5f9'}">`;
+          if(cellNames.length){
+            cellNames.forEach(name=>{
               const isMe=currentEmp&&currentEmp.full_name===name&&!isMgr;
               const isSearch=searchQuery&&name.toLowerCase().includes(searchQuery.toLowerCase());
               let col,bg;
@@ -1007,12 +1017,17 @@ function renderCombinedView(){
               else if(showMyShifts&&!isMe){col='#94a3b8';bg='transparent';}
               else if(showFreelancers&&freelancers.some(f=>f.name===name)){col='#854d0e';bg='#fef9c3';}
               else{col='#1e40af';bg='#eff6ff';}
-              return `<span style="font-size:12px;font-weight:600;color:${col};background:${bg};border-radius:8px;padding:1px 4px">${name.split(' ')[0]}</span>`;
-            }).join(' '):`<span style="color:#d1d5db">—</span>`}
-          </td>`;
-        }).join('')}
-      </tr>`;
-    });
+              html+=`<span style="font-size:11px;font-weight:600;color:${col};background:${bg};
+                border-radius:8px;padding:1px 4px;white-space:nowrap;display:inline-block">${name.split(' ')[0]}</span> `;
+            });
+          } else {
+            html+=`<span style="color:#d1d5db">—</span>`;
+          }
+          html+=`</td>`;
+        }
+      });
+      html+=`</tr>`;
+    }
   });
 
   html+=`</tbody></table></div></div>`;
@@ -1185,10 +1200,10 @@ function renderSchedule(){
     // role sub-rows
     roles.forEach((role,ri)=>{
       if(ri>0) html+=`<tr>`;
-      // role label cell
-      html+=`<td style="padding:4px 10px;background:#f8fafc;border-bottom:1px solid #f1f5f9;
-        font-size:11px;font-weight:600;color:#475569;border-left:1px solid #e2e8f0;
-        white-space:nowrap">${role.role_name}</td>`;
+      // role name goes IN the shift label column (no separate td)
+      html+=`<td style="padding:4px 10px;background:#f8fafc;border-bottom:${ri===roles.length-1?'2px solid #e2e8f0':'1px dashed #f1f5f9'};
+        font-size:11px;font-weight:600;color:#475569;text-align:right;white-space:nowrap;
+        border-left:3px solid ${shift.color}aa">${role.role_name}</td>`;
       for(let d=0;d<7;d++){
         const roleKey='r_'+role.id;
         const sched2=schedules[dept.id];
