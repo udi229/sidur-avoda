@@ -729,16 +729,9 @@ function renderDeptTabs(){
     const isActive=activeCombinedId===cv.id;
     const pubIcon=cv.published?'🔓':'🔒';
     const pubTitle=cv.published?'מפורסם לעובדים':'לא מפורסם';
-    return `<div style="display:inline-flex;align-items:center;gap:0">
-      <button class="dept-tab${isActive?' active':''}"
-        style="border-color:#7c3aed;border-left:none;border-radius:20px 0 0 20px;${isActive?'background:#7c3aed;color:white':'color:#7c3aed'}"
-        onclick="setCombined('${cv.id}')">🎬 ${cv.name}</button>
-      ${(isMgr||currentEmp?.role==='manager')?`<button title="${pubTitle}"
-        onclick="toggleCVPublish('${cv.id}')"
-        style="border:2px solid #7c3aed;border-right:none;border-radius:0 20px 20px 0;
-          background:${cv.published?'#7c3aed':'white'};color:${cv.published?'white':'#7c3aed'};
-          padding:6px 8px;cursor:pointer;font-size:12px;font-family:inherit">${pubIcon}</button>`:''}
-    </div>`;
+    return `<button class="dept-tab${isActive?' active':''}"
+      style="border-color:#7c3aed;${isActive?'background:#7c3aed;color:white':'color:#7c3aed'}"
+      onclick="setCombined('${cv.id}')">🎬 ${cv.name}${(isMgr||currentEmp?.role==='manager')?' '+pubIcon:''}</button>`;
   }).join('');
 
   document.getElementById('dept-tabs').innerHTML=deptTabsHtml+cvTabsHtml;
@@ -1228,6 +1221,7 @@ function renderSchedule(){
   renderOnlineList();
 
   // ── NOTES PANEL ──
+  if(!activeDeptId) return;
   const noteDiv=document.createElement('div');
   noteDiv.style.cssText='background:white;border-radius:14px;padding:16px 20px;box-shadow:0 1px 8px rgba(0,0,0,0.07);margin-top:14px';
   const deptSchedNote=schedules[activeDeptId];
