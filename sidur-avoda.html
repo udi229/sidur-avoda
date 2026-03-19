@@ -462,7 +462,6 @@ function enterMgr(label='מנהל',type='primary'){
   document.getElementById('hdr-rl').textContent='מנהל מערכת';
   document.getElementById('nav-stats').style.display='inline-block';
   document.getElementById('nav-settings').style.display='inline-block';
-  document.getElementById('sched-wrap').innerHTML='<div class="loading">⏳ טוען נתונים...</div>';
   loadAll().then(()=>loadWeekData()).then(()=>{
     activeDeptId=departments[0]?.id||null;
     const ftBtn=document.getElementById('freelance-toggle');
@@ -511,7 +510,6 @@ async function initApp(user){
   document.getElementById('nav-settings').style.display='none';
   if(role==='team_lead'&&currentEmp.department_id) activeDeptId=currentEmp.department_id;
   activeDeptId=currentEmp.department_id||departments[0]?.id||null;
-  document.getElementById('sched-wrap').innerHTML='<div class="loading">⏳ טוען נתונים...</div>';
   await loadWeekData();
   if(currentEmp.role==='team_lead'||currentEmp.role==='manager'){
     const ftBtn=document.getElementById('freelance-toggle');
@@ -747,10 +745,13 @@ function renderDeptTabs(){
   if(!activeDeptId&&vis.length) activeDeptId=vis[0].id;
 }
 function setDept(id){
-  activeDeptId=id;activeCombinedId=null;openDropdown=null;
-  searchQuery='';
+  activeDeptId=id;activeCombinedId=null;openDropdown=null;editingShiftTime=null;
+  searchQuery='';showMyShifts=false;
   const si=document.getElementById('sched-search');
   if(si) si.value='';
+  const btn=document.getElementById('my-shifts-btn');
+  if(btn){btn.style.background='#f1f5f9';btn.style.color='#64748b';btn.style.borderColor='transparent';btn.textContent='המשמרות שלי';}
+  document.getElementById('sched-wrap').innerHTML='';
   renderDeptTabs();renderSchedule();
 }
 async function toggleCVPublish(id){
