@@ -318,6 +318,17 @@ tr:nth-child(even) td.shift-label { background:#f1f5f9; }
         <div id="dept-shift-settings"></div>
       </div>
       <div class="set-sec">
+        <h3>תפקידים בתוך משמרת</h3>
+        <div class="notice n-info" style="margin-bottom:14px">💡 הגדר תפקידים לכל משמרת במחלקה. כל תפקיד יהיה שורה נפרדת בסידור.</div>
+        <div class="set-row">
+          <select class="s-inp" id="sr-dept" style="max-width:140px" onchange="renderShiftRolesList()"></select>
+          <select class="s-inp" id="sr-shift" style="max-width:140px"></select>
+          <input class="s-inp" id="sr-name" placeholder='שם תפקיד (צלם, איש תמונה...)' />
+          <button class="btn-add" onclick="addShiftRole()">+ הוסף</button>
+        </div>
+        <div class="item-list" id="shift-roles-list"></div>
+      </div>
+      <div class="set-sec">
         <h3>סוגי משמרות</h3>
         <div class="set-row">
           <input class="s-inp" id="ns-nm" placeholder="שם משמרת" />
@@ -369,6 +380,7 @@ let editMode=false;
 let deptShifts={};
 let searchQuery='';
 let showFreelancers=false;
+let shiftRoles={}; // {deptId_shiftId: [{id,role_name,sort_order}]}
 let onlineUsers=new Set(); // emails of online users
 let combinedViews=[]; // [{id, name, dept_ids}]
 let activeCombinedId=null; // if viewing a combined view
@@ -544,6 +556,14 @@ async function loadAll(){
   employees=e.data||[];
   freelancers=f.data||[];
   combinedViews=(cv.data||[]).map(v=>({...v, dept_ids: v.dept_ids.split(','), published: v.published||false}));
+  // load shift roles
+  const {data:srData}=await sb.from('shift_roles').select('*').order('sort_order');
+  shiftRoles={};
+  (srData||[]).forEach(r=>{
+    const key=r.department_id+'_'+r.shift_id;
+    if(!shiftRoles[key]) shiftRoles[key]=[];
+    shiftRoles[key].push(r);
+  });
   // build deptShifts map
   deptShifts={};
   (ds.data||[]).forEach(r=>{
@@ -1065,8 +1085,12 @@ function renderSchedule(){
     : shiftTypes;
 
   for(const shift of activeShifts){
+    const roles=shiftRoles[dept.id+'_'+shift.id]||[];
     const isEditShiftTime=isMgr&&editingShiftTime&&editingShiftTime.shiftId===shift.id;
-    html+=`<tr><td class="shift-label">
+    // if no roles defined - render single row (old behavior)
+    // if roles defined - render one sub-row per role
+    const rowCount=roles.length||1;
+    html+=`<tr><td class="shift-label" rowspan="${rowCount}">
       <span class="shift-dot" style="background:${shift.color}"></span>${shift.name}
       ${isMgr ? (isEditShiftTime ?
         `<br><div style="display:flex;gap:3px;margin-top:3px;align-items:center">
@@ -1077,6 +1101,8 @@ function renderSchedule(){
         `${shift.time?`<br><span style="font-size:10px;color:#94a3b8;font-weight:400;cursor:pointer" onclick="event.stopPropagation();editingShiftTime={shiftId:'${shift.id}'};renderSchedule()" title="ערוך שעות">${shift.time} ✎</span>`:`<br><span style="font-size:10px;color:#bfdbfe;cursor:pointer" onclick="event.stopPropagation();editingShiftTime={shiftId:'${shift.id}'};renderSchedule()">+ שעות</span>`}`)
         : (shift.time?`<br><span style="font-size:10px;color:#94a3b8;font-weight:400">${shift.time}</span>`:'')}
     </td>`;
+    if(roles.length===0){
+    // single row - no sub-roles
     for(let d=0;d<7;d++){
       const names=sched?getCellNames(sched.id,shift.id,d):[];
       const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===shift.id&&openDropdown.dayIdx===d;
@@ -1155,6 +1181,74 @@ function renderSchedule(){
       html+=`</div></td>`;
     }
     html+=`</tr>`;
+    } else {
+    // role sub-rows
+    roles.forEach((role,ri)=>{
+      if(ri>0) html+=`<tr>`;
+      // role label cell
+      html+=`<td style="padding:4px 10px;background:#f8fafc;border-bottom:1px solid #f1f5f9;
+        font-size:11px;font-weight:600;color:#475569;border-left:1px solid #e2e8f0;
+        white-space:nowrap">${role.role_name}</td>`;
+      for(let d=0;d<7;d++){
+        const roleKey=shift.id+'_role_'+role.id;
+        const sched2=schedules[dept.id];
+        const roleNames=sched2?getCellNames(sched2.id,roleKey,d):[];
+        const noteKey2=sched2?`note_${sched2.id}_${roleKey}_${d}`:'';
+        const noteVal2=noteKey2&&cellData[noteKey2]?.content||'';
+        const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===roleKey&&openDropdown.dayIdx===d;
+        html+=`<td><div class="cell-inner cell-rel">
+          <div class="cell-tags">`;
+        const uniqueNames=[...new Set(roleNames)];
+        uniqueNames.forEach(name=>{
+          const isFreelance=freelancers.some(f=>f.name===name&&f.department_id===dept.id);
+          const escapedName=name.replace(/\'/g,"\\'");
+          const isCurrentUser=currentEmp&&currentEmp.full_name===name&&!isMgr;
+          const isSearchMatch=searchQuery&&name.toLowerCase().includes(searchQuery.toLowerCase());
+          let tagBg,tagColor,tagBorder;
+          if(isSearchMatch){tagBg='#fee2e2';tagColor='#dc2626';tagBorder='#fca5a5';}
+          else if(isCurrentUser&&showMyShifts){tagBg='#dcfce7';tagColor='#15803d';tagBorder='#86efac';}
+          else if(showMyShifts&&!isCurrentUser){tagBg='#f8fafc';tagColor='#cbd5e1';tagBorder='#f1f5f9';}
+          else if(showFreelancers&&isFreelance){tagBg='#fef9c3';tagColor='#854d0e';tagBorder='#fcd34d';}
+          else{tagBg='#eff6ff';tagColor='#1e40af';tagBorder='#bfdbfe';}
+          const firstName=name.split(' ')[0];
+          html+=`<span class="emp-tag" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder}">
+            ${firstName}
+            ${ed?`<span class="remove-tag" onclick="removeName('${dept.id}','${roleKey}',${d},'${escapedName}')">×</span>`:''}
+          </span>`;
+        });
+        html+=`</div>`;
+        if(ed){
+          html+=`<button class="add-emp-btn" title="הוסף" onclick="event.stopPropagation();toggleDropdown('${dept.id}','${roleKey}',${d})">+</button>`;
+          if(isOpen){
+            const deptEmps2=employees.filter(e=>e.department_id===dept.id&&!roleNames.includes(e.full_name));
+            const deptFree2=freelancers.filter(f=>f.department_id===dept.id&&!roleNames.includes(f.name));
+            let ddHtml='';
+            if(deptEmps2.length){ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">עובדים</div>`;deptEmps2.forEach(e=>{ddHtml+=`<div class="emp-dd-item" onclick="addName('${dept.id}','${roleKey}',${d},'${e.full_name.replace(/'/g,"\'")}')">👤 ${e.full_name}</div>`;});ddHtml+=`</div>`;}
+            if(deptFree2.length){ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">פרילנסרים</div>`;deptFree2.forEach(f=>{ddHtml+=`<div class="emp-dd-item freelance-item" onclick="addName('${dept.id}','${roleKey}',${d},'${f.name.replace(/'/g,"\'")}')">🔄 ${f.name}</div>`;});ddHtml+=`</div>`;}
+            if(!deptEmps2.length&&!deptFree2.length) ddHtml='<div class="emp-dd-empty">אין עובדים</div>';
+            html+=`<div class="emp-dropdown" onclick="event.stopPropagation()">
+              <div class="emp-dd-search"><input id="dd-search" placeholder="חפש..." oninput="filterDropdown('${dept.id}','${roleKey}',${d})" /></div>
+              <div id="dd-items">${ddHtml}</div>
+              <div style="padding:6px 8px;border-top:1px solid #f1f5f9">
+                <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">או כתוב ידנית:</div>
+                <div style="display:flex;gap:4px">
+                  <input id="dd-manual" placeholder="שם..." style="flex:1;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter'){event.preventDefault();const v=this.value.trim();if(v)addName('${dept.id}','${roleKey}',${d},v);}" />
+                  <button onclick="const v=document.getElementById('dd-manual').value.trim();if(v)addName('${dept.id}','${roleKey}',${d},v)" style="background:#0f172a;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit">+</button>
+                </div>
+              </div>
+            </div>`;
+          }
+          html+=`<input class="cell-note" placeholder="" value="${noteVal2.replace(/"/g,'&quot;')}"
+            onblur="saveNote('${dept.id}','${roleKey}',${d},this.value)"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" />`;
+        } else if(noteVal2){
+          html+=`<div class="cell-note-view">${noteVal2}</div>`;
+        }
+        html+=`</div></td>`;
+      }
+      html+=`</tr>`;
+    });
+    }
   }
   html+=`</tbody></table></div></div>`;
   wrap.innerHTML=html;
@@ -1375,6 +1469,51 @@ async function saveMgrNote(deptId){
 }
 
 // ── SETTINGS ──
+function renderShiftRolesList(){
+  const deptSel=document.getElementById('sr-dept');
+  const shiftSel=document.getElementById('sr-shift');
+  if(!deptSel) return;
+  // populate dept select
+  deptSel.innerHTML=departments.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+  // populate shift select
+  shiftSel.innerHTML=shiftTypes.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  const deptId=deptSel.value;
+  const shiftId=shiftSel.value;
+  const list=document.getElementById('shift-roles-list');
+  if(!list) return;
+  const roles=shiftTypes.flatMap(s=>{
+    const key=deptId+'_'+s.id;
+    return (shiftRoles[key]||[]).map(r=>({...r,shiftName:s.name}));
+  });
+  list.innerHTML=roles.length?roles.map(r=>`
+    <div class="item-row">
+      <div class="item-info">
+        <span style="font-size:11px;background:#eff6ff;color:#1e40af;border-radius:4px;padding:2px 6px">${r.shiftName}</span>
+        <span style="font-weight:600">${r.role_name}</span>
+      </div>
+      <button class="btn-del" onclick="delShiftRole('${r.id}','${r.department_id}','${r.shift_id}')">מחק</button>
+    </div>`).join('')
+    :'<div style="color:#94a3b8;padding:8px">אין תפקידים מוגדרים למחלקה זו</div>';
+}
+async function addShiftRole(){
+  const deptId=document.getElementById('sr-dept')?.value;
+  const shiftId=document.getElementById('sr-shift')?.value;
+  const name=document.getElementById('sr-name')?.value.trim();
+  if(!deptId||!shiftId||!name) return;
+  const key=deptId+'_'+shiftId;
+  const order=(shiftRoles[key]||[]).length;
+  const {data}=await sb.from('shift_roles').insert({department_id:deptId,shift_id:shiftId,role_name:name,sort_order:order}).select().single();
+  if(!shiftRoles[key]) shiftRoles[key]=[];
+  shiftRoles[key].push(data);
+  document.getElementById('sr-name').value='';
+  renderShiftRolesList();renderSchedule();
+}
+async function delShiftRole(id,deptId,shiftId){
+  await sb.from('shift_roles').delete().eq('id',id);
+  const key=deptId+'_'+shiftId;
+  if(shiftRoles[key]) shiftRoles[key]=shiftRoles[key].filter(r=>r.id!==id);
+  renderShiftRolesList();renderSchedule();
+}
 function renderCVSettings(){
   const el=document.getElementById('cv-list');
   if(!el) return;
@@ -1479,6 +1618,7 @@ function renderSettings(){
   // Depts
   renderDeptShiftSettings();
   renderCVSettings();
+  renderShiftRolesList();
   document.getElementById('dept-list').innerHTML=departments.map(d=>`
     <div class="item-row" id="dept-row-${d.id}">
       <div class="item-info" style="flex:1;flex-wrap:wrap;gap:8px">
