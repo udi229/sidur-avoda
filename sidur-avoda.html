@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>אולפנים — סידורי עבודה</title>
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="אולפנים">
+<meta name="theme-color" content="#111520">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 * { box-sizing:border-box; margin:0; padding:0; }
@@ -460,7 +466,8 @@ function enterMgr(label='מנהל',type='primary'){
   try{ localStorage.setItem('mgr-session', JSON.stringify({label,type,ts:Date.now()})); } catch(e){}
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app').style.display='block';
-  document.getElementById('hdr-nm').textContent='מנהל';
+  playWelcome(label, 'manager');
+  document.getElementById('hdr-nm').textContent=label;
   document.getElementById('hdr-rl').textContent='מנהל מערכת';
   document.getElementById('nav-stats').style.display='inline-block';
   document.getElementById('nav-settings').style.display='inline-block';
@@ -497,12 +504,39 @@ document.addEventListener('click',e=>{
 });
 
 // ── INIT ──
+function playWelcome(name, role){
+  // build display name + role label
+  const firstName=name?name.split(' ')[0]:name;
+  const roleLabel=role==='manager'?'מנהל':role==='team_lead'?'ראש צוות':'עובד';
+  
+  // show welcome toast
+  const toast=document.createElement('div');
+  toast.style.cssText=`position:fixed;top:0;left:0;right:0;z-index:9999;
+    background:linear-gradient(135deg,#0f172a,#1e3a5f);
+    color:white;text-align:center;padding:28px 20px;
+    font-family:inherit;direction:rtl;
+    animation:toastIn 0.5s ease-out, toastOut 0.5s ease-in 2.5s forwards`;
+  toast.innerHTML=`
+    <div style="font-size:13px;color:#94a3b8;margin-bottom:4px">${roleLabel}</div>
+    <div style="font-size:26px;font-weight:800">ברוך הבא, ${firstName}! 🎬</div>
+    <div style="font-size:13px;color:#60a5fa;margin-top:4px">אולפנים — מערכת סידורי עבודה</div>`;
+  
+  const style=document.createElement('style');
+  style.textContent=`
+    @keyframes toastIn{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
+    @keyframes toastOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-100%)}}`;
+  document.head.appendChild(style);
+  document.body.appendChild(toast);
+  setTimeout(()=>toast.remove(), 3200);
+}
+
 async function initApp(user){
   currentUser=user;
   await loadAll();
   currentEmp=employees.find(e=>e.email.toLowerCase()===user.email.toLowerCase())||{id:null,full_name:user.email,email:user.email,role:'employee',department_id:null,position_percent:100};
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app').style.display='block';
+  playWelcome(currentEmp?.full_name||'', currentEmp?.role||'employee');
   const role=currentEmp.role;
   document.getElementById('hdr-nm').textContent=currentEmp.full_name;
   const dept4role=departments.find(d=>d.id===currentEmp.department_id);
