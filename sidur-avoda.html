@@ -16,7 +16,8 @@
   body { margin:0; font-family:'Segoe UI',Tahoma,sans-serif; background:#f1f5f9; color:#0f172a; direction:rtl; }
 
   /* HEADER */
-  .hdr { background:#0f172a; padding:10px 20px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; box-shadow:0 2px 10px rgba(0,0,0,0.3); }
+  .hdr, .header { background:#0f172a; padding:10px 20px; position:sticky; top:0; z-index:100; box-shadow:0 2px 10px rgba(0,0,0,0.3); }
+  .hdr-in { display:flex; align-items:center; justify-content:space-between; flex-direction:row-reverse; gap:12px; }
   .hdr-logo { font-size:18px; font-weight:900; color:white; display:flex; align-items:center; gap:8px; }
   .hdr-usr { display:flex; align-items:center; gap:12px; }
   .usr-nm { font-size:14px; font-weight:700; color:white; }
@@ -167,6 +168,8 @@
   }
 
   /* ANIMATIONS */
+  @keyframes neonPulseGreen{0%,100%{box-shadow:0 0 8px #00ff88,0 0 16px #00ff8866}50%{box-shadow:0 0 20px #00ff88,0 0 40px #00ff88aa}}
+  @keyframes neonPulseRed{0%,100%{box-shadow:0 0 8px #ff003c,0 0 16px #ff003c66}50%{box-shadow:0 0 20px #ff003c,0 0 40px #ff003caa}}
   @keyframes onair{0%,100%{background:#cc0000;box-shadow:0 0 12px #ff000077}50%{background:#ff1111;box-shadow:0 0 28px #ff0000aa}}
   @keyframes musicnote{0%,100%{transform:translate(-50%,-50%) scale(1) rotate(-5deg)}50%{transform:translate(-50%,-52%) scale(1.05) rotate(5deg)}}
   @keyframes toastIn{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -296,8 +299,14 @@
         <input id="sched-search" type="text" placeholder="🔍 חפש שם..." value=""
           oninput="searchQuery=this.value;renderSchedule()"
           style="display:none;flex:1;min-width:160px;padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;font-family:inherit;background:white" />
-        <button id="my-shifts-btn" onclick="toggleMyShifts()" style="padding:8px 14px;border:2px solid transparent;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:#f1f5f9;color:#64748b;white-space:nowrap">המשמרות שלי</button>
-        <button id="freelance-toggle" onclick="toggleFreelanceHighlight()" style="display:none;padding:8px 14px;border:2px solid transparent;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:#f1f5f9;color:#64748b">👁 פרילנסרים</button>
+        <button id="my-shifts-btn" onclick="toggleMyShifts()"
+          style="padding:8px 16px;border:1.5px solid #00ff88;border-radius:20px;font-size:13px;
+          font-weight:700;cursor:pointer;font-family:inherit;background:white;color:#047857;
+          white-space:nowrap;box-shadow:0 0 8px #00ff8844;transition:all 0.2s">המשמרות שלי</button>
+        <button id="freelance-toggle" onclick="toggleFreelanceHighlight()"
+          style="display:none;padding:8px 16px;border:1.5px solid #ff003c;border-radius:20px;
+          font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:white;
+          color:#be123c;box-shadow:0 0 8px #ff003c44;transition:all 0.2s">👁 פרילנסרים</button>
       </div>
       <div id="sched-wrap"><div class="loading">⏳ טוען...</div></div>
       <div id="online-list" style="display:none;margin-top:16px"></div>
@@ -730,10 +739,21 @@ function toggleMyShifts(){
   showMyShifts=!showMyShifts;
   const btn=document.getElementById('my-shifts-btn');
   if(btn){
-    btn.style.background=showMyShifts?'#eff6ff':'#f1f5f9';
-    btn.style.color=showMyShifts?'#1d4ed8':'#64748b';
-    btn.style.borderColor=showMyShifts?'#bfdbfe':'transparent';
-    btn.textContent=showMyShifts?'✓ המשמרות שלי':'המשמרות שלי';
+    if(showMyShifts){
+      btn.style.background='#f0fdf4';
+      btn.style.color='#047857';
+      btn.style.borderColor='#00ff88';
+      btn.style.boxShadow='0 0 16px #00ff88, 0 0 32px #00ff8866';
+      btn.style.animation='neonPulseGreen 1.2s ease-in-out infinite';
+      btn.textContent='✓ המשמרות שלי';
+    } else {
+      btn.style.background='white';
+      btn.style.color='#047857';
+      btn.style.borderColor='#00ff88';
+      btn.style.boxShadow='0 0 8px #00ff8844';
+      btn.style.animation='none';
+      btn.textContent='המשמרות שלי';
+    }
   }
   renderSchedule();
 }
@@ -742,9 +762,17 @@ function toggleFreelanceHighlight(){
   showFreelancers=!showFreelancers;
   const btn=document.getElementById('freelance-toggle');
   if(btn){
-    btn.style.background=showFreelancers?'#fef9c3':'#f1f5f9';
-    btn.style.color=showFreelancers?'#854d0e':'#64748b';
-    btn.style.border=showFreelancers?'2px solid #fcd34d':'2px solid transparent';
+    if(showFreelancers){
+      btn.style.background='#fff1f2';btn.style.color='#be123c';
+      btn.style.borderColor='#ff003c';
+      btn.style.boxShadow='0 0 16px #ff003c, 0 0 32px #ff003c66';
+      btn.style.animation='neonPulseRed 1.2s ease-in-out infinite';
+    } else {
+      btn.style.background='white';btn.style.color='#be123c';
+      btn.style.borderColor='#ff003c';
+      btn.style.boxShadow='0 0 8px #ff003c44';
+      btn.style.animation='none';
+    }
   }
   renderSchedule();
 }
