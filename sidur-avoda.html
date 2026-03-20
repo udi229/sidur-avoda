@@ -939,9 +939,10 @@ async function toggleCVPublish(id){
   const cv=combinedViews.find(v=>v.id===id);
   if(!cv) return;
   const newVal=!cv.published;
+  cv.published=newVal; // update immediately before DB call
+  renderDeptTabs();    // re-render tabs immediately
+  renderSchedule();    // re-render schedule immediately (updates button in header)
   await sb.from('combined_views').update({published:newVal}).eq('id',id);
-  cv.published=newVal;
-  renderDeptTabs();
 }
 function setCombined(id){
   activeCombinedId=id;openDropdown=null;
