@@ -1161,12 +1161,14 @@ function renderCombinedView(){
     <div class="sched-hdr" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);text-align:center;position:relative">
       <span class="sched-hdr-title" style="flex:1;text-align:center;font-size:17px">🎬 ${cv.name} — ${document.getElementById('wk-lbl').textContent} 🎬</span>
       ${(isMgr||currentEmp?.role==='manager')?`<button onclick="event.stopPropagation();toggleCVPublish('${cv.id}')"
+        title="${cv.published?'לחץ לעצירת הפרסום':'לחץ לפרסום הסידור'}"
         style="position:absolute;left:12px;top:50%;transform:translateY(-50%);
-          background:${cv.published?'#10b981':'#94a3b8'};color:white;
-          border:none;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:700;
+          background:${cv.published?'#dc2626':'#16a34a'};color:white;
+          border:none;border-radius:20px;padding:6px 16px;font-size:13px;font-weight:800;
           cursor:pointer;font-family:inherit;transition:all 0.3s;
-          box-shadow:${cv.published?'0 0 12px #10b98166':'none'}">
-        ${cv.published?'🟢 מפורסם':'⚫ לא פורסם'}
+          box-shadow:${cv.published?'0 0 14px #dc262666':'0 0 14px #16a34a66'};
+          animation:${cv.published?'neonPulseRed':'neonPulseGreen'} 1.5s ease-in-out infinite">
+        ${cv.published?'🛑 עצור פרסום':'🚀 פרסם'}
       </button>`:''}
     </div>
     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
