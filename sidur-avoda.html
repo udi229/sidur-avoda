@@ -4,12 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>אולפנים — סידורי עבודה</title>
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoi15DXldec16TXoNeZ150iLCJzaG9ydF9uYW1lIjoi15DXldec16TXoNeZ150iLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzExMTUyMCIsInRoZW1lX2NvbG9yIjoiIzExMTUyMCIsImljb25zIjpbeyJzcmMiOiJpY29uLnBuZyIsInNpemVzIjoiMTgweDE4MCIsInR5cGUiOiJpbWFnZS9wbmcifSx7InNyYyI6Imljb24ucG5nIiwic2l6ZXMiOiIxOTJ4MTkyIiwidHlwZSI6ImltYWdlL3BuZyJ9LHsic3JjIjoiaWNvbi5wbmciLCJzaXplcyI6IjUxMng1MTIiLCJ0eXBlIjoiaW1hZ2UvcG5nIn1dfQ==">
 <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon.png">
 <link rel="shortcut icon" href="icon.png">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="אולפנים">
+<meta name="application-name" content="אולפנים">
 <meta name="theme-color" content="#111520">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -666,17 +669,26 @@ async function initApp(user){
 }
 
 async function loadAll(){
-  const [d,e,f,ds,cv]=await Promise.all([
+  const [d,e,f,ds,cv,st]=await Promise.all([
     sb.from('departments').select('*').order('name'),
     sb.from('employees').select('*').order('full_name'),
     sb.from('freelancers').select('*').order('name'),
     sb.from('department_shifts').select('*').order('sort_order'),
     sb.from('combined_views').select('*').order('name'),
+    sb.from('shift_types').select('*').order('sort_order'),
   ]);
   departments=d.data||[];
   employees=e.data||[];
   freelancers=f.data||[];
   combinedViews=(cv.data||[]).map(v=>({...v, dept_ids: v.dept_ids.split(','), published: v.published||false}));
+  if(st.data&&st.data.length>0){
+    shiftTypes=st.data.map(s=>({id:s.id,name:s.name,time:s.time||'',color:s.color||'#94a3b8'}));
+  } else {
+    // first time - save default shifts to DB
+    await Promise.all(shiftTypes.map((s,i)=>
+      sb.from('shift_types').upsert({id:s.id,name:s.name,time:s.time||'',color:s.color,sort_order:i})
+    ));
+  }
   // load shift roles
   const {data:srData}=await sb.from('shift_roles').select('*').order('sort_order');
   shiftRoles={};
@@ -1955,17 +1967,26 @@ async function delDept(id){
   await loadAll();if(activeDeptId===id)activeDeptId=departments[0]?.id||null;
   renderSettings();renderDeptTabs();renderSchedule();
 }
-function addShiftType(){
+async function addShiftType(){
   const n=document.getElementById('ns-nm').value.trim(),t=document.getElementById('ns-tm').value.trim(),c=document.getElementById('ns-cl').value;
   if(!n)return;
-  shiftTypes.push({id:'st_'+Date.now(),name:n,time:t,color:c});
+  const id='st_'+Date.now();
+  const order=shiftTypes.length;
+  await sb.from('shift_types').insert({id,name:n,time:t,color:c,sort_order:order});
+  shiftTypes.push({id,name:n,time:t,color:c});
   document.getElementById('ns-nm').value='';document.getElementById('ns-tm').value='';
   renderSettings();renderSchedule();
 }
-function delShift(id){shiftTypes=shiftTypes.filter(s=>s.id!==id);renderSettings();renderSchedule();}
-function moveShift(idx,dir){
+async function delShift(id){
+  await sb.from('shift_types').delete().eq('id',id);
+  shiftTypes=shiftTypes.filter(s=>s.id!==id);
+  renderSettings();renderSchedule();
+}
+async function moveShift(idx,dir){
   const ni=idx+dir;if(ni<0||ni>=shiftTypes.length)return;
   [shiftTypes[idx],shiftTypes[ni]]=[shiftTypes[ni],shiftTypes[idx]];
+  // update sort_order in DB
+  await Promise.all(shiftTypes.map((s,i)=>sb.from('shift_types').update({sort_order:i}).eq('id',s.id)));
   renderSettings();renderSchedule();
 }
 async function addFreelancer(){
