@@ -980,32 +980,78 @@ async function ensureSched(dId){
   schedules[dId]=data;return data;
 }
 
+const VAPID_PUBLIC_KEY = 'BEZSJ3egcBOhyZ3ExGVG5Ti790C71LC02w2dPg5257_p9t8F_hzXiJZ8wZw5a41JH9xQs1q-m_2OkPdAZP3Ozy4';
+const PUSH_EDGE_URL = 'https://efkcnuzbmwnslhgvpxws.supabase.co/functions/v1/push-notify';
+
 async function requestNotifPermission(){
-  if('Notification' in window && Notification.permission==='default'){
-    await Notification.requestPermission();
-  }
+  if(!('Notification' in window)) return;
+  if(!('serviceWorker' in navigator)) return;
+  
+  let permission = Notification.permission;
+  if(permission === 'default') permission = await Notification.requestPermission();
+  if(permission !== 'granted') return;
+  
+  try{
+    // Register service worker
+    const reg = await navigator.serviceWorker.register('/sidur-avoda/sw.js');
+    await navigator.serviceWorker.ready;
+    
+    // Subscribe to push
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+    
+    // Save subscription to Supabase
+    if(currentEmp && !isMgr){
+      await sb.from('push_subscriptions').upsert({
+        employee_name: currentEmp.full_name,
+        subscription: sub.toJSON()
+      }, {onConflict: 'employee_name'});
+    }
+  }catch(e){ console.log('push setup:', e); }
+}
+
+function urlBase64ToUint8Array(base64String){
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+async function sendPushToEmployee(employeeName, shiftId, dayIdx, action){
+  const shift=shiftTypes.find(s=>s.id===shiftId)||{name:'משמרת'};
+  const dayName=DAYS_DISPLAY[dayIdx]||'';
+  try{
+    await fetch(PUSH_EDGE_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_KEY},
+      body: JSON.stringify({employee_name:employeeName, shift_name:shift.name, day_name:dayName, action})
+    });
+  }catch(e){ console.log('push send:', e); }
 }
 
 async function notifyIfAffected(dId, shiftId, dayIdx, names, prevNames){
-  const ch=window._notifChannel;
-  if(!ch) return;
-  const shift=shiftTypes.find(s=>s.id===shiftId)||{name:'משמרת'};
-  const dayName=DAYS_DISPLAY[dayIdx]||'';
   const added=names.filter(n=>!prevNames||!prevNames.includes(n));
   const removed=(prevNames||[]).filter(n=>!names.includes(n));
-  if(!added.length&&!removed.length) return;
-  await ch.send({type:'broadcast',event:'shift_change',payload:{
-    added, removed, shiftName:shift.name, dayName, dId
-  }});
+  for(const name of added) await sendPushToEmployee(name, shiftId, dayIdx, 'added');
+  for(const name of removed) await sendPushToEmployee(name, shiftId, dayIdx, 'removed');
+  // also broadcast for open browsers
+  const ch=window._notifChannel;
+  if(ch&&(added.length||removed.length)){
+    const shift=shiftTypes.find(s=>s.id===shiftId)||{name:'משמרת'};
+    const dayName=DAYS_DISPLAY[dayIdx]||'';
+    ch.send({type:'broadcast',event:'shift_change',payload:{added,removed,shiftName:shift.name,dayName,dId}});
+  }
 }
 async function notifyRemoved(dId, shiftId, dayIdx, removedName){
+  await sendPushToEmployee(removedName, shiftId, dayIdx, 'removed');
   const ch=window._notifChannel;
-  if(!ch) return;
-  const shift=shiftTypes.find(s=>s.id===shiftId)||{name:'משמרת'};
-  const dayName=DAYS_DISPLAY[dayIdx]||'';
-  await ch.send({type:'broadcast',event:'shift_change',payload:{
-    added:[], removed:[removedName], shiftName:shift.name, dayName, dId
-  }});
+  if(ch){
+    const shift=shiftTypes.find(s=>s.id===shiftId)||{name:'משמרת'};
+    const dayName=DAYS_DISPLAY[dayIdx]||'';
+    ch.send({type:'broadcast',event:'shift_change',payload:{added:[],removed:[removedName],shiftName:shift.name,dayName,dId}});
+  }
 }
 function showNotif(title, body){
   if(Notification.permission==='granted'){
