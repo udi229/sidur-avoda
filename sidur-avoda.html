@@ -608,6 +608,8 @@ async function initApp(user){
   const _deptTitle=departments.find(d=>d.id===currentEmp?.department_id)?.title||null;
   playWelcome(currentEmp?.full_name||'', currentEmp?.role||'employee', _deptTitle);
   requestNotifPermission().then(setupNotifChannel);
+  // check for unread notifications (badge)
+  checkPendingBadge();
   const role=currentEmp.role;
   document.getElementById('hdr-nm').textContent=currentEmp.full_name;
   const dept4role=departments.find(d=>d.id===currentEmp.department_id);
@@ -985,19 +987,23 @@ async function requestNotifPermission(){
 }
 
 async function notifyIfAffected(dId, shiftId, dayIdx, names, prevNames){
+  const ch=window._notifChannel;
+  if(!ch) return;
   const shift=shiftTypes.find(s=>s.id===shiftId)||{name:'משמרת'};
   const dayName=DAYS_DISPLAY[dayIdx]||'';
-  // broadcast via Supabase so all open browsers get notified
-  await sb.channel('notif').send({type:'broadcast',event:'shift_change',payload:{
-    added: names.filter(n=>!prevNames||!prevNames.includes(n)),
-    removed: (prevNames||[]).filter(n=>!names.includes(n)),
-    shiftName: shift.name, dayName, dId
+  const added=names.filter(n=>!prevNames||!prevNames.includes(n));
+  const removed=(prevNames||[]).filter(n=>!names.includes(n));
+  if(!added.length&&!removed.length) return;
+  await ch.send({type:'broadcast',event:'shift_change',payload:{
+    added, removed, shiftName:shift.name, dayName, dId
   }});
 }
 async function notifyRemoved(dId, shiftId, dayIdx, removedName){
+  const ch=window._notifChannel;
+  if(!ch) return;
   const shift=shiftTypes.find(s=>s.id===shiftId)||{name:'משמרת'};
   const dayName=DAYS_DISPLAY[dayIdx]||'';
-  await sb.channel('notif').send({type:'broadcast',event:'shift_change',payload:{
+  await ch.send({type:'broadcast',event:'shift_change',payload:{
     added:[], removed:[removedName], shiftName:shift.name, dayName, dId
   }});
 }
@@ -1005,11 +1011,47 @@ function showNotif(title, body){
   if(Notification.permission==='granted'){
     try{ new Notification(title,{body,dir:'rtl',lang:'he',icon:'icon.png'}); }catch(e){}
   }
+  // set badge count
+  setBadge(1);
 }
+
+function setBadge(count){
+  try{
+    if(navigator.setAppBadge) navigator.setAppBadge(count);
+  }catch(e){}
+  // also store in localStorage for when app reopens
+  try{ localStorage.setItem('badge_count', count); }catch(e){}
+}
+
+function clearBadge(){
+  try{
+    if(navigator.clearAppBadge) navigator.clearAppBadge();
+    if(navigator.setAppBadge) navigator.setAppBadge(0);
+  }catch(e){}
+  try{ localStorage.removeItem('badge_count'); }catch(e){}
+}
+async function checkPendingBadge(){
+  if(!currentEmp||isMgr) return;
+  // check schedule_cells updated in last 24h that contain this user's name
+  const yesterday=new Date(Date.now()-86400000).toISOString();
+  const {data}=await sb.from('schedule_cells')
+    .select('content,updated_at')
+    .gte('updated_at',yesterday)
+    .ilike('content','%'+currentEmp.full_name+'%');
+  if(data&&data.length>0){
+    setBadge(data.length);
+  } else {
+    clearBadge();
+  }
+}
+
 function setupNotifChannel(){
-  sb.channel('notif')
-    .on('broadcast',{event:'shift_change'},({payload})=>{
-      if(!currentEmp||isMgr) return;
+  // use a dedicated channel name so all clients share it
+  const ch=sb.channel('shift-notifications',{
+    config:{broadcast:{self:false}} // don't receive own broadcasts
+  });
+  ch.on('broadcast',{event:'shift_change'},({payload})=>{
+      if(!currentEmp) return;
       const myName=currentEmp.full_name;
       if(payload.added&&payload.added.includes(myName)){
         showNotif('אולפנים 🎬',`שובצת למשמרת ${payload.shiftName} ביום ${payload.dayName}`);
@@ -1017,7 +1059,10 @@ function setupNotifChannel(){
       if(payload.removed&&payload.removed.includes(myName)){
         showNotif('אולפנים 🎬',`הוסרת ממשמרת ${payload.shiftName} ביום ${payload.dayName}`);
       }
-    }).subscribe();
+    }).subscribe((status)=>{
+      console.log('notif channel:', status);
+    });
+  window._notifChannel=ch;
 }
 
 async function saveNames(dId,shiftId,dayIdx,names){
@@ -1046,12 +1091,11 @@ async function removeName(dId,shiftId,dayIdx,name){
 
 async function addName(dId,shiftId,dayIdx,name){
   const sched=await ensureSched(dId);
-  const names=getCellNames(sched.id,shiftId,dayIdx);
-  if(names.includes(name)) return;
-  names.push(name);
-  const prevNames=getCellNames(sched.id,shiftId,dayIdx);
+  const prevNames=[...getCellNames(sched.id,shiftId,dayIdx)];
+  if(prevNames.includes(name)) return;
+  const names=[...prevNames,name];
   await saveNames(dId,shiftId,dayIdx,names);
-  notifyIfAffected(dId,shiftId,dayIdx,names,prevNames);
+  await notifyIfAffected(dId,shiftId,dayIdx,names,prevNames);
   closeDropdown();
   renderSchedule();
 }
@@ -1502,6 +1546,8 @@ function renderSchedule(){
     if(inp) inp.focus();
   }
   renderOnlineList();
+  // clear badge when user views their own schedule
+  if(!isMgr&&currentEmp) clearBadge();
   updateToolbarSubmitBtn();
 
   // ── NOTES PANEL ──
