@@ -1034,6 +1034,7 @@ async function sendPushToEmployee(employeeName, shiftId, dayIdx, action){
 async function notifyIfAffected(dId, shiftId, dayIdx, names, prevNames){
   const added=names.filter(n=>!prevNames||!prevNames.includes(n));
   const removed=(prevNames||[]).filter(n=>!names.includes(n));
+  console.log('notifyIfAffected called, added:',added,'removed:',removed);
   for(const name of added) await sendPushToEmployee(name, shiftId, dayIdx, 'added');
   for(const name of removed) await sendPushToEmployee(name, shiftId, dayIdx, 'removed');
   // also broadcast for open browsers
