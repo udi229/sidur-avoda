@@ -608,6 +608,7 @@ async function initApp(user){
   const _deptTitle=departments.find(d=>d.id===currentEmp?.department_id)?.title||null;
   playWelcome(currentEmp?.full_name||'', currentEmp?.role||'employee', _deptTitle);
   requestNotifPermission().then(setupNotifChannel);
+  saveEmployeeToIDB(currentEmp?.full_name);
   // check for unread notifications (badge)
   checkPendingBadge();
   const role=currentEmp.role;
@@ -868,17 +869,22 @@ function renderDeptTabs(){
     vis=departments.filter(d=>d.id===currentEmp?.department_id);
   }
   else {
-    // regular employee sees only their own dept (after approval)
-    vis=departments.filter(d=>d.id===currentEmp?.department_id&&isApproved(d.id));
+    // regular employee sees their dept if: approved OR their dept is in a published combined view
+    vis=departments.filter(d=>{
+      if(d.id!==currentEmp?.department_id) return false;
+      if(isApproved(d.id)) return true;
+      // show if dept is in a published combined view
+      return combinedViews.some(cv=>cv.published&&cv.dept_ids.includes(d.id));
+    });
   }
   // combined view tabs - show only if both depts are approved and user is in one of them
   const role4=currentEmp?.role||'employee';
   const cvTabs=combinedViews.filter(cv=>{
     if(isMgr||role4==='manager') return true;
-    if(!cv.published) return false;
-    // employee sees if their dept is in the combined view OR if it's published for all
-    return cv.dept_ids.includes(currentEmp?.department_id)||true;
+    return cv.published;
   });
+  // if user's dept is in a published combined view, they can see their dept schedule too
+  const userInPublishedCV=!isMgr&&combinedViews.some(cv=>cv.published&&cv.dept_ids.includes(currentEmp?.department_id));
 
   const deptTabsHtml=vis.map(d=>{
     const sc=schedules[d.id];
@@ -1093,6 +1099,22 @@ async function checkPendingBadge(){
   }
 }
 
+function saveEmployeeToIDB(name){
+  if(!name) return;
+  try{
+    const req=indexedDB.open('olphanim',1);
+    req.onupgradeneeded=()=>{
+      const db=req.result;
+      if(!db.objectStoreNames.contains('employee')) db.createObjectStore('employee');
+    };
+    req.onsuccess=()=>{
+      const db=req.result;
+      const tx=db.transaction('employee','readwrite');
+      tx.objectStore('employee').put({name},'current');
+    };
+  }catch(e){}
+}
+
 function setupNotifChannel(){
   // use a dedicated channel name so all clients share it
   const ch=sb.channel('shift-notifications',{
@@ -1226,12 +1248,8 @@ function canEdit(dId){
   if(isMgr) return editMode;
   const role=currentEmp?.role||'employee';
   if(role==='manager') return editMode;
-  // team_lead: own dept, current/future weeks
-  if(role==='team_lead'&&currentEmp.department_id===dId&&weekOffset>=0){
-    if(!isApproved(dId)) return true;
-    if(editMode) return true;
-    if(schedules[dId]?.returned_to_edit) return true;
-  }
+  // team_lead: can edit own dept in current/future weeks when editMode
+  if(role==='team_lead'&&currentEmp.department_id===dId&&weekOffset>=0) return editMode;
   return false;
 }
 
@@ -1393,7 +1411,8 @@ function renderSchedule(){
   const role=currentEmp?.role||'employee';
   const fa=fullyApproved();
   const isEmployee=role==='employee'&&!isMgr;
-  if(isEmployee&&!isApproved(activeDeptId)){
+  const deptInPublishedCV=combinedViews.some(cv=>cv.published&&cv.dept_ids.includes(activeDeptId));
+  if(isEmployee&&!isApproved(activeDeptId)&&!deptInPublishedCV){
     document.getElementById('lock-notice').style.display='block';
     document.getElementById('sched-wrap').innerHTML='<div class="loading" style="padding:40px;text-align:center">🔒 הסידור טרם אושר על ידי המנהל<br><span style="font-size:13px;color:#94a3b8;margin-top:8px;display:block">הסידור יופיע כאן לאחר אישור המנהל</span></div>';
     return;
@@ -1423,14 +1442,14 @@ function renderSchedule(){
     </div>`:''}
     <div class="sched-hdr" style="background:${dept.color};text-align:center;position:relative;z-index:1">
       <span class="sched-hdr-title" style="font-size:17px">${getDeptIcon(dept.name)} ${dept.name} — ${document.getElementById('wk-lbl').textContent} ${getDeptIcon(dept.name)}</span>
-      ${ed&&!editMode?'<span class="edit-badge" style="position:absolute;left:12px;top:50%;transform:translateY(-50%)">✏️ מצב עריכה</span>':''}
-      ${((currentEmp?.role==='team_lead'&&currentEmp?.department_id===dept.id&&weekOffset>=0&&isApproved(dept.id)&&!isMgr)||(isMgr||currentEmp?.role==='manager')) ?
+      ${(currentEmp?.role==='team_lead'&&!isMgr&&currentEmp?.department_id===dept.id) ?
         (editMode ?
-          (isMgr||currentEmp?.role==='manager' ?
-            `<button onclick="endEdit()" style="background:#10b981;color:white;border:none;border-radius:8px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✓ סיום עריכה</button>
-             <button onclick="cancelEdit()" style="background:rgba(255,255,255,0.2);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;margin-right:4px">ביטול</button>` :
-            `<button onclick="sendEdit('${dept.id}')" style="background:#10b981;color:white;border:none;border-radius:8px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✓ שלח</button>
-             <button onclick="cancelEdit()" style="background:rgba(255,255,255,0.2);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;margin-right:4px">ביטול</button>`) :
+          `<button onclick="cancelEdit()" style="background:#ef4444;color:white;border:none;border-radius:8px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✕ סיום עריכה</button>` :
+          `<button onclick="startEdit()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.4);border-radius:8px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✏️ עריכה</button>`)
+        : ''}
+      ${(isMgr||currentEmp?.role==='manager') ?
+        (editMode ?
+          `<button onclick="endEdit()" style="background:#ef4444;color:white;border:none;border-radius:8px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✕ סיום עריכה</button>` :
           `<button onclick="startEdit()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.4);border-radius:8px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✏️ עריכה</button>`)
         : ''}
     </div>
