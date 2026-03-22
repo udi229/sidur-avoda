@@ -1064,14 +1064,24 @@ async function notifyRemoved(dId, shiftId, dayIdx, removedName){
 }
 
 async function notifyPublishedCV(cv){
-  // Send push to all UNIQUE employees in the departments of this combined view
+  // Send push ONLY to employees actually assigned in this combined view's schedules
   try{
     const deptIds=cv.dept_ids;
-    const {data:emps}=await sb.from('employees').select('full_name').in('department_id',deptIds);
-    if(!emps||emps.length===0) return;
-    // deduplicate by name to avoid sending twice to employees in multiple depts
-    const uniqueNames=[...new Set(emps.map(e=>e.full_name))];
-    for(const name of uniqueNames){
+    // Collect all names from cellData for these departments
+    const assignedNames=new Set();
+    for(const deptId of deptIds){
+      const sched=schedules[deptId];
+      if(!sched) continue;
+      // scan all cellData keys for this schedule
+      for(const key of Object.keys(cellData)){
+        if(!key.startsWith(sched.id)) continue;
+        const val=cellData[key]?.content||'';
+        if(!val) continue;
+        val.split('|').filter(Boolean).forEach(n=>assignedNames.add(n));
+      }
+    }
+    if(assignedNames.size===0) return;
+    for(const name of assignedNames){
       try{
         await fetch(PUSH_EDGE_URL,{
           method:'POST',
