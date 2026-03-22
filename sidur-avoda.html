@@ -1001,6 +1001,8 @@ async function requestNotifPermission(){
   try{
     // Register service worker
     const reg = await navigator.serviceWorker.register('/sidur-avoda/sw.js');
+    // Force update the service worker to pick up new version
+    await reg.update();
     await navigator.serviceWorker.ready;
     
     // Subscribe to push
