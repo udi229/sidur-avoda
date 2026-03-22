@@ -12,12 +12,24 @@ async function handlePush() {
       await showNotif('אולפנים 🎬', 'סידור העבודה שלך לשבוע הבא מוכן');
       return;
     }
+
+    // Fetch latest message
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/push_messages?employee_name=eq.${encodeURIComponent(empName)}&order=created_at.desc&limit=1`,
       { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
     );
     const data = await res.json();
     const msg = data?.[0]?.message || 'סידור העבודה שלך לשבוע הבא מוכן';
+
+    // Delete all messages for this employee so they don't show again
+    await fetch(
+      `${SUPABASE_URL}/rest/v1/push_messages?employee_name=eq.${encodeURIComponent(empName)}`,
+      {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+      }
+    );
+
     await showNotif('אולפנים 🎬', msg);
   } catch(e) {
     await showNotif('אולפנים 🎬', 'סידור העבודה שלך לשבוע הבא מוכן');
