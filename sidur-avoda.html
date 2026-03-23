@@ -1878,6 +1878,84 @@ function closeAdminModal(){document.getElementById('admin-modal').classList.remo
 function buildPad(){const np=document.getElementById('numpad');np.innerHTML='';[1,2,3,4,5,6,7,8,9,'⌫',0,'✓'].forEach(k=>{const b=document.createElement('button');b.className='num-btn'+(k==='✓'?' enter':'')+(k==='⌫'?' clear':'');b.textContent=k;b.onclick=()=>handlePin(k);np.appendChild(b);});}
 function handlePin(k){if(k==='⌫'){pinInput=pinInput.slice(0,-1);}else if(k==='✓'){checkPin();return;}else if(pinInput.length<4){pinInput+=k;}updatePin();if(pinInput.length===4)setTimeout(checkPin,200);}
 function updatePin(){for(let i=0;i<4;i++){const d=document.getElementById(`pin-${i}`);if(d){d.textContent=i<pinInput.length?'●':'•';d.classList.toggle('filled',i<pinInput.length);}}}
+function toggleMode(){
+  authMode=authMode==='login'?'register':'login';
+  const r=authMode==='register';
+  document.getElementById('auth-sub').textContent=r?'הרשמה':'כניסה';
+  document.getElementById('reg-f').style.display=r?'block':'none';
+  document.getElementById('a-btn').textContent=r?'הרשמה':'כניסה';
+  document.getElementById('tog-txt').textContent=r?'יש לך חשבון?':'אין לך חשבון?';
+  document.querySelector('.auth-tog a').textContent=r?' כניסה':' הרשמה';
+  document.getElementById('a-msg').textContent='';
+  if(r) loadDeptSel();
+}
+function setMsg(t,ok=false){const e=document.getElementById('a-msg');e.textContent=t;e.className=ok?'auth-ok':'auth-err';}
+async function handleAuth(){
+  const email=document.getElementById('a-email').value.trim();
+  const pass=document.getElementById('a-pass').value;
+  if(!email||!pass){setMsg('נא למלא אימייל וסיסמה');return;}
+  if(authMode==='login'){
+    const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+    if(error){setMsg('אימייל או סיסמה שגויים');return;}
+    await initApp(data.user);
+  } else {
+    const name=document.getElementById('a-name').value.trim();
+    const dept=document.getElementById('a-dept').value;
+    if(!name){setMsg('נא למלא שם מלא');return;}
+    if(!dept){setMsg('נא לבחור מחלקה');return;}
+    const {data,error}=await sb.auth.signUp({email,password:pass});
+    if(error){setMsg('שגיאה: '+error.message);return;}
+    await sb.from('employees').insert({full_name:name,email,role:'employee',department_id:dept||null,position_percent:100});
+    setMsg('✅ נרשמת! כעת התחבר.',true);
+    authMode='login'; setTimeout(toggleMode,1500);
+  }
+}
+function showPin(){showPinFor('primary');}
+function showPinFor(target){
+  pinTarget=target;
+  document.getElementById('pin-modal').style.display='flex';
+  document.getElementById('pin-inp').focus();
+  document.getElementById('pin-title').textContent=target==='primary'?'👨‍💼 מנהל ראשי':'👩‍💼 מנהלת משנית';
+  document.getElementById('pin-subtitle').textContent='הזן קוד';
+  document.getElementById('pin-err').textContent='';
+  document.getElementById('pin-inp').value='';
+}
+function hidePin(){document.getElementById('pin-modal').style.display='none';document.getElementById('pin-err').textContent='';document.getElementById('pin-inp').value='';}
+function checkPin(){
+  const val=document.getElementById('pin-inp').value;
+  if(pinTarget==='primary'&&val===MANAGER_PIN){hidePin();enterMgr('מנהל ראשי','primary');}
+  else if(pinTarget==='secondary'&&val===MANAGER_PIN2){hidePin();enterMgr('מנהלת משנית','secondary');}
+  else document.getElementById('pin-err').textContent='❌ קוד שגוי';
+}
+function enterMgr(label='מנהל',type='primary'){
+  isMgr=true;
+  currentUser={email:'manager@local',id:'manager-local'};
+  currentEmp={id:'manager-local',full_name:label,email:'manager@local',role:'manager',department_id:null,position_percent:100};
+  // save manager session
+  try{ localStorage.setItem('mgr-session', JSON.stringify({label,type,ts:Date.now()})); } catch(e){}
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  playWelcome(label, 'manager');
+  document.getElementById('hdr-nm').textContent=label;
+  document.getElementById('hdr-rl').textContent='מנהל מערכת';
+  document.getElementById('nav-stats').style.display='inline-block';
+  document.getElementById('nav-settings').style.display='inline-block';
+  loadAll().then(()=>loadWeekData()).then(()=>{
+    activeDeptId=departments[0]?.id||null;
+    const ftBtn=document.getElementById('freelance-toggle');
+    if(ftBtn) ftBtn.style.display='inline-block';
+    const srch=document.getElementById('sched-search');
+    if(srch) srch.style.display='block';
+    updateWeekUI();renderDeptTabs();renderSchedule();renderOnlineList();
+  });
+  // presence for manager
+  const mgrCh=sb.channel('online-users',{config:{presence:{key:'manager@local'}}});
+  mgrCh
+    .on('presence',{event:'sync'},()=>{const state=mgrCh.presenceState();onlineUsers=new Set(Object.keys(state));renderOnlineList();})
+    .on('presence',{event:'join'},({key})=>{onlineUsers.add(key);renderOnlineList();})
+    .on('presence',{event:'leave'},({key})=>{onlineUsers.delete(key);renderOnlineList();})
+    .subscribe(async(status)=>{if(status==='SUBSCRIBED') await mgrCh.track({email:'manager@local',name:'מנהל',online_at:new Date().toISOString()});});
+}
 function checkPin(){
   if(pinInput===DB.adminPassword){
     closeAdminModal();currentUser=null;isAdmin=true;isViewer=false;
