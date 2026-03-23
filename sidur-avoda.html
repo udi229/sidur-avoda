@@ -1355,11 +1355,14 @@ async function loadWeekData(){
 function updateWeekUI(){
   const dates=weekDates();
   const lbl=weekOffset===0?'שבוע נוכחי':weekOffset===-1?'שבוע שעבר':weekOffset===1?'שבוע הבא':weekOffset<0?`לפני ${Math.abs(weekOffset)} שבועות`:`עוד ${weekOffset} שבועות`;
-  document.getElementById('wk-lbl').textContent=lbl;
-  document.getElementById('wk-dt').textContent=`${dates[0]} — ${dates[6]}`;
+  const wkLbl=document.getElementById('wk-lbl');
+  const wkDt=document.getElementById('wk-dt');
+  if(wkLbl) wkLbl.textContent=lbl;
+  if(wkDt) wkDt.textContent=`${dates[0]} — ${dates[6]}`;
   const allApp=departments.length>0&&departments.every(d=>schedules[d.id]?.status==='approved');
   const anySubmitted2=Object.values(schedules).some(s=>s.team_submitted&&s.status!=='approved');
   const sb2=document.getElementById('wk-st');
+  if(!sb2) return;
   // status badge hidden - status shown per dept tab
   sb2.style.display='none';
   const tb=document.getElementById('wk-tp');
@@ -4328,7 +4331,7 @@ function initCanvas() {
   loop();
 }
 
-(async function init(){
+async function _vacationInit(){
   // Wait for Firebase to be available
   let attempts = 0;
   while (typeof firebase === 'undefined' && attempts < 50) {
@@ -4368,10 +4371,11 @@ function initCanvas() {
       }
     }
   }
-})();
+}
 
   return {
     enterEmployee: async function(name, email, dept){
+      await _vacationInit();
       await loadShared();
       let user = DB.users.find(u=>u.email===email);
       if(!user){
@@ -4383,6 +4387,7 @@ function initCanvas() {
       await enterApp(false, false);
     },
     enterAdmin: async function(){
+      await _vacationInit();
       await loadShared();
       await enterApp(true, false);
     }
