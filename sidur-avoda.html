@@ -206,9 +206,10 @@
   html, body { height: 100%; font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text); direction: rtl; overflow: hidden; }
 
   /* SCREEN SYSTEM */
-  .screen { position: fixed; inset: 0; display: none; flex-direction: column; opacity: 0; transition: opacity 0.4s ease; z-index: 1; }
-  .screen.active { display: flex; opacity: 1; z-index: 2; }
-  .screen.fade-out { opacity: 0; pointer-events: none; }
+  /* vacation screens - positioned inside container, not fixed */
+  #vacation-container .screen { position: absolute; inset: 0; display: none; flex-direction: column; opacity: 0; transition: opacity 0.4s ease; }
+  #vacation-container .screen.active { display: flex; opacity: 1; }
+  #vacation-container .screen.fade-out { opacity: 0; pointer-events: none; }
 
   /* REGISTER SCREEN */
   #screen-register {
@@ -722,8 +723,8 @@
   </div>
 
   <!-- VACATION APP EMBEDDED -->
-  <div id="view-vacation" style="display:none;flex:1;overflow:auto">
-    <div id="vacation-container">
+  <div id="view-vacation" style="display:none;flex:1;overflow:auto;position:relative;min-height:600px">
+    <div id="vacation-container" style="position:relative;width:100%;height:100%;min-height:600px">
 <div id="screen-register" class="screen active">
   <div class="studio-scene">
     <canvas id="bg-canvas"></canvas>
@@ -2505,27 +2506,19 @@ function initCanvas() {
 })();
 
 // ===== VACATION APP INTEGRATION =====
+let _vacationInitialized = false;
 function initVacationApp(){
-  // Auto-login to vacation app using sidur credentials
-  const vContainer = document.getElementById('vacation-container');
-  if(!vContainer) return;
-  
-  // Hide register screen, show app screen
-  const regScreen = document.getElementById('screen-register');
-  const appScreen = document.getElementById('screen-app');
-  if(regScreen) regScreen.style.display='none';
-  if(appScreen){ appScreen.style.display='flex'; appScreen.classList.add('active'); }
-  
-  // Set vacation currentUser from sidur currentEmp
+  if(_vacationInitialized) return;
+  _vacationInitialized = true;
+
   if(isMgr && pinTarget==='primary'){
-    // Primary manager = vacation admin
     vacEnterAdmin();
   } else if(currentEmp){
-    // Map department from sidur to vacation
     const deptMap = {};
     departments.forEach(d=>{ deptMap[d.id]=d.name; });
-    const deptName = deptMap[currentEmp.department_id] || currentEmp.role || 'כללי';
-    vacEnterEmployee(currentEmp.full_name, currentEmp.email||currentEmp.id+'@sidur.local', deptName);
+    const deptName = deptMap[currentEmp.department_id] || 'כללי';
+    const email = currentEmp.email || (currentEmp.id+'@sidur.local');
+    vacEnterEmployee(currentEmp.full_name, email, deptName);
   }
 }
 
