@@ -388,6 +388,15 @@
         <div class="notice n-info" style="margin-bottom:14px">💡 עובדים נרשמים לבד. כאן ניתן לשנות תפקיד ואחוז משרה.</div>
         <div class="item-list" id="emp-list"></div>
       </div>
+      <div class="set-sec">
+        <h3>📢 שליחת הודעה לכל העובדים</h3>
+        <div class="notice n-info" style="margin-bottom:14px">💡 כתוב הודעה ושלח אותה כנוטיפקציה לכל העובדים הרשומים.</div>
+        <div class="set-row">
+          <input class="s-inp" id="broadcast-msg" placeholder='למשל: שבת שלום חברים! 🎉' style="flex:1" />
+          <button class="btn-add" onclick="sendBroadcastNotif()" style="background:#7c3aed;white-space:nowrap">📤 שלח לכולם</button>
+        </div>
+        <div id="broadcast-status" style="font-size:13px;margin-top:8px;color:#16a34a"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1060,6 +1069,36 @@ async function notifyRemoved(dId, shiftId, dayIdx, removedName){
     const shift=shiftTypes.find(s=>s.id===shiftId)||{name:'משמרת'};
     const dayName=DAYS_DISPLAY[dayIdx]||'';
     ch.send({type:'broadcast',event:'shift_change',payload:{added:[],removed:[removedName],shiftName:shift.name,dayName,dId}});
+  }
+}
+
+async function sendBroadcastNotif(){
+  const msg = document.getElementById('broadcast-msg').value.trim();
+  const statusEl = document.getElementById('broadcast-status');
+  if(!msg){ statusEl.style.color='#dc2626'; statusEl.textContent='יש לכתוב הודעה לפני השליחה'; return; }
+  statusEl.style.color='#94a3b8'; statusEl.textContent='שולח...';
+  try{
+    // Get all employees with subscriptions
+    const {data:subs} = await sb.from('push_subscriptions').select('employee_name');
+    if(!subs||subs.length===0){ statusEl.style.color='#dc2626'; statusEl.textContent='אין עובדים רשומים להתראות'; return; }
+    const names=[...new Set(subs.map(s=>s.employee_name))];
+    let sent=0;
+    for(const name of names){
+      try{
+        const res=await fetch(PUSH_EDGE_URL,{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVma2NudXpibXduc2xoZ3ZweHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NzA5ODksImV4cCI6MjA4OTE0Njk4OX0.stckE-88HoROHcPU9Rjlo4g-nMFBhJKHIUhSt2jlgEc','apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVma2NudXpibXduc2xoZ3ZweHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NzA5ODksImV4cCI6MjA4OTE0Njk4OX0.stckE-88HoROHcPU9Rjlo4g-nMFBhJKHIUhSt2jlgEc'},
+          body:JSON.stringify({employee_name:name, shift_name:'', day_name:'', action:'broadcast', message:msg})
+        });
+        if(res.ok) sent++;
+      }catch(e){}
+    }
+    statusEl.style.color='#16a34a';
+    statusEl.textContent=`✅ נשלח ל-${sent} עובדים`;
+    document.getElementById('broadcast-msg').value='';
+  }catch(e){
+    statusEl.style.color='#dc2626';
+    statusEl.textContent='שגיאה בשליחה';
   }
 }
 
