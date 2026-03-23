@@ -183,7 +183,331 @@
   @keyframes flicker{0%,89%,91%,96%,100%{opacity:1;filter:brightness(1)}90%{opacity:0.4;filter:brightness(0.4)}97%{opacity:0.7;filter:brightness(0.7)}}
   @keyframes coneflicker{0%,89%,91%,96%,100%{opacity:1}90%{opacity:0.3}97%{opacity:0.6}}
   @keyframes cardflicker{0%,89%,91%,96%,100%{box-shadow:0 0 90px rgba(255,230,100,0.4),0 8px 40px rgba(0,0,0,0.4)}90%{box-shadow:0 0 20px rgba(255,230,100,0.1),0 8px 40px rgba(0,0,0,0.4)}97%{box-shadow:0 0 50px rgba(255,230,100,0.25),0 8px 40px rgba(0,0,0,0.4)}}
+
+  @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap');
+
+  :root {
+    --orange: #FF6B00;
+    --orange-light: #FF9A40;
+    --orange-pale: #FFF0E0;
+    --orange-soft: #FFD9B0;
+    --dark: #1A1A2E;
+    --text: #2D2D2D;
+    --text-light: #666;
+    --bg: #FFF8F2;
+    --border: #FFD9B0;
+    --yellow: #FFD600;
+    --green: #2ECC71;
+    --red: #E74C3C;
+    --shadow: 0 4px 24px rgba(255,107,0,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text); direction: rtl; overflow: hidden; }
+
+  /* SCREEN SYSTEM */
+  .screen { position: fixed; inset: 0; display: none; flex-direction: column; opacity: 0; transition: opacity 0.4s ease; z-index: 1; }
+  .screen.active { display: flex; opacity: 1; z-index: 2; }
+  .screen.fade-out { opacity: 0; pointer-events: none; }
+
+  /* REGISTER SCREEN */
+  #screen-register {
+    background: #0d0f18;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* Canvas background */
+  .studio-scene { position: absolute; inset: 0; pointer-events: none; }
+  #bg-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* Register card */
+  .register-card {
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(28px);
+    border: 1px solid rgba(255,107,0,0.2);
+    border-radius: 20px;
+    padding: 40px 36px;
+    width: 420px; max-width: 94vw; max-height: 92vh;
+    overflow-y: auto; position: relative; z-index: 10;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+  }
+  /* Cocktail decoration inside card */
+  .register-card::before {
+    content: '🍹';
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    font-size: 42px;
+    opacity: 0.15;
+    pointer-events: none;
+  }
+  .register-card::-webkit-scrollbar { width: 3px; }
+  .register-card::-webkit-scrollbar-thumb { background: rgba(255,107,0,0.3); border-radius: 2px; }
+
+  .studio-logo { text-align: center; margin-bottom: 30px; }
+  .logo-svg-wrap {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 62px; height: 62px; margin: 0 auto 12px;
+    background: rgba(255,107,0,0.09); border-radius: 17px;
+    border: 1px solid rgba(255,107,0,0.2);
+    animation: logo-pulse 3.5s ease-in-out infinite;
+  }
+  @keyframes logo-pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(255,107,0,0); }
+    50%      { box-shadow: 0 0 0 8px rgba(255,107,0,0.06); }
+  }
+  .studio-logo h1 { font-size: 24px; font-weight: 900; color: #1A1A2E; letter-spacing: .4px; }
+  .studio-logo h1 span { color: var(--orange); }
+  .studio-logo p { color: #666; font-size: 13px; margin-top: 4px; }
+
+  .register-tabs { display:flex; gap:5px; margin-bottom:24px; background:rgba(0,0,0,0.06); border-radius:10px; padding:4px; border:1px solid rgba(0,0,0,0.1); }
+  .register-tab { flex:1; padding:10px; border:none; background:transparent; color:#555; border-radius:7px; cursor:pointer; font-family:'Heebo',sans-serif; font-size:18px; font-weight:700; transition:all .3s; }
+  .register-tab.active { background:var(--orange); color:white; box-shadow:0 2px 12px rgba(255,107,0,0.32); }
+
+  .form-group { margin-bottom:16px; }
+  .form-group label { display:block; color:#333; font-size:15px; font-weight:700; margin-bottom:7px; letter-spacing:.3px; }
+  .form-group input, .form-group select {
+    width:100%; padding:13px 14px;
+    background:#f5f5f5; border:1px solid #ddd;
+    border-radius:10px; color:#1a1a2e; font-family:'Heebo',sans-serif;
+    font-size:18px; outline:none; transition:all .3s;
+  }
+  .form-group input:focus, .form-group select:focus {
+    border-color:rgba(255,107,0,0.6); background:#fff;
+    box-shadow: 0 0 0 3px rgba(255,107,0,0.1);
+  }
+  .form-group select option { background:#fff; color:#1a1a2e; }
+  .form-group input::placeholder { color:#aaa; }
+
+  .btn-primary {
+    width:100%; padding:13px;
+    background:linear-gradient(135deg, var(--orange) 0%, #FF8C30 100%);
+    border:none; border-radius:10px; color:white;
+    font-family:'Heebo',sans-serif; font-size:18px; font-weight:800;
+    cursor:pointer; transition:all .3s;
+    box-shadow:0 4px 20px rgba(255,107,0,0.36);
+  }
+  .btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(255,107,0,0.5); }
+  .btn-primary:active { transform:translateY(0); }
+
+
+  /* Admin btn */
+  .admin-entry-btn { position:fixed; bottom:20px; left:20px; width:44px; height:44px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,107,0,0.35); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:21px; color:rgba(255,255,255,0.55); z-index:9999; transition:all .3s; backdrop-filter:blur(10px); }
+  .admin-entry-btn:hover { background:rgba(255,107,0,0.2); border-color:var(--orange); color:var(--orange); transform:scale(1.1); }
+
+  /* APP SCREEN */
+  #screen-app { background:var(--bg); overflow:hidden; }
+  #screen-app.active { display:flex; flex-direction:column; }
+
+  .app-header { background:linear-gradient(135deg,#1A1A2E 0%,#0F3460 100%); padding:13px 26px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 20px rgba(0,0,0,0.3); flex-shrink:0; z-index:100; }
+  .header-logo { display:flex; align-items:center; gap:10px; }
+  .header-logo .icon { font-size:28px; }
+  .header-logo h2 { font-size:20px; font-weight:900; color:white; }
+  .header-logo h2 span { color:var(--orange); }
+  .header-user { display:flex; align-items:center; gap:10px; }
+  .user-badge { background:rgba(255,107,0,0.12); border:1px solid rgba(255,107,0,0.28); border-radius:20px; padding:6px 13px; color:white; font-size:15px; font-weight:600; display:flex; align-items:center; gap:7px; }
+  .dept-badge { background:rgba(255,107,0,0.2); border-radius:5px; padding:2px 7px; font-size:13px; color:var(--orange-light); }
+  .notification-bell { position:relative; cursor:pointer; font-size:24px; color:rgba(255,255,255,0.7); transition:color .2s; user-select:none; }
+  .notification-bell:hover { color:var(--orange); }
+  .notification-dot { position:absolute; top:-2px; left:-2px; width:9px; height:9px; background:var(--orange); border-radius:50%; border:2px solid #1A1A2E; display:none; animation:pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.4); } }
+  .logout-btn { background:transparent; border:1px solid rgba(255,255,255,0.18); color:rgba(255,255,255,0.55); border-radius:8px; padding:7px 12px; font-family:'Heebo',sans-serif; font-size:14px; cursor:pointer; transition:all .3s; }
+  .logout-btn:hover { border-color:var(--orange); color:var(--orange); }
+
+  /* TABS */
+  .app-tabs { background:white; border-bottom:2px solid var(--border); padding:0 22px; display:flex; gap:2px; flex-shrink:0; overflow-x:auto; }
+  .app-tabs::-webkit-scrollbar { height:0; }
+  .app-tab { padding:12px 18px; border:none; background:transparent; font-family:'Heebo',sans-serif; font-size:16px; font-weight:700; color:var(--text-light); cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px; transition:all .3s; display:flex; align-items:center; gap:6px; white-space:nowrap; flex-shrink:0; }
+  .app-tab:hover { color:var(--orange); }
+  .app-tab.active { color:var(--orange); border-bottom-color:var(--orange); }
+
+  .tab-panels { flex:1; overflow:hidden; position:relative; }
+  .tab-content { display:none; position:absolute; inset:0; overflow-y:auto; padding:26px; }
+  .tab-content.active { display:block; }
+  .tab-content::-webkit-scrollbar { width:5px; }
+  .tab-content::-webkit-scrollbar-thumb { background:var(--orange-soft); border-radius:3px; }
+
+  /* REQUEST FORM */
+  .request-card { background:white; border-radius:16px; padding:28px; max-width:560px; margin:0 auto; box-shadow:var(--shadow); border:1px solid var(--border); }
+  .card-title { font-size:22px; font-weight:900; color:var(--dark); margin-bottom:22px; display:flex; align-items:center; gap:8px; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:13px; }
+  .form-field { margin-bottom:16px; }
+  .form-field label { display:block; font-size:13px; font-weight:700; color:var(--text-light); margin-bottom:5px; text-transform:uppercase; letter-spacing:.5px; }
+  .form-field input, .form-field select, .form-field textarea { width:100%; padding:11px 13px; border:2px solid var(--border); border-radius:10px; font-family:'Heebo',sans-serif; font-size:16px; color:var(--text); background:var(--bg); outline:none; transition:all .3s; }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color:var(--orange); background:white; box-shadow:0 0 0 4px rgba(255,107,0,0.06); }
+  .form-field textarea { resize:vertical; min-height:85px; }
+  .form-field .read-only { background:#f5f5f5; color:var(--text-light); cursor:not-allowed; }
+  .btn-submit { padding:12px 32px; background:linear-gradient(135deg,var(--orange) 0%,var(--orange-light) 100%); border:none; border-radius:10px; color:white; font-family:'Heebo',sans-serif; font-size:16px; font-weight:800; cursor:pointer; transition:all .3s; box-shadow:0 4px 16px rgba(255,107,0,0.35); }
+  .btn-submit:hover { transform:translateY(-2px); box-shadow:0 8px 26px rgba(255,107,0,0.45); }
+
+  .section-header { display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+  .section-header h2 { font-size:21px; font-weight:900; color:var(--dark); }
+  .section-header .divider { flex:1; height:2px; background:var(--border); border-radius:1px; }
+
+  .my-request-item { background:white; border-radius:12px; padding:14px 16px; margin-bottom:9px; border:1px solid var(--border); display:flex; align-items:flex-start; gap:12px; box-shadow:0 2px 6px rgba(255,107,0,0.05); transition:all .2s; flex-wrap:wrap; }
+  .my-request-item:hover { box-shadow:var(--shadow); }
+  .req-date-box { background:var(--orange-pale); border-radius:8px; padding:8px 11px; text-align:center; min-width:50px; flex-shrink:0; }
+  .req-date-day { font-size:21px; font-weight:900; color:var(--orange); }
+  .req-date-mon { font-size:12px; font-weight:700; color:var(--orange-light); }
+  .req-info { flex:1; min-width:200px; overflow-wrap:break-word; }
+  .req-info h4 { font-size:15px; font-weight:700; color:var(--dark); word-wrap:break-word; white-space:normal; }
+  .req-info p { font-size:13px; color:var(--text-light); margin-top:2px; }
+
+  /* BADGES */
+  .status-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:20px; font-size:13px; font-weight:700; }
+  .status-badge.pending { background:#FFFDE7; color:#F57F17; }
+  .status-badge.approved { background:#E8F5E9; color:#1B5E20; }
+  .status-badge.rejected { background:#FFEBEE; color:#B71C1C; }
+  .status-badge.recommended { background:#E3F2FD; color:#0D47A1; }
+  .status-badge.not-recommended { background:#FBE9E7; color:#BF360C; }
+
+  /* CALENDAR */
+  .calendar-container { background:white; border-radius:16px; padding:22px; box-shadow:var(--shadow); border:1px solid var(--border); }
+  .calendar-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .calendar-title { font-size:21px; font-weight:900; color:var(--dark); }
+  .cal-nav { display:flex; align-items:center; gap:9px; }
+  .cal-nav button { width:32px; height:32px; border-radius:8px; border:2px solid var(--border); background:white; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:all .2s; color:var(--orange); }
+  .cal-nav button:hover { background:var(--orange); color:white; border-color:var(--orange); }
+  .cal-month-name { font-size:18px; font-weight:800; color:var(--dark); min-width:140px; text-align:center; }
+  .calendar-filter { display:flex; gap:9px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
+  .filter-label { font-size:13px; font-weight:700; color:var(--text-light); }
+  .filter-select { padding:6px 11px; border:2px solid var(--border); border-radius:8px; font-family:'Heebo',sans-serif; font-size:14px; color:var(--text); background:white; outline:none; cursor:pointer; }
+  .filter-select:focus { border-color:var(--orange); }
+  .calendar-legend { display:flex; gap:14px; margin-bottom:14px; flex-wrap:wrap; }
+  .legend-item { display:flex; align-items:center; gap:5px; font-size:13px; font-weight:600; color:var(--text-light); }
+  .legend-dot { width:10px; height:10px; border-radius:3px; }
+  .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+  .cal-day-name { text-align:center; font-size:12px; font-weight:700; color:var(--text-light); padding:6px 0; letter-spacing:.5px; }
+  .cal-day { min-height:95px; border:1px solid var(--border); border-radius:6px; padding:3px; background:white; transition:all .2s; overflow:visible; }
+  .cal-day:hover { border-color:var(--orange-light); background:var(--orange-pale); }
+  .cal-day.other-month { opacity:.3; }
+  .cal-day.today { border-color:var(--orange); border-width:2px; background:var(--orange-pale); }
+  .cal-day-num { font-size:13px; font-weight:700; color:var(--text-light); margin-bottom:2px; }
+  .cal-day.today .cal-day-num { color:var(--orange); }
+  .cal-event { font-size:12px; font-weight:700; padding:2px 4px; border-radius:3px; margin-bottom:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; line-height:1.3; display:inline-block; max-width:100%; }
+  .cal-event.pending { background:var(--yellow); color:#5a4500; }
+  .cal-event.approved { background:var(--green); color:white; }
+  .cal-event.rejected { background:var(--red); color:white; }
+
+  /* ADMIN */
+  .admin-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:14px; margin-bottom:22px; }
+  @media(max-width:800px) { .admin-grid { grid-template-columns:1fr 1fr; } .form-row { grid-template-columns:1fr; } }
+  
+  /* Star of David wave animation (like a flag) */
+  @keyframes star-wave {
+    0%, 100% { transform: translate(-50%, -50%) rotate(-3deg) scale(1); }
+    25% { transform: translate(-50%, -50%) rotate(3deg) scale(1.02); }
+    50% { transform: translate(-50%, -50%) rotate(-3deg) scale(1); }
+    75% { transform: translate(-50%, -50%) rotate(3deg) scale(0.98); }
+  }
+  
+
+  .stat-card { background:white; border-radius:13px; padding:18px; box-shadow:var(--shadow); border:1px solid var(--border); display:flex; align-items:center; gap:12px; }
+  .stat-icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:24px; }
+  .stat-icon.orange { background:var(--orange-pale); }
+  .stat-icon.yellow { background:#FFFDE7; }
+  .stat-icon.green { background:#E8F5E9; }
+  .stat-icon.red { background:#FFEBEE; }
+  .stat-info h3 { font-size:28px; font-weight:900; color:var(--dark); }
+  .stat-info p { font-size:13px; color:var(--text-light); font-weight:600; }
+
+  .requests-table { background:white; border-radius:16px; box-shadow:var(--shadow); border:1px solid var(--border); overflow:hidden; margin-top:18px; }
+  .table-header { padding:16px 20px; border-bottom:1px solid var(--border); }
+  .table-title { font-size:19px; font-weight:900; color:var(--dark); }
+  table { width:100%; border-collapse:collapse; }
+  thead th { background:var(--orange-pale); padding:11px 13px; text-align:right; font-size:12px; font-weight:700; color:var(--orange); text-transform:uppercase; letter-spacing:.5px; }
+  tbody tr { border-bottom:1px solid #f5f5f5; transition:background .2s; }
+  tbody tr:hover { background:var(--orange-pale); }
+  tbody td { padding:11px 13px; font-size:14px; color:var(--text); }
+  .action-btn { padding:5px 11px; border-radius:7px; border:none; font-family:'Heebo',sans-serif; font-size:13px; font-weight:700; cursor:pointer; transition:all .2s; margin:2px; }
+  .btn-approve { background:#E8F5E9; color:#1B5E20; }
+  .btn-approve:hover { background:var(--green); color:white; }
+  .btn-reject { background:#FFEBEE; color:#B71C1C; }
+  .btn-reject:hover { background:var(--red); color:white; }
+  .btn-recommend { background:#E3F2FD; color:#0D47A1; }
+  .btn-recommend:hover { background:#1976D2; color:white; }
+  .btn-not-recommend { background:#FBE9E7; color:#BF360C; }
+  .btn-not-recommend:hover { background:#E64A19; color:white; }
+
+  /* REP TAB */
+  .rep-intro { background:linear-gradient(135deg,#E3F2FD,#BBDEFB); border-radius:13px; padding:16px 20px; margin-bottom:20px; border:1px solid #90CAF9; display:flex; align-items:center; gap:13px; }
+  .rep-intro-icon { font-size:40px; }
+  .rep-intro h3 { font-size:18px; font-weight:900; color:#0D47A1; }
+  .rep-intro p { font-size:14px; color:#1565C0; margin-top:2px; }
+  .rep-request-item { background:white; border-radius:13px; padding:16px 18px; margin-bottom:11px; border:1px solid var(--border); box-shadow:0 2px 7px rgba(255,107,0,0.05); }
+  .rep-req-header { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:9px; }
+  .rep-req-name { font-size:18px; font-weight:800; color:var(--dark); }
+  .rep-req-dates { font-size:13px; color:var(--text-light); margin-top:2px; }
+  .rep-req-reason { background:var(--bg); border-radius:7px; padding:9px 13px; font-size:14px; color:var(--text); margin-bottom:12px; border:1px solid var(--border); word-wrap:break-word; white-space:normal; }
+  .rep-actions { display:flex; gap:8px; flex-wrap:wrap; }
+
+  /* SETTINGS */
+  .settings-section { background:white; border-radius:14px; padding:20px; box-shadow:var(--shadow); border:1px solid var(--border); margin-bottom:16px; }
+  .settings-section h3 { font-size:18px; font-weight:900; color:var(--dark); margin-bottom:14px; border-bottom:2px solid var(--border); padding-bottom:9px; }
+  .dept-assign-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; margin-bottom:18px; }
+  .dept-card { background:var(--bg); border:1px solid var(--border); border-radius:11px; padding:14px; }
+  .dept-card h4 { font-size:15px; font-weight:700; color:var(--dark); margin-bottom:9px; }
+  .dept-rep-select { width:100%; padding:9px 11px; border:2px solid var(--border); border-radius:9px; font-family:'Heebo',sans-serif; font-size:15px; outline:none; transition:border-color .2s; background:white; }
+  .dept-rep-select:focus { border-color:var(--orange); }
+  .viewer-section { background:white; border-radius:14px; padding:20px; box-shadow:var(--shadow); border:1px solid var(--border); margin-bottom:16px; }
+  .viewer-section h3 { font-size:18px; font-weight:900; color:var(--dark); margin-bottom:12px; }
+  .viewer-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .viewer-tag { background:var(--orange-pale); border:1px solid var(--orange-soft); border-radius:20px; padding:5px 11px; font-size:14px; font-weight:600; color:var(--dark); display:flex; align-items:center; gap:5px; }
+  .viewer-remove { background:none; border:none; color:var(--red); cursor:pointer; font-size:15px; padding:0; }
+
+  /* NOTIFICATIONS */
+  .notifications-panel { position:fixed; top:66px; left:18px; width:300px; background:white; border-radius:13px; box-shadow:0 16px 48px rgba(0,0,0,0.18); border:1px solid var(--border); z-index:9998; display:none; max-height:400px; overflow-y:auto; direction:rtl; }
+  .notifications-panel.open { display:block; }
+  .notif-header { padding:13px 17px; border-bottom:1px solid var(--border); font-size:16px; font-weight:900; color:var(--dark); position:sticky; top:0; background:white; }
+  .notif-item { padding:11px 17px; border-bottom:1px solid #f5f5f5; cursor:pointer; transition:background .2s; display:flex; gap:9px; align-items:flex-start; }
+  .notif-item:hover { background:var(--orange-pale); }
+  .notif-item.unread { background:#FFF8F2; }
+  .notif-clap { font-size:24px; flex-shrink:0; }
+  .notif-body { flex:1; }
+  .notif-text { font-size:13px; font-weight:600; color:var(--text); line-height:1.5; }
+  .notif-time { font-size:12px; color:var(--text-light); margin-top:2px; }
+  .notif-badge { background:var(--orange); color:white; border-radius:7px; font-size:10px; font-weight:700; padding:2px 5px; flex-shrink:0; }
+  .no-notif { padding:26px; text-align:center; color:var(--text-light); font-size:14px; }
+
+  /* TOAST */
+  .toast-container { position:fixed; bottom:22px; right:22px; z-index:99999; display:flex; flex-direction:column; gap:9px; }
+  .toast { background:white; border-radius:11px; padding:12px 16px; box-shadow:0 8px 26px rgba(0,0,0,0.13); border:1px solid var(--border); border-right:4px solid var(--orange); display:flex; align-items:center; gap:9px; min-width:260px; animation:slideIn .4s ease; }
+  .toast.success { border-right-color:var(--green); }
+  .toast.error { border-right-color:var(--red); }
+  @keyframes slideIn { from { transform:translateX(70px); opacity:0; } to { transform:translateX(0); opacity:1; } }
+  .toast-icon { font-size:21px; }
+  .toast-msg { font-size:14px; font-weight:600; color:var(--dark); }
+
+  /* MODALS */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); z-index:9999; align-items:center; justify-content:center; display:none; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:white; border-radius:17px; padding:26px; width:360px; max-width:94vw; box-shadow:0 20px 60px rgba(0,0,0,0.25); animation:scaleIn .3s ease; position:relative; }
+  @keyframes scaleIn { from { transform:scale(.9); opacity:0; } to { transform:scale(1); opacity:1; } }
+  .modal h3 { font-size:20px; font-weight:900; margin-bottom:16px; color:var(--dark); display:flex; align-items:center; gap:8px; }
+  .modal-close { position:absolute; top:13px; left:13px; background:none; border:none; font-size:20px; cursor:pointer; color:var(--text-light); transition:color .2s; }
+  .modal-close:hover { color:var(--orange); }
+  .pin-display { display:flex; gap:8px; justify-content:center; margin:14px 0; }
+  .pin-dot { width:46px; height:54px; border:2px solid var(--border); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:900; color:var(--dark); transition:all .2s; }
+  .pin-dot.filled { border-color:var(--orange); background:var(--orange-pale); color:var(--orange); }
+  .numpad { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+  .num-btn { padding:13px; border:2px solid var(--border); border-radius:10px; background:white; font-family:'Heebo',sans-serif; font-size:20px; font-weight:700; cursor:pointer; transition:all .2s; color:var(--dark); }
+  .num-btn:hover { background:var(--orange-pale); border-color:var(--orange); }
+  .num-btn:active { transform:scale(.95); }
+  .num-btn.clear { color:var(--red); }
+  .num-btn.enter { background:var(--orange); color:white; border-color:var(--orange); }
+
+  .empty-state { text-align:center; padding:44px 20px; color:var(--text-light); }
+  .empty-state .icon { font-size:57px; margin-bottom:12px; display:block; opacity:.4; }
+  .empty-state p { font-size:16px; font-weight:600; }
+
+/* end vacation styles */
 </style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -269,6 +593,7 @@
         <button class="nav-btn active" onclick="showView('schedule',event)">סידור</button>
         <button class="nav-btn" id="nav-stats" style="display:none" onclick="showView('stats',event)">סטטיסטיקות</button>
         <button class="nav-btn" id="nav-settings" style="display:none" onclick="showView('settings',event)">הגדרות</button>
+        <button class="nav-btn" id="nav-vacation" style="display:none" onclick="showView('vacation',event)">🏖 חופשות</button>
       </div>
       <div class="hdr-usr">
         <div><div class="usr-nm" id="hdr-nm"></div><div class="usr-rl" id="hdr-rl"></div></div>
@@ -395,6 +720,3352 @@
 
     </div>
   </div>
+
+  <!-- VACATION APP EMBEDDED -->
+  <div id="view-vacation" style="display:none;flex:1;overflow:auto">
+    <div id="vacation-container">
+<div id="screen-register" class="screen active">
+  <div class="studio-scene">
+    <canvas id="bg-canvas"></canvas>
+  </div>
+
+  <div class="register-card">
+    <div class="studio-logo">
+      <div class="logo-svg-wrap">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <!-- Clap board body -->
+          <rect x="2" y="10" width="32" height="24" rx="3" fill="rgba(255,107,0,0.15)" stroke="rgba(255,107,0,0.7)" stroke-width="1.5"/>
+          <!-- Stripe bar -->
+          <rect x="2" y="3" width="32" height="9" rx="2" fill="rgba(255,107,0,0.8)"/>
+          <!-- Stripes -->
+          <line x1="9" y1="3" x2="5" y2="12" stroke="rgba(0,0,0,0.35)" stroke-width="4"/>
+          <line x1="17" y1="3" x2="13" y2="12" stroke="rgba(0,0,0,0.35)" stroke-width="4"/>
+          <line x1="25" y1="3" x2="21" y2="12" stroke="rgba(0,0,0,0.35)" stroke-width="4"/>
+          <!-- Text lines on board -->
+          <rect x="6" y="17" width="18" height="2.5" rx="1" fill="rgba(255,255,255,0.3)"/>
+          <rect x="6" y="22" width="13" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
+          <rect x="6" y="27" width="15" height="2" rx="1" fill="rgba(255,255,255,0.15)"/>
+          <!-- Hinge circle -->
+          <circle cx="18" cy="3" r="2.5" fill="rgba(255,255,255,0.5)"/>
+        </svg>
+      </div>
+      <h1>לוח <span>חופשות</span></h1>
+      <p>מערכת ניהול חופשות אולפן</p>
+    </div>
+    <div class="register-tabs">
+      <button class="register-tab active" onclick="switchRegisterTab('register')">הרשמה</button>
+      <button class="register-tab" onclick="switchRegisterTab('login')">כניסה</button>
+    </div>
+    <div id="form-register">
+      <div class="form-group"><label>שם מלא</label><input type="text" id="reg-name" placeholder="הכנס שם מלא"></div>
+      <div class="form-group"><label>כתובת מייל</label><input type="email" id="reg-email" placeholder="example@studio.com"></div>
+      <div class="form-group">
+        <label>מחלקה</label>
+        <select id="reg-dept">
+          <option value="">בחר מחלקה</option>
+          <option value="סאונד">🎵 סאונד</option>
+          <option value="ניתוב">📡 ניתוב</option>
+          <option value="במאים">🎭 במאים</option>
+          <option value="ע.במאי">🎬 ע.במאי</option>
+          <option value="סיג'י/פרומפטר">💻 סיג'י/פרומפטר</option>
+          <option value="צלמים">📷 צלמים</option>
+          <option value="מנהלי במה">🎪 מנהלי במה</option>
+          <option value="כללי">⚙️ כללי</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="registerUser()">🎬 הרשמה</button>
+    </div>
+    <div id="form-login" style="display:none">
+      <div class="form-group"><label>כתובת מייל</label><input type="email" id="login-email" placeholder="example@studio.com"></div>
+      <button class="btn-primary" onclick="loginUser()">🎬 כניסה</button>
+    </div>
+  </div>
+  <button class="admin-entry-btn" onclick="openAdminModal()" title="כניסת מנהל">👤</button>
+</div>
+
+<!-- MAIN APP -->
+<div id="screen-app" class="screen">
+  <header class="app-header">
+    <div class="header-logo"><span class="icon">🎬</span><h2>לוח <span>חופשות</span></h2></div>
+    <div class="header-user">
+      <div class="notification-bell" onclick="toggleNotifications()" id="bell-btn">🔔<span class="notification-dot" id="notif-dot"></span></div>
+      <div class="user-badge"><span id="header-name">שם</span><span class="dept-badge" id="header-dept">מחלקה</span></div>
+      <button class="logout-btn" onclick="logout()">התנתק</button>
+    </div>
+  </header>
+  <div class="app-tabs" id="main-tabs">
+    <button class="app-tab active" data-tab="tab-request" onclick="showTab('tab-request',this)">📋 בקשת חופשה</button>
+    <button class="app-tab" data-tab="tab-calendar" onclick="showTab('tab-calendar',this)">📅 לוח שנה שלי</button>
+    <button class="app-tab" id="tab-rep-btn" style="display:none" data-tab="tab-rep" onclick="showTab('tab-rep',this)">💼 המלצות נציג</button>
+    <button class="app-tab" id="tab-admin-cal-btn" style="display:none" data-tab="tab-admin-cal" onclick="showTab('tab-admin-cal',this)">📅 יומן חופשות</button>
+    <button class="app-tab" id="tab-admin-req-btn" style="display:none" data-tab="tab-admin-req" onclick="showTab('tab-admin-req',this)">📋 בקשות</button>
+    <button class="app-tab" id="tab-admin-settings-btn" style="display:none" data-tab="tab-admin-settings" onclick="showTab('tab-admin-settings',this)">⚙️ הגדרות</button>
+    <button class="app-tab" id="tab-viewer-btn" style="display:none" data-tab="tab-viewer-cal" onclick="showTab('tab-viewer-cal',this)">👁 צפייה כללית</button>
+  </div>
+  <div class="tab-panels">
+
+    <!-- REQUEST -->
+    <div id="tab-request" class="tab-content active">
+      <div class="request-card">
+        <div class="card-title">✈️ בקשת חופשה חדשה</div>
+        <div class="form-row">
+          <div class="form-field"><label>שם מלא</label><input type="text" id="req-name" class="read-only" readonly></div>
+          <div class="form-field"><label>מחלקה</label><input type="text" id="req-dept" class="read-only" readonly></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>תאריך התחלה</label><input type="date" id="req-start" onchange="onStartDateChange()"></div>
+          <div class="form-field"><label>תאריך סיום</label><input type="date" id="req-end"></div>
+        </div>
+        <div class="form-field"><label>סיבת החופשה</label><textarea id="req-reason" placeholder="פרט את סיבת החופשה..."></textarea></div>
+        <button class="btn-submit" onclick="submitRequest()">🎬 שלח בקשה</button>
+      </div>
+      <div style="max-width:560px;margin:20px auto 0">
+        <div class="section-header"><h2>הבקשות שלי</h2><div class="divider"></div></div>
+        <div id="my-requests-list"></div>
+      </div>
+    </div>
+
+    <!-- DEPT CALENDAR -->
+    <div id="tab-calendar" class="tab-content">
+      <div class="calendar-container">
+        <div class="calendar-header">
+          <div class="calendar-title">📅 לוח שנה — המחלקה שלי</div>
+          <div class="cal-nav">
+            <button onclick="changeMonth(-1)">‹</button>
+            <div class="cal-month-name" id="cal-month-display"></div>
+            <button onclick="changeMonth(1)">›</button>
+          </div>
+        </div>
+        <div class="calendar-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>ממתין</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>אושרה</div>
+        </div>
+        <div class="cal-grid" id="dept-calendar"></div>
+      </div>
+    </div>
+
+    <!-- REP -->
+    <div id="tab-rep" class="tab-content">
+      <div class="rep-intro">
+        <div class="rep-intro-icon">💼</div>
+        <div><h3>נציג מחלקה — המלצות</h3><p>כנציג המחלקה שלך, באפשרותך להמליץ לאשר או לדחות בקשות חופשה של עמיתיך</p></div>
+      </div>
+      <div id="rep-requests-list"></div>
+    </div>
+
+    <!-- ADMIN CAL TAB -->
+    <div id="tab-admin-cal" class="tab-content">
+      <div class="admin-grid">
+        <div class="stat-card"><div class="stat-icon orange">📋</div><div class="stat-info"><h3 id="stat-total">0</h3><p>סה״כ בקשות</p></div></div>
+        <div class="stat-card"><div class="stat-icon yellow">⏳</div><div class="stat-info"><h3 id="stat-pending">0</h3><p>ממתינות</p></div></div>
+        <div class="stat-card"><div class="stat-icon green">✅</div><div class="stat-info"><h3 id="stat-approved">0</h3><p>אושרו</p></div></div>
+        <div class="stat-card"><div class="stat-icon red">❌</div><div class="stat-info"><h3 id="stat-rejected">0</h3><p>נדחו</p></div></div>
+      </div>
+      <div class="calendar-container">
+        <div class="calendar-header">
+          <div class="calendar-title">📅 יומן חופשות — כל העובדים</div>
+          <div class="cal-nav">
+            <button onclick="changeAdminMonth(-1)">‹</button>
+            <div class="cal-month-name" id="admin-cal-month-display"></div>
+            <button onclick="changeAdminMonth(1)">›</button>
+          </div>
+        </div>
+        <div class="calendar-filter">
+          <span class="filter-label">מחלקה:</span>
+          <select class="filter-select" id="admin-cal-filter" onchange="renderAdminCalendar()">
+            <option value="all">כולן</option>
+            <option value="סאונד">סאונד</option><option value="ניתוב">ניתוב</option>
+            <option value="במאים">במאים</option><option value="ע.במאי">ע.במאי</option>
+            <option value="סיג'י/פרומפטר">סיג'י/פרומפטר</option><option value="צלמים">צלמים</option>
+            <option value="מנהלי במה">מנהלי במה</option><option value="כללי">כללי</option>
+          </select>
+        </div>
+        <div class="calendar-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>ממתין</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>אושרה</div>
+        </div>
+        <div class="cal-grid" id="admin-calendar"></div>
+      </div>
+    </div>
+
+    <!-- ADMIN REQUESTS TAB -->
+    <div id="tab-admin-req" class="tab-content">
+      <div class="requests-table">
+        <div class="table-header"><div class="table-title">📋 כל הבקשות</div></div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>שם</th><th>מחלקה</th><th>תאריכי חופשה</th><th>סיבה</th><th>המלצה</th><th>סטטוס</th><th>תאריך הגשה</th><th>פעולות</th></tr></thead>
+            <tbody id="admin-requests-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN SETTINGS TAB -->
+    <div id="tab-admin-settings" class="tab-content">
+      <div class="settings-section">
+        <h3>🏢 נציגי מחלקות</h3>
+        <div class="dept-assign-grid" id="dept-assign-grid"></div>
+        <button class="btn-submit" onclick="saveDeptReps()">💾 שמור</button>
+      </div>
+      <div class="viewer-section">
+        <h3>👥 ניהול משתמשים</h3>
+        <p style="font-size:13px;color:var(--text-light);margin-bottom:12px">מחיקת משתמש תמחק גם את כל הבקשות שלו</p>
+        <div id="users-manage-list"></div>
+      </div>
+      <div class="viewer-section">
+        <h3>👁 הגדרת צופים</h3>
+        <p style="font-size:13px;color:var(--text-light);margin-bottom:12px">צופים רואים את כל לוחות המחלקות ללא יכולת שינוי</p>
+        <div class="form-row">
+          <div class="form-field"><label>בחר עובד</label><select id="viewer-select"><option value="">בחר...</option></select></div>
+          <div class="form-field" style="display:flex;align-items:flex-end"><button class="btn-submit" onclick="addViewer()" style="height:44px">הוסף</button></div>
+        </div>
+        <div class="viewer-list" id="viewer-list"></div>
+      </div>
+      <div class="settings-section">
+        <h3>🔑 שינוי סיסמת מנהל</h3>
+        <div class="form-row">
+          <div class="form-field"><label>סיסמה חדשה (4 ספרות)</label><input type="password" id="new-password" maxlength="4" placeholder="4 ספרות" style="letter-spacing:8px;font-size:20px"></div>
+          <div class="form-field" style="display:flex;align-items:flex-end"><button class="btn-submit" onclick="changeAdminPassword()" style="height:44px">שנה</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEWER CAL -->
+    <div id="tab-viewer-cal" class="tab-content">
+      <div class="calendar-container">
+        <div class="calendar-header">
+          <div class="calendar-title">📅 צפייה כללית — כל המחלקות</div>
+          <div class="cal-nav">
+            <button onclick="changeViewerMonth(-1)">‹</button>
+            <div class="cal-month-name" id="viewer-cal-month-display"></div>
+            <button onclick="changeViewerMonth(1)">›</button>
+          </div>
+        </div>
+        <div class="calendar-filter">
+          <span class="filter-label">מחלקה:</span>
+          <select class="filter-select" id="viewer-cal-filter" onchange="renderViewerCalendar()">
+            <option value="all">כולן</option>
+            <option value="סאונד">סאונד</option><option value="ניתוב">ניתוב</option>
+            <option value="במאים">במאים</option><option value="ע.במאי">ע.במאי</option>
+            <option value="סיג'י/פרומפטר">סיג'י/פרומפטר</option><option value="צלמים">צלמים</option>
+            <option value="מנהלי במה">מנהלי במה</option><option value="כללי">כללי</option>
+          </select>
+        </div>
+        <div class="calendar-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>ממתין</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>אושרה</div>
+        </div>
+        <div class="cal-grid" id="viewer-calendar"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="admin-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAdminModal()">✕</button>
+    <h3>👤 כניסת מנהל</h3>
+    <div class="pin-display">
+      <div class="pin-dot" id="pin-0">•</div><div class="pin-dot" id="pin-1">•</div>
+      <div class="pin-dot" id="pin-2">•</div><div class="pin-dot" id="pin-3">•</div>
+    </div>
+    <div class="numpad" id="numpad"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="event-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeEventModal()">✕</button>
+    <h3>📋 פרטי בקשה</h3>
+    <div id="event-modal-content"></div>
+  </div>
+</div>
+
+<div class="notifications-panel" id="notifications-panel">
+  <div class="notif-header">🎬 עדכונים</div>
+  <div id="notif-list"></div>
+</div>
+<div class="toast-container" id="toast-container"></div>
+<button class="admin-entry-btn" id="admin-btn-app" onclick="openAdminModal()" title="כניסת מנהל" style="display:none">👤</button>
+
+
+<script>
+let DB={users:[],requests:[],deptReps:{},viewers:[],adminPassword:'2209',notifications:[]};
+let currentUser=null,isAdmin=false,isViewer=false;
+let calMonth=new Date().getMonth(),calYear=new Date().getFullYear();
+let adminCalMonth=new Date().getMonth(),adminCalYear=new Date().getFullYear();
+let viewerCalMonth=new Date().getMonth(),viewerCalYear=new Date().getFullYear();
+let pinInput='';
+const MH=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+const DH=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+const DEPTS=['סאונד','ניתוב','במאים','ע.במאי',"סיג'י/פרומפטר",'צלמים','מנהלי במה','כללי'];
+const DI={'סאונד':'🎵','ניתוב':'📡','במאים':'🎭','ע.במאי':'🎬',"סיג'י/פרומפטר":'💻','צלמים':'📷','מנהלי במה':'🎪','כללי':'⚙️'};
+
+function sendDecisionEmail(req, action, ccEmails) {
+  console.log('📧 sendDecisionEmail called with:', {
+    to: req.email,
+    cc: ccEmails,
+    action: action
+  });
+  
+  // Build recommendation section for email body
+  let recSection = '';
+  if(req.recommendedBy && req.recommendationReason) {
+    recSection = `\n\n💬 המלצת ${req.recommendedBy}:\n"${req.recommendationReason}"`;
+  } else if(req.recommendation) {
+    // If has recommendation but no reason
+    const recText = req.recommendation === 'recommended' ? 'ממליץ לאשר' : 'לא ממליץ';
+    recSection = `\n\n💬 המלצה: ${recText}`;
+  }
+  
+  const subject = action==='approved'
+    ? `✅ בקשת החופשה שלך אושרה — ${fmt(req.start)} עד ${fmt(req.end)}`
+    : `❌ בקשת החופשה שלך נדחתה — ${fmt(req.start)} עד ${fmt(req.end)}`;
+    
+  const body = action==='approved'
+    ? `שלום ${req.name},\n\nשמחים לעדכן אותך כי בקשת החופשה שלך אושרה ✅\n\nפרטי הבקשה:\n━━━━━━━━━━━━━━━\n👤 שם: ${req.name}\n🏢 מחלקה: ${req.dept}\n📅 תאריך התחלה: ${fmt(req.start)}\n📅 תאריך סיום: ${fmt(req.end)}\n📝 סיבה: ${req.reason}${recSection}\n━━━━━━━━━━━━━━━\n\nחופשה נעימה!\n🎬 צוות האולפן`
+    : `שלום ${req.name},\n\nלצערנו, בקשת החופשה שלך נדחתה ❌\n\nפרטי הבקשה:\n━━━━━━━━━━━━━━━\n👤 שם: ${req.name}\n🏢 מחלקה: ${req.dept}\n📅 תאריך התחלה: ${fmt(req.start)}\n📅 תאריך סיום: ${fmt(req.end)}\n📝 סיבה: ${req.reason}${recSection}\n━━━━━━━━━━━━━━━\n\nלשאלות ופניות נוספות, אנא פנה/י למנהל הישיר.\n🎬 צוות האולפן`;
+  
+  // Build TO list - include employee + all CC emails (since Outlook deeplink doesn't support CC properly)
+  let allToEmails = [req.email];
+  if(ccEmails && ccEmails.length > 0) {
+    allToEmails = allToEmails.concat(ccEmails);
+  }
+  // Remove duplicates
+  allToEmails = [...new Set(allToEmails)];
+  
+  const toString = allToEmails.join(';');
+  console.log('📧 All TO emails:', toString);
+  
+  // Build Outlook URL - put everyone in TO since CC doesn't work in deeplink
+  let outlookUrl = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(toString)}`;
+  outlookUrl += `&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  
+  console.log('📧 Final URL:', outlookUrl);
+  
+  window.open(outlookUrl, '_blank');
+}
+// ============ STORAGE — Firebase Firestore ============
+// Firebase loaded via CDN in head
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBEJUFClOuTRRTfbF9RMvRXd4HanrRr7kc",
+  authDomain: "final-b9ed2.firebaseapp.com",
+  projectId: "final-b9ed2",
+  storageBucket: "final-b9ed2.firebasestorage.app",
+  messagingSenderId: "473280810760",
+  appId: "1:473280810760:web:214813ce4ba4abbba726bd"
+};
+
+let _db = null;
+function getFS() {
+  if (!_db) {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    _db = firebase.firestore();
+  }
+  return _db;
+}
+
+async function loadDB() {
+  try {
+    const fs = getFS();
+    const doc = await fs.collection('studio').doc('main').get();
+    if (doc.exists) {
+      const d = doc.data();
+      DB.requests      = d.requests      || [];
+      DB.deptReps      = d.deptReps      || {};
+      DB.viewers       = d.viewers       || [];
+      DB.notifications = d.notifications || [];
+      DB.adminPassword = d.adminPassword || DB.adminPassword;
+    }
+  } catch(e) {
+    console.warn('loadDB error', e);
+    if (e.code === 'permission-denied') {
+      showToast('שגיאת הרשאות Firebase — בדוק Rules ב-Firestore', 'error');
+    } else if (e.message && e.message.includes('blocked')) {
+      showToast('הדומיין לא מאושר ב-Firebase — הוסף ב-Authorized Domains', 'error');
+    }
+  }
+}
+
+async function saveDB() {
+  try {
+    await getFS().collection('studio').doc('main').set({
+      requests:      DB.requests,
+      deptReps:      DB.deptReps,
+      viewers:       DB.viewers,
+      notifications: DB.notifications,
+      adminPassword: DB.adminPassword
+    });
+  } catch(e) { console.warn('saveDB error', e); }
+}
+
+async function loadShared() {
+  await loadDB(); // Firestore is always shared
+}
+
+async function loadUsers() {
+  try {
+    const doc = await getFS().collection('studio').doc('users').get();
+    if (doc.exists && doc.data().list) DB.users = doc.data().list;
+  } catch(e) { console.warn('loadUsers error', e); }
+}
+
+async function saveUsers() {
+  try {
+    await getFS().collection('studio').doc('users').set({ list: DB.users });
+  } catch(e) { console.warn('saveUsers error', e); }
+}
+
+// Screen transition
+function switchScreen(fromId,toId){
+  const from=document.getElementById(fromId),to=document.getElementById(toId);
+  from.classList.add('fade-out');
+  setTimeout(()=>{from.classList.remove('active','fade-out');from.style.display='none';to.style.display='';requestAnimationFrame(()=>{to.classList.add('active');});},400);
+}
+
+// Register/Login
+function switchRegisterTab(t){
+  document.querySelectorAll('.register-tab').forEach((b,i)=>b.classList.toggle('active',(i===0&&t==='register')||(i===1&&t==='login')));
+  document.getElementById('form-register').style.display=t==='register'?'block':'none';
+  document.getElementById('form-login').style.display=t==='login'?'block':'none';
+}
+async function registerUser(){
+  const name=document.getElementById('reg-name').value.trim();
+  const email=document.getElementById('reg-email').value.trim();
+  const dept=document.getElementById('reg-dept').value;
+  if(!name||!email||!dept){showToast('אנא מלא את כל השדות','error');return;}
+  await loadUsers();
+  if(DB.users.find(u=>u.email===email)){showToast('מייל זה כבר רשום','error');return;}
+  const user={id:Date.now().toString(),name,email,dept,createdAt:new Date().toISOString()};
+  DB.users.push(user);await saveUsers();
+  currentUser=user;
+  // Save to localStorage for auto-login
+  localStorage.setItem('rememberedUser', JSON.stringify(user));
+  switchScreen('screen-register','screen-app');
+  setTimeout(()=>enterApp(),420);
+  showToast(`ברוך הבא, ${name}! 🎬`,'success');
+}
+async function loginUser(){
+  const email=document.getElementById('login-email').value.trim();
+  if(!email){showToast('הכנס מייל','error');return;}
+  await loadUsers();
+  const user=DB.users.find(u=>u.email===email);
+  if(!user){showToast('משתמש לא נמצא. אנא הירשם','error');return;}
+  currentUser=user;
+  // Save to localStorage for auto-login
+  localStorage.setItem('rememberedUser', JSON.stringify(user));
+  switchScreen('screen-register','screen-app');
+  setTimeout(()=>enterApp(),420);
+  showToast(`ברוך הבא, ${user.name}! 🎬`,'success');
+}
+function logout(){
+  currentUser=null;isAdmin=false;isViewer=false;
+  // Clear remembered user and admin mode
+  localStorage.removeItem('rememberedUser');
+  localStorage.removeItem('isAdmin');
+  document.getElementById('admin-btn-app').style.display='none';
+  // Restore employee tabs visibility
+  const rBtn=document.querySelector('[data-tab="tab-request"]');
+  const cBtn=document.querySelector('[data-tab="tab-calendar"]');
+  if(rBtn)rBtn.style.display='';
+  if(cBtn)cBtn.style.display='';
+  switchScreen('screen-app','screen-register');
+}
+
+// Enter app
+async function enterApp(adminMode=false,viewerMode=false){
+  await loadShared();
+  isAdmin=adminMode;isViewer=viewerMode;
+  ['tab-rep-btn','tab-admin-btn','tab-admin-cal-btn','tab-admin-req-btn','tab-admin-settings-btn','tab-viewer-btn'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+  document.getElementById('admin-btn-app').style.display='none';
+  const rBtn=document.querySelector('[data-tab="tab-request"]');
+  rBtn.style.opacity='';rBtn.style.pointerEvents='';
+  if(isAdmin){
+    document.getElementById('header-name').textContent='🔧 מנהל על';
+    document.getElementById('header-dept').textContent='ניהול';
+    // Hide employee-only tabs
+    document.querySelector('[data-tab="tab-request"]').style.display='none';
+    document.querySelector('[data-tab="tab-calendar"]').style.display='none';
+    // Show 3 admin tabs
+    ['tab-admin-cal-btn','tab-admin-req-btn','tab-admin-settings-btn'].forEach(id=>document.getElementById(id).style.display='flex');
+    renderAdminTab();showTab('tab-admin-cal',document.getElementById('tab-admin-cal-btn'));
+  } else if(isViewer){
+    document.getElementById('header-name').textContent=currentUser?currentUser.name:'צופה';
+    document.getElementById('header-dept').textContent='צפייה בלבד';
+    document.getElementById('tab-viewer-btn').style.display='flex';
+    rBtn.style.opacity='0.4';rBtn.style.pointerEvents='none';
+    showTab('tab-viewer-cal',document.getElementById('tab-viewer-btn'));renderViewerCalendar();
+  } else {
+    document.getElementById('header-name').textContent=currentUser.name;
+    document.getElementById('header-dept').textContent=currentUser.dept;
+    document.getElementById('admin-btn-app').style.display='flex';
+    if(Object.values(DB.deptReps).includes(currentUser.id)) document.getElementById('tab-rep-btn').style.display='flex';
+    if(DB.viewers.includes(currentUser.id)) document.getElementById('tab-viewer-btn').style.display='flex';
+    document.getElementById('req-name').value=currentUser.name;
+    document.getElementById('req-dept').value=currentUser.dept;
+    renderMyRequests();checkNotifications();
+    
+    showTab('tab-request',document.querySelector('[data-tab="tab-request"]'));
+    renderDeptCalendar();
+  }
+}
+
+
+function showTab(tabId,btn){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.app-tab').forEach(b=>b.classList.remove('active'));
+  const panel=document.getElementById(tabId);if(panel)panel.classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(tabId==='tab-calendar')renderDeptCalendar();
+  if(tabId==='tab-admin-cal')renderAdminCalendar();
+  if(tabId==='tab-admin-req')renderReqTable();
+  if(tabId==='tab-admin-settings'){renderDeptGrid();renderViewerSection();renderUsersList();}
+  if(tabId==='tab-admin')renderAdminTab();
+  if(tabId==='tab-viewer-cal')renderViewerCalendar();
+  if(tabId==='tab-rep')renderRepTab();
+}
+
+// Submit request
+function showAdminAlert(name, start, end){
+  // Flash the notification badge so admin sees new request
+  const badge = document.getElementById('notif-badge');
+  if(badge){ badge.style.transform='scale(1.8)'; badge.style.background='#ff0000';
+    setTimeout(()=>{badge.style.transform='';badge.style.background='';},1500); }
+}
+
+
+
+// Israeli Holidays 2026-2028
+const IL_HOLIDAYS = {
+  // 2026
+  '2026-02-02':'ט\' בשבט',
+  '2026-03-03':'פורים',
+  '2026-04-01':'ערב פסח','2026-04-02':'פסח','2026-04-03':'פסח','2026-04-04':'פסח',
+  '2026-04-05':'פסח','2026-04-06':'פסח','2026-04-07':'פסח','2026-04-08':'פסח',
+  '2026-04-22':'יום הזיכרון','2026-04-23':'יום העצמאות',
+  '2026-05-22':'שבועות',
+  '2026-07-23':'תשעה באב',
+  '2026-09-11':'ערב ראש השנה','2026-09-12':'ראש השנה','2026-09-13':'ראש השנה',
+  '2026-09-20':'ערב יום כיפור','2026-09-21':'יום כיפור',
+  '2026-09-25':'ערב סוכות','2026-09-26':'סוכות','2026-09-27':'סוכות','2026-09-28':'סוכות','2026-09-29':'סוכות',
+  '2026-09-30':'סוכות','2026-10-01':'סוכות','2026-10-02':'סוכות','2026-10-03':'שמחת תורה',
+  '2026-12-04':'ערב חנוכה','2026-12-05':'חנוכה','2026-12-06':'חנוכה','2026-12-07':'חנוכה','2026-12-08':'חנוכה',
+  '2026-12-09':'חנוכה','2026-12-10':'חנוכה','2026-12-11':'חנוכה','2026-12-12':'חנוכה',
+  // 2027
+  '2027-01-22':'ט\' בשבט',
+  '2027-02-23':'פורים',
+  '2027-03-22':'ערב פסח','2027-03-23':'פסח','2027-03-24':'פסח','2027-03-25':'פסח',
+  '2027-03-26':'פסח','2027-03-27':'פסח','2027-03-28':'פסח','2027-03-29':'פסח',
+  '2027-04-12':'יום הזיכרון','2027-04-13':'יום העצמאות',
+  '2027-05-12':'שבועות',
+  '2027-07-13':'תשעה באב',
+  '2027-10-01':'ערב ראש השנה','2027-10-02':'ראש השנה','2027-10-03':'ראש השנה',
+  '2027-10-10':'ערב יום כיפור','2027-10-11':'יום כיפור',
+  '2027-10-15':'ערב סוכות','2027-10-16':'סוכות','2027-10-17':'סוכות','2027-10-18':'סוכות','2027-10-19':'סוכות',
+  '2027-10-20':'סוכות','2027-10-21':'סוכות','2027-10-22':'סוכות','2027-10-23':'שמחת תורה',
+  '2027-12-24':'ערב חנוכה','2027-12-25':'חנוכה','2027-12-26':'חנוכה','2027-12-27':'חנוכה','2027-12-28':'חנוכה',
+  '2027-12-29':'חנוכה','2027-12-30':'חנוכה','2027-12-31':'חנוכה','2028-01-01':'חנוכה',
+  // 2028
+  '2028-02-11':'ט\' בשבט',
+  '2028-03-12':'פורים',
+  '2028-04-11':'ערב פסח','2028-04-12':'פסח','2028-04-13':'פסח','2028-04-14':'פסח',
+  '2028-04-15':'פסח','2028-04-16':'פסח','2028-04-17':'פסח','2028-04-18':'פסח',
+  '2028-05-02':'יום הזיכרון','2028-05-03':'יום העצמאות',
+  '2028-05-31':'שבועות',
+  '2028-08-01':'תשעה באב',
+  '2028-09-20':'ערב ראש השנה','2028-09-21':'ראש השנה','2028-09-22':'ראש השנה',
+  '2028-09-29':'ערב יום כיפור','2028-09-30':'יום כיפור',
+  '2028-10-04':'ערב סוכות','2028-10-05':'סוכות','2028-10-06':'סוכות','2028-10-07':'סוכות','2028-10-08':'סוכות',
+  '2028-10-09':'סוכות','2028-10-10':'סוכות','2028-10-11':'סוכות','2028-10-12':'שמחת תורה',
+  '2028-12-12':'ערב חנוכה','2028-12-13':'חנוכה','2028-12-14':'חנוכה','2028-12-15':'חנוכה','2028-12-16':'חנוכה',
+  '2028-12-17':'חנוכה','2028-12-18':'חנוכה','2028-12-19':'חנוכה','2028-12-20':'חנוכה'
+};
+
+function onStartDateChange(){
+  const start=document.getElementById('req-start').value;
+  const endEl=document.getElementById('req-end');
+  if(start){endEl.min=start;if(endEl.value&&endEl.value<start)endEl.value=start;}
+}
+
+async function submitRequest(){
+  const start=document.getElementById('req-start').value;
+  const end=document.getElementById('req-end').value;
+  const reason=document.getElementById('req-reason').value.trim();
+  if(!start||!end||!reason){showToast('אנא מלא את כל השדות','error');return;}
+  if(end<start){showToast('תאריך הסיום חייב להיות אחרי ההתחלה','error');return;}
+  
+  await loadShared();
+  
+  // Check for conflicts with other requests in same department
+  const conflicts = DB.requests.filter(r => {
+    // Same department, not rejected, not the current user
+    if(r.dept !== currentUser.dept) return false;
+    if(r.status === 'rejected') return false;
+    if(r.userId === currentUser.id) return false;
+    
+    // Check date overlap
+    const reqStart = new Date(r.start);
+    const reqEnd = new Date(r.end);
+    const newStart = new Date(start);
+    const newEnd = new Date(end);
+    
+    // Overlap exists if: new request starts before other ends AND new request ends after other starts
+    return newStart <= reqEnd && newEnd >= reqStart;
+  });
+  
+  // If conflicts found, warn user
+  if(conflicts.length > 0) {
+    const conflictNames = conflicts.map(c => {
+      const overlapStart = new Date(Math.max(new Date(c.start), new Date(start)));
+      const overlapEnd = new Date(Math.min(new Date(c.end), new Date(end)));
+      return `${c.name} (${fmt(overlapStart.toISOString().split('T')[0])} - ${fmt(overlapEnd.toISOString().split('T')[0])})`;
+    }).join('\n');
+    
+    const continueSubmit = confirm(
+      `⚠️ שים לב!\n\n` +
+      `קיימת חפיפה עם עובדים אחרים במחלקה שלך:\n\n${conflictNames}\n\n` +
+      `זה עלול להקשות על אישור החופשה.\n\n` +
+      `האם בכל זאת תרצה להגיש את הבקשה?`
+    );
+    
+    if(!continueSubmit) {
+      showToast('הבקשה בוטלה','');
+      return;
+    }
+  }
+  
+  // Continue with submission
+  const req={id:Date.now().toString(),userId:currentUser.id,name:currentUser.name,dept:currentUser.dept,email:currentUser.email,start,end,reason,status:'pending',recommendation:null,createdAt:new Date().toISOString()};
+  DB.requests.push(req);
+  const repId=DB.deptReps[currentUser.dept];
+  const forList=['admin'];
+  if(repId&&repId!==currentUser.id) forList.push(repId);
+  DB.notifications.push({id:Date.now().toString()+'n',requestId:req.id,type:'new_request',text:`🎬 בקשת חופשה חדשה מ-${req.name} (${req.dept}) — ${fmt(start)} עד ${fmt(end)}`,for:forList,read:[],createdAt:new Date().toISOString()});
+  await saveDB();
+  showToast('הבקשה נשלחה! 🎬','success');
+  document.getElementById('req-start').value='';document.getElementById('req-end').value='';document.getElementById('req-reason').value='';
+  renderMyRequests();checkNotifications();
+  // Admin notification badge
+  showAdminAlert(req.name, req.start, req.end);
+  // Send email notification
+  sendEmailNotification(req);
+}
+
+function sendEmailNotification(req){
+  // ============================================
+  // EmailJS Configuration - הגדרת שליחת מייל
+  // ============================================
+  // כדי שזה יעבוד, עשה את הצעדים הבאים:
+  // 1. לך ל-https://www.emailjs.com והירשם (חינמי)
+  // 2. צור Email Service (Gmail/Outlook וכו')
+  // 3. צור Email Template עם המשתנים: {{from_name}}, {{dept}}, {{start_date}}, {{end_date}}, {{reason}}, {{site_url}}
+  // 4. העתק את ה-Public Key, Service ID ו-Template ID והדבק למטה
+  
+  const EMAILJS_CONFIG = {
+    publicKey: 'YOUR_PUBLIC_KEY',      // <-- הדבק כאן את ה-Public Key מ-EmailJS
+    serviceId: 'YOUR_SERVICE_ID',      // <-- הדבק כאן את ה-Service ID
+    templateId: 'YOUR_TEMPLATE_ID'     // <-- הדבק כאן את ה-Template ID
+  };
+  
+  // אם EmailJS מוגדר - שלח מייל אמיתי
+  if (EMAILJS_CONFIG.publicKey !== 'YOUR_PUBLIC_KEY' && typeof emailjs !== 'undefined') {
+    const templateParams = {
+      from_name: req.name,
+      dept: req.dept,
+      start_date: fmt(req.start),
+      end_date: fmt(req.end),
+      reason: req.reason,
+      site_url: window.location.href,
+      to_email: 'admin@example.com'  // <-- כתובת המייל של המנהל
+    };
+    
+    emailjs.send(
+      EMAILJS_CONFIG.serviceId,
+      EMAILJS_CONFIG.templateId,
+      templateParams,
+      EMAILJS_CONFIG.publicKey
+    ).then(
+      (response) => {
+        console.log('✅ Email sent successfully!', response.status, response.text);
+      },
+      (error) => {
+        console.error('❌ Email failed:', error);
+        // Fallback to browser notification
+        showBrowserNotification(req);
+      }
+    );
+  } else {
+    // אם EmailJS לא מוגדר - הצג התראת דפדפן בלבד
+    console.warn('⚠️ EmailJS not configured - showing browser notification only');
+    console.log('📧 To enable automatic emails, configure EmailJS at https://www.emailjs.com');
+    showBrowserNotification(req);
+  }
+}
+
+function showBrowserNotification(req){
+  // Browser notification as fallback
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('בקשת חופשה חדשה', {
+      body: `${req.name} ביקש חופשה: ${fmt(req.start)} - ${fmt(req.end)}`,
+      icon: '🎬'
+    });
+  } else if ('Notification' in window && Notification.permission !== 'denied') {
+    Notification.requestPermission().then(permission => {
+      if (permission === 'granted') {
+        new Notification('בקשת חופשה חדשה', {
+          body: `${req.name} ביקש חופשה: ${fmt(req.start)} - ${fmt(req.end)}`
+        });
+      }
+    });
+  }
+}
+
+function renderMyRequests(){
+  const list=document.getElementById('my-requests-list');
+  const mine=DB.requests.filter(r=>r.userId===currentUser.id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  if(!mine.length){list.innerHTML='<div class="empty-state"><span class="icon">✈️</span><p>אין בקשות עדיין</p></div>';return;}
+  const sm={pending:['⏳','ממתין','pending'],approved:['✅','אושרה','approved'],rejected:['❌','נדחתה','rejected']};
+  list.innerHTML=mine.map(r=>{const d=new Date(r.start);const[ic,lb,cl]=sm[r.status]||sm.pending;
+  const cancelBtn=r.status==='pending'?`<button class="action-btn btn-reject" style="margin-right:8px;font-size:13px" onclick="cancelRequest('${r.id}')">🗑️ בטל בקשה</button>`:'';
+  return`<div class="my-request-item"><div class="req-date-box"><div class="req-date-day">${d.getDate()}</div><div class="req-date-mon">${MH[d.getMonth()].substring(0,3)}</div></div><div class="req-info"><h4>${r.reason}</h4><p>📅 ${fmt(r.start)} — ${fmt(r.end)}</p></div><span class="status-badge ${cl}">${ic} ${lb}</span>${cancelBtn}</div>`;}).join('');
+}
+
+async function cancelRequest(reqId){
+  if(!confirm('לבטל את הבקשה?'))return;
+  await loadShared();
+  DB.requests=DB.requests.filter(r=>r.id!==reqId);
+  DB.notifications=DB.notifications.filter(n=>n.requestId!==reqId);
+  await saveDB();
+  showToast('הבקשה בוטלה','success');
+  renderMyRequests();
+  renderDeptCalendar(); // Refresh calendar to remove deleted request
+  checkNotifications();
+}
+
+// Rep tab
+function renderRepTab(){
+  if(!currentUser)return;
+  const myDepts=Object.entries(DB.deptReps).filter(([d,uid])=>uid===currentUser.id).map(([d])=>d);
+  const list=document.getElementById('rep-requests-list');
+  if(!myDepts.length){list.innerHTML='<div class="empty-state"><span class="icon">💼</span><p>אינך מוגדר כנציג מחלקה</p></div>';return;}
+  
+  // If rep is "כללי", show ALL departments. Otherwise show only their departments.
+  const isGeneralRep = myDepts.includes('כללי');
+  const repReqs = isGeneralRep 
+    ? DB.requests.filter(r=>r.userId!==currentUser.id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))
+    : DB.requests.filter(r=>myDepts.includes(r.dept)&&r.userId!==currentUser.id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  
+  if(!repReqs.length){list.innerHTML='<div class="rep-intro" style="background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border:1px solid #A5D6A7"><div class="rep-intro-icon">✅</div><div><h3 style="color:#1B5E20">אין בקשות הממתינות להמלצה</h3><p style="color:#2E7D32">בקשות חדשות יופיעו כאן</p></div></div>';return;}
+  
+  // Show message if general rep
+  if(isGeneralRep){
+    const banner = document.createElement('div');
+    banner.style.cssText='background:linear-gradient(135deg,#e3f2fd,#bbdefb);border:2px solid #2196f3;border-radius:12px;padding:15px;margin-bottom:20px;text-align:center;';
+    banner.innerHTML='<strong style="color:#1565c0;font-size:16px">⚙️ נציג כללי - רואה בקשות מכל המחלקות</strong>';
+    list.appendChild(banner);
+  }
+  
+  const recL={recommended:'<span class="status-badge recommended">👍 ממליץ לאישור</span>',not_recommended:'<span class="status-badge not-recommended">👎 לא ממליץ</span>'};
+  const sm={pending:['⏳','ממתין','pending'],approved:['✅','אושרה','approved'],rejected:['❌','נדחתה','rejected']};
+  list.innerHTML+=repReqs.map(r=>{
+    const[si,sl,sc]=sm[r.status]||sm.pending;
+    let acts;
+    if(r.status!=='pending'){
+      acts='<span style="color:var(--text-light);font-size:13px">הבקשה טופלה על ידי המנהל</span>';
+    }
+    else if(r.recommendation){
+      acts=`
+        <div style="margin-top:10px">
+          ${recL[r.recommendation]}
+          ${r.recommendationReason ? `<div style="background:#f5f5f5;padding:8px;border-radius:6px;margin-top:8px;font-size:14px;"><strong>סיבה:</strong> ${r.recommendationReason}</div>` : ''}
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <button class="action-btn btn-not-recommend" onclick="openRepReasonModal('${r.id}','not_recommended')">שנה ל-👎</button>
+            <button class="action-btn btn-recommend" onclick="openRepReasonModal('${r.id}','recommended')">שנה ל-👍</button>
+          </div>
+        </div>
+      `;
+    }
+    else{
+      acts=`
+        <div class="rep-actions" style="margin-top:10px">
+          <button class="action-btn btn-recommend" onclick="openRepReasonModal('${r.id}','recommended')">👍 ממליץ לאשר</button>
+          <button class="action-btn btn-not-recommend" onclick="openRepReasonModal('${r.id}','not_recommended')">👎 לא ממליץ</button>
+        </div>
+      `;
+    }
+    return`<div class="rep-request-item"><div class="rep-req-header"><div><div class="rep-req-name">👤 ${r.name}</div><div class="rep-req-dates">📅 ${fmt(r.start)} — ${fmt(r.end)} &nbsp;|&nbsp; ${r.dept}</div></div><span class="status-badge ${sc}">${si} ${sl}</span></div><div class="rep-req-reason">💬 ${r.reason}</div>${acts}</div>`;
+  }).join('');
+}
+
+function openRepReasonModal(reqId, action){
+  const isRecommend = action === 'recommended';
+  const title = isRecommend ? '👍 ממליץ לאשר' : '👎 לא ממליץ';
+  const placeholder = isRecommend ? 'למה אתה ממליץ לאשר? (אופציונלי)' : 'למה אתה לא ממליץ? (אופציונלי)';
+  
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:white;border-radius:16px;padding:30px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <h3 style="margin:0 0 20px 0;font-size:24px;color:var(--dark);">${title}</h3>
+      <textarea id="rep-reason-input" placeholder="${placeholder}" style="width:100%;min-height:100px;padding:12px;border:2px solid var(--border);border-radius:10px;font-family:'Heebo',sans-serif;font-size:16px;resize:vertical;"></textarea>
+      <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+        <button onclick="this.closest('[style*=fixed]').remove()" style="padding:10px 20px;border:1px solid #ddd;background:white;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;">ביטול</button>
+        <button onclick="submitRepAction('${reqId}','${action}')" style="padding:10px 30px;border:none;background:${isRecommend?'var(--green)':'var(--red)'};color:white;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-weight:700;">שלח</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  document.getElementById('rep-reason-input').focus();
+}
+
+async function submitRepAction(reqId, action){
+  const reason = document.getElementById('rep-reason-input').value.trim();
+  await repAction(reqId, action, reason);
+}
+
+async function repAction(reqId,action,reason=''){
+  await loadShared();
+  const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
+  req.recommendation=action;
+  req.recommendationReason=reason;
+  req.recommendedBy=currentUser.name.split(' ')[0]; // Save first name only
+  const reasonText = reason ? ` (${reason})` : '';
+  DB.notifications.push({id:Date.now().toString()+'r',requestId:reqId,type:'recommendation',text:`💼 נציג ${currentUser.name} ${action==='recommended'?'ממליץ לאשר':'לא ממליץ'} את בקשת ${req.name} (${req.dept})${reasonText}`,for:['admin'],read:[],createdAt:new Date().toISOString()});
+  await saveDB();
+  showToast(action==='recommended'?'👍 המלצת אישור נשמרה':'👎 המלצת דחייה נשמרה',action==='recommended'?'success':'');
+  checkNotifications();
+  // Close modal and then render - use setTimeout to ensure modal is found and removed
+  setTimeout(()=>{
+    const modal = document.querySelector('[style*="position:fixed"]');
+    if(modal) modal.remove();
+    renderRepTab();
+  }, 100);
+}
+
+// Calendar
+function renderCal(cid,year,month,reqs){
+  const c=document.getElementById(cid);if(!c)return;c.innerHTML='';
+  DH.forEach(d=>{const el=document.createElement('div');el.className='cal-day-name';el.textContent=d;c.appendChild(el);});
+  const fd=new Date(year,month,1).getDay(),dm=new Date(year,month+1,0).getDate(),td=new Date();
+  for(let i=0;i<fd;i++){const el=document.createElement('div');el.className='cal-day other-month';c.appendChild(el);}
+  for(let d=1;d<=dm;d++){
+    const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isT=td.getFullYear()===year&&td.getMonth()===month&&td.getDate()===d;
+    const hol=IL_HOLIDAYS[ds];
+    const de=document.createElement('div');
+    de.className='cal-day'+(isT?' today':'')+(hol?' holiday':'');
+    if(hol){
+      de.style.border='2px solid #0038b8';
+      de.style.position='relative';
+      de.style.overflow='visible';
+      // Add waving Star of David in background - less transparent
+      const star=document.createElement('div');
+      star.innerHTML='✡';
+      star.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:78px;color:rgba(0,56,184,0.25);pointer-events:none;z-index:0;animation:star-wave 3s ease-in-out infinite;';
+      de.appendChild(star);
+    }
+    const ne=document.createElement('div');ne.className='cal-day-num';ne.textContent=d;ne.style.position='relative';ne.style.zIndex='3';de.appendChild(ne);
+    // Holiday label - centered at top, same line as date
+    if(hol){const hl=document.createElement('div');hl.style.cssText='font-size:9px;color:#0038b8;font-weight:800;padding:2px 4px;text-align:center;position:absolute;top:3px;left:50%;transform:translateX(-50%);z-index:3;background:rgba(255,255,255,0.95);border-radius:4px;white-space:nowrap;';hl.textContent='✡ '+hol;de.appendChild(hl);}
+    const dr=reqs.filter(r=>ds>=r.start&&ds<=r.end&&r.status!=='rejected');
+    // Create a container for events in 2 columns
+    const evContainer = document.createElement('div');
+    evContainer.style.cssText='display:flex;flex-wrap:wrap;gap:2px;justify-content:space-between;position:relative;z-index:2;';
+    dr.slice(0,6).forEach((r, index)=>{
+      const ev=document.createElement('div');
+      ev.className=`cal-event ${r.status}`;
+      // Show only first name to save space
+      const firstName=r.name.split(' ')[0];
+      ev.textContent=firstName;
+      ev.title=`${r.name} — ${fmt(r.start)} עד ${fmt(r.end)}`;
+      ev.onclick=()=>showEvt(r);
+      ev.style.position='relative';
+      ev.style.zIndex='2';
+      ev.style.flex='0 0 48%';
+      // Add red warning dot if there's overlap (multiple people on same day)
+      if(dr.length > 1){
+        const dot = document.createElement('span');
+        dot.style.cssText = `position:absolute;top:1px;left:2px;width:5px;height:5px;border-radius:50%;background:#ff0000;box-shadow:0 0 3px rgba(255,0,0,0.6);`;
+        dot.title = `⚠️ חפיפה: ${dr.length} עובדים באותו תאריך`;
+        ev.appendChild(dot);
+      }
+      evContainer.appendChild(ev);
+    });
+    de.appendChild(evContainer);
+    // Show "+X more" that opens modal with all names
+    if(dr.length>6){
+      const m=document.createElement('div');
+      m.style.cssText='font-size:10px;color:var(--orange);font-weight:700;padding:2px 4px;cursor:pointer;background:rgba(255,107,0,0.1);border-radius:3px;display:inline-block;margin-top:2px;position:relative;z-index:2;';
+      m.textContent=`+${dr.length-6} נוספים`;
+      m.onclick=()=>showDayDetails(ds, dr);
+      m.title='לחץ לראות את כל העובדים';
+      de.appendChild(m);
+    }
+    c.appendChild(de);
+  }
+}
+function renderDeptCalendar(){document.getElementById('cal-month-display').textContent=`${MH[calMonth]} ${calYear}`;renderCal('dept-calendar',calYear,calMonth,currentUser?DB.requests.filter(r=>r.dept===currentUser.dept):[]);}
+function changeMonth(d){calMonth+=d;if(calMonth<0){calMonth=11;calYear--;}if(calMonth>11){calMonth=0;calYear++;}renderDeptCalendar();}
+function renderAdminCalendar(){document.getElementById('admin-cal-month-display').textContent=`${MH[adminCalMonth]} ${adminCalYear}`;const f=document.getElementById('admin-cal-filter').value;renderCal('admin-calendar',adminCalYear,adminCalMonth,f==='all'?DB.requests:DB.requests.filter(r=>r.dept===f));}
+function changeAdminMonth(d){adminCalMonth+=d;if(adminCalMonth<0){adminCalMonth=11;adminCalYear--;}if(adminCalMonth>11){adminCalMonth=0;adminCalYear++;}renderAdminCalendar();}
+function renderViewerCalendar(){document.getElementById('viewer-cal-month-display').textContent=`${MH[viewerCalMonth]} ${viewerCalYear}`;const f=document.getElementById('viewer-cal-filter').value;renderCal('viewer-calendar',viewerCalYear,viewerCalMonth,f==='all'?DB.requests:DB.requests.filter(r=>r.dept===f));}
+function changeViewerMonth(d){viewerCalMonth+=d;if(viewerCalMonth<0){viewerCalMonth=11;viewerCalYear--;}if(viewerCalMonth>11){viewerCalMonth=0;viewerCalYear++;}renderViewerCalendar();}
+
+function showDayDetails(date, requests){
+  const sm={pending:['⏳','ממתין','pending'],approved:['✅','אושרה','approved']};
+  const content = `
+    <div style="max-height:400px;overflow-y:auto">
+      <h3 style="margin:0 0 12px 0;color:var(--dark);font-size:19px">📅 ${fmt(date)} — ${requests.length} עובדים</h3>
+      ${requests.map(r=>{
+        const[si,sl,sc]=sm[r.status]||sm.pending;
+        return`<div style="background:white;border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer;" onclick="showEvt({id:'${r.id}',name:'${r.name}',dept:'${r.dept}',start:'${r.start}',end:'${r.end}',reason:\`${r.reason}\`,status:'${r.status}',recommendation:'${r.recommendation||''}'})">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <strong style="font-size:16px">👤 ${r.name}</strong>
+            <span class="status-badge ${sc}" style="font-size:13px">${si} ${sl}</span>
+          </div>
+          <div style="font-size:14px;color:var(--text-light)">
+            🏢 ${r.dept} &nbsp;|&nbsp; 📅 ${fmt(r.start)} — ${fmt(r.end)}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+  document.getElementById('event-modal-content').innerHTML=content;
+  document.getElementById('event-modal').classList.add('open');
+}
+
+function showEvt(req){
+  const sm={pending:['⏳','ממתין','pending'],approved:['✅','אושרה','approved'],rejected:['❌','נדחתה','rejected']};
+  const[si,sl,sc]=sm[req.status]||sm.pending;
+  const rm={recommended:'👍 ממולץ לאישור',not_recommended:'👎 לא מומלץ'};
+  document.getElementById('event-modal-content').innerHTML=`<div style="display:grid;gap:11px;font-size:15px"><div style="display:flex;justify-content:space-between"><strong>👤 שם:</strong><span>${req.name}</span></div><div style="display:flex;justify-content:space-between"><strong>🏢 מחלקה:</strong><span>${req.dept}</span></div><div style="display:flex;justify-content:space-between"><strong>📅 תאריכים:</strong><span>${fmt(req.start)} — ${fmt(req.end)}</span></div><div><strong>📝 סיבה:</strong><p style="margin-top:5px;background:var(--bg);padding:9px;border-radius:7px;font-size:14px">${req.reason}</p></div><div style="display:flex;justify-content:space-between;align-items:center"><strong>📊 סטטוס:</strong><span class="status-badge ${sc}">${si} ${sl}</span></div>${req.recommendation?`<div style="display:flex;justify-content:space-between"><strong>💬 המלצה:</strong><span>${rm[req.recommendation]}</span></div>`:''}</div>`;
+  document.getElementById('event-modal').classList.add('open');
+}
+function closeEventModal(){document.getElementById('event-modal').classList.remove('open');}
+
+// Admin tab
+function renderAdminTab(){
+  const reqs=DB.requests;
+  document.getElementById('stat-total').textContent=reqs.length;
+  document.getElementById('stat-pending').textContent=reqs.filter(r=>r.status==='pending').length;
+  document.getElementById('stat-approved').textContent=reqs.filter(r=>r.status==='approved').length;
+  document.getElementById('stat-rejected').textContent=reqs.filter(r=>r.status==='rejected').length;
+  renderAdminCalendar();renderReqTable();renderDeptGrid();renderViewerSection();renderUsersList();
+}
+function renderReqTable(){
+  const tb=document.getElementById('admin-requests-tbody');
+  // Sort: pending first, then by creation date (newest first)
+  const sorted=[...DB.requests].sort((a,b)=>{
+    // Pending requests go first
+    if(a.status==='pending' && b.status!=='pending') return -1;
+    if(a.status!=='pending' && b.status==='pending') return 1;
+    // Within same status, sort by date (newest first)
+    return new Date(b.createdAt)-new Date(a.createdAt);
+  });
+  if(!sorted.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:26px;color:var(--text-light)">אין בקשות עדיין</td></tr>';return;}
+  const sm={pending:['⏳','ממתין','pending'],approved:['✅','אושרה','approved'],rejected:['❌','נדחתה','rejected']};
+  const rm={recommended:['👍','מומלץ','recommended'],not_recommended:['👎','לא מומלץ','not-recommended']};
+  
+  // Function to format date and time
+  const formatDateTime = (dateStr) => {
+    const d = new Date(dateStr);
+    const date = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+    const time = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    return `${date}<br><span style="color:var(--text-light);font-size:11px">${time}</span>`;
+  };
+  
+  tb.innerHTML=sorted.map(r=>{
+    const[si,sl,sc]=sm[r.status]||sm.pending;
+    const rec=r.recommendation?rm[r.recommendation]:null;
+    const recWithReason = rec ? `<span class="status-badge ${rec[2]}">${rec[0]} ${rec[1]}${r.recommendationReason?` <span style="cursor:pointer;" onclick="alert('סיבת ההמלצה:\\n${r.recommendationReason.replace(/'/g, "\\'")}')">💬</span>`:''}</span>` : '<span style="color:var(--text-light);font-size:12px">—</span>';
+    
+    // Always show all buttons - admin can change status anytime
+    const acts = `
+      <button class="action-btn btn-approve" onclick="adminAction('${r.id}','approved')">✅</button>
+      <button class="action-btn btn-reject" onclick="adminAction('${r.id}','rejected')">❌</button>
+      <button class="action-btn" style="background:#fee;color:#c00;border:1px solid #fcc" onclick="adminDeleteRequest('${r.id}')">🗑️</button>
+    `;
+    
+    return`<tr><td><strong>${r.name}</strong></td><td>${r.dept}</td><td style="font-size:13px">${fmt(r.start)}<br><span style="color:var(--text-light)">עד</span> ${fmt(r.end)}</td><td style="font-size:13px;max-width:250px;word-wrap:break-word;white-space:normal;">${r.reason}</td><td>${recWithReason}</td><td><span class="status-badge ${sc}">${si} ${sl}</span></td><td style="font-size:12px">${formatDateTime(r.createdAt)}</td><td>${acts}</td></tr>`;
+  }).join('');
+}
+async function adminDeleteRequest(reqId){
+  if(!confirm('למחוק את הבקשה לגמרי?'))return;
+  await loadShared();
+  DB.requests=DB.requests.filter(r=>r.id!==reqId);
+  DB.notifications=DB.notifications.filter(n=>n.requestId!==reqId);
+  await saveDB();
+  showToast('הבקשה נמחקה','success');
+  // Refresh all calendars and views
+  renderAdminTab();
+  renderDeptCalendar();
+  renderViewerCalendar();
+  renderMyRequests();
+}
+
+async function adminAction(reqId,action){
+  await loadShared();
+  const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
+  
+  console.log('🔍 Request details:', {
+    name: req.name,
+    dept: req.dept,
+    email: req.email
+  });
+  console.log('🔍 DB.deptReps:', DB.deptReps);
+  console.log('🔍 All users:', DB.users ? DB.users.map(u => ({name: u.name, email: u.email, dept: u.dept})) : 'NO USERS');
+  
+  req.status=action;
+  DB.notifications.push({id:Date.now().toString()+'a',requestId:reqId,type:action==='approved'?'request_approved':'request_rejected',text:`${action==='approved'?'✅ בקשתך אושרה':'❌ בקשתך נדחתה'} — ${fmt(req.start)} עד ${fmt(req.end)}`,for:[req.userId],read:[],createdAt:new Date().toISOString()});
+  await saveDB();
+  showToast(action==='approved'?'✅ הבקשה אושרה!':'❌ הבקשה נדחתה!',action==='approved'?'success':'error');
+  
+  // Collect ALL CC emails NOW (before setTimeout)
+  let allCCEmails = [];
+  
+  // 1. Department rep email - find the user by repId
+  const repId = DB.deptReps ? DB.deptReps[req.dept] : null;
+  console.log('🔍 Looking for rep of dept:', req.dept, '=> repId:', repId);
+  
+  if(repId && DB.users) {
+    const repUser = DB.users.find(u => u.id === repId);
+    console.log('🔍 Found rep user:', repUser);
+    if(repUser && repUser.email) {
+      allCCEmails.push(repUser.email);
+      console.log('✅ נציג מחלקה:', repUser.name, repUser.email);
+    } else {
+      console.log('❌ לא נמצא נציג למחלקה:', req.dept);
+    }
+  } else {
+    console.log('❌ אין repId או users');
+  }
+  
+  // 2. Efrat's email - always
+  allCCEmails.push('efratn@kan.org.il');
+  
+  // Remove duplicates and filter out empty
+  allCCEmails = [...new Set(allCCEmails)].filter(e => e);
+  
+  console.log('📧 כל המיילים ב-CC:', allCCEmails);
+  
+  setTimeout(()=>sendDecisionEmail(req, action, allCCEmails), 350);
+  renderAdminTab();
+}
+
+function renderDeptGrid(){
+  const grid=document.getElementById('dept-assign-grid');
+  grid.innerHTML=DEPTS.map((dept, idx)=>{
+    // For each department, show users from same dept + all users from "כללי"
+    const deptUsers = DB.users.filter(u=>u.dept===dept);
+    const generalUsers = DB.users.filter(u=>u.dept==='כללי');
+    const availableUsers = [...deptUsers, ...generalUsers];
+    // Remove duplicates if any
+    const uniqueUsers = availableUsers.filter((u, i, arr) => arr.findIndex(x=>x.id===u.id) === i);
+    const curr=DB.deptReps[dept]||'';
+    const deptId = `drep-${idx}`;
+    return`<div class="dept-card"><h4>${DI[dept]||'🏢'} ${dept}</h4><select class="dept-rep-select" id="${deptId}" data-dept="${dept}"><option value="">ללא נציג</option>${uniqueUsers.map(u=>`<option value="${u.id}" ${curr===u.id?'selected':''}>${u.name}${u.dept!==dept?' (כללי)':''}</option>`).join('')}${!uniqueUsers.length?'<option disabled>אין עובדים</option>':''}</select></div>`;
+  }).join('');
+}
+async function saveDeptReps(){
+  await loadShared();
+  // Use data-dept attribute instead of parsing ID
+  document.querySelectorAll('.dept-rep-select').forEach(el=>{
+    const dept = el.getAttribute('data-dept');
+    if(dept) DB.deptReps[dept] = el.value;
+  });
+  await saveDB();showToast('נציגי המחלקות עודכנו ✅','success');
+  if(currentUser){const isRep=Object.values(DB.deptReps).includes(currentUser.id);document.getElementById('tab-rep-btn').style.display=isRep?'flex':'none';}
+}
+
+function renderViewerSection(){
+  const sel=document.getElementById('viewer-select');
+  sel.innerHTML='<option value="">בחר...</option>'+DB.users.map(u=>`<option value="${u.id}">${u.name} (${u.dept})</option>`).join('');
+  const list=document.getElementById('viewer-list');
+  const viewers=DB.users.filter(u=>DB.viewers.includes(u.id));
+  if(!viewers.length){list.innerHTML='<span style="color:var(--text-light);font-size:13px">אין צופים</span>';return;}
+  list.innerHTML=viewers.map(v=>`<div class="viewer-tag">👁 ${v.name} (${v.dept})<button class="viewer-remove" onclick="removeViewer('${v.id}')">✕</button></div>`).join('');
+}
+async function addViewer(){await loadShared();const id=document.getElementById('viewer-select').value;if(!id){showToast('בחר עובד','error');return;}if(DB.viewers.includes(id)){showToast('כבר מוגדר','error');return;}DB.viewers.push(id);await saveDB();renderViewerSection();showToast('צופה נוסף ✅','success');}
+async function removeViewer(id){await loadShared();DB.viewers=DB.viewers.filter(v=>v!==id);await saveDB();renderViewerSection();showToast('צופה הוסר');}
+
+function renderUsersList(){
+  const list=document.getElementById('users-manage-list');
+  if(!list)return;
+  if(!DB.users.length){list.innerHTML='<span style="color:var(--text-light);font-size:14px">אין משתמשים רשומים</span>';return;}
+  list.innerHTML=DB.users.map(u=>`<div class="viewer-tag" style="background:#fff;border:1px solid #eee;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:8px"><span>👤 <strong>${u.name}</strong> — ${u.dept}<br><small style="color:#888">${u.email}</small></span><button class="viewer-remove" style="background:#fee;color:#c00;border:1px solid #fcc;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px" onclick="adminDeleteUser('${u.id}')">🗑️ מחק</button></div>`).join('');
+}
+async function adminDeleteUser(userId){
+  if(!confirm('למחוק את המשתמש לגמרי? כל הבקשות שלו יימחקו גם כן.'))return;
+  await loadShared();
+  DB.users=DB.users.filter(u=>u.id!==userId);
+  DB.requests=DB.requests.filter(r=>r.userId!==userId);
+  DB.viewers=DB.viewers.filter(v=>v!==userId);
+  Object.keys(DB.deptReps).forEach(d=>{if(DB.deptReps[d]===userId)DB.deptReps[d]='';});
+  await saveDB();await saveUsers();
+  showToast('המשתמש נמחק','success');
+  renderUsersList();renderAdminTab();
+}
+
+// Notifications
+function checkNotifications(){
+  if(!currentUser&&!isAdmin)return;
+  const uid=isAdmin?'admin':currentUser.id;
+  const unread=DB.notifications.filter(n=>n.for.includes(uid)&&!n.read.includes(uid));
+  const dot=document.getElementById('notif-dot');if(dot)dot.style.display=unread.length?'block':'none';
+}
+function toggleNotifications(){const p=document.getElementById('notifications-panel');p.classList.toggle('open');if(p.classList.contains('open'))renderNotifs();}
+function renderNotifs(){
+  const uid=isAdmin?'admin':currentUser?.id;if(!uid)return;
+  const mine=DB.notifications.filter(n=>n.for.includes(uid)).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const list=document.getElementById('notif-list');
+  if(!mine.length){list.innerHTML='<div class="no-notif">🎬 אין עדכונים</div>';return;}
+  list.innerHTML=mine.map(n=>{
+    const u=!n.read.includes(uid);
+    const d=new Date(n.createdAt);
+    return`<div class="notif-item ${u?'unread':''}" onclick="openNotifDetail('${n.id}')">
+      <div class="notif-clap">🎬</div>
+      <div class="notif-body">
+        <div class="notif-text">${n.text}</div>
+        <div class="notif-time">${d.toLocaleDateString('he-IL')} ${d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      ${u?'<span class="notif-badge">חדש</span>':''}
+    </div>`;
+  }).join('');
+}
+
+async function openNotifDetail(notifId){
+  const uid=isAdmin?'admin':currentUser?.id;
+  const n=DB.notifications.find(x=>x.id===notifId);
+  if(!n)return;
+  // mark read
+  if(!n.read.includes(uid)){n.read.push(uid);await saveDB();checkNotifications();renderNotifs();}
+  // close panel
+  document.getElementById('notifications-panel').classList.remove('open');
+  // find request
+  const req=DB.requests.find(r=>r.id===n.requestId);
+  if(!req){showToast('הבקשה לא נמצאה','error');return;}
+  // show detail modal with navigate button
+  const sm={pending:['⏳','ממתין','pending'],approved:['✅','אושרה','approved'],rejected:['❌','נדחתה','rejected']};
+  const[si,sl,sc]=sm[req.status]||sm.pending;
+  const rm={recommended:'👍 ממולץ לאישור',not_recommended:'👎 לא מומלץ'};
+  let navBtn='';
+  if(isAdmin){navBtn=`<button class="btn-submit" onclick="closeEventModal();showTab('tab-admin-req',document.getElementById('tab-admin-req-btn'));" style="width:100%;margin-top:14px">🔧 עבור לבקשות</button>`;}
+  else if(Object.values(DB.deptReps).includes(currentUser?.id)){navBtn=`<button class="btn-submit" onclick="closeEventModal();showTab('tab-rep',document.getElementById('tab-rep-btn'));" style="width:100%;margin-top:14px">💼 עבור להמלצות</button>`;}
+  else{navBtn=`<button class="btn-submit" onclick="closeEventModal();showTab('tab-request',document.querySelector('[data-tab=tab-request]'));" style="width:100%;margin-top:14px">📋 עבור לבקשות שלי</button>`;}
+  document.getElementById('event-modal-content').innerHTML=`
+    <div style="display:grid;gap:11px;font-size:15px">
+      <div style="background:var(--orange-pale);border-radius:9px;padding:10px 14px;font-size:14px;font-weight:600;color:var(--dark)">${n.text}</div>
+      <div style="display:flex;justify-content:space-between"><strong>👤 שם:</strong><span>${req.name}</span></div>
+      <div style="display:flex;justify-content:space-between"><strong>🏢 מחלקה:</strong><span>${req.dept}</span></div>
+      <div style="display:flex;justify-content:space-between"><strong>📅 תאריכים:</strong><span>${fmt(req.start)} — ${fmt(req.end)}</span></div>
+      <div><strong>📝 סיבה:</strong><p style="margin-top:5px;background:var(--bg);padding:9px;border-radius:7px;font-size:14px">${req.reason}</p></div>
+      <div style="display:flex;justify-content:space-between;align-items:center"><strong>📊 סטטוס:</strong><span class="status-badge ${sc}">${si} ${sl}</span></div>
+      ${req.recommendation?`<div style="display:flex;justify-content:space-between"><strong>💬 המלצה:</strong><span>${rm[req.recommendation]||req.recommendation}</span></div>`:''}
+      ${navBtn}
+    </div>`;
+  document.getElementById('event-modal').classList.add('open');
+}
+
+async function markRead(id){const uid=isAdmin?'admin':currentUser?.id;const n=DB.notifications.find(n=>n.id===id);if(n&&!n.read.includes(uid)){n.read.push(uid);await saveDB();checkNotifications();renderNotifs();}}
+
+// Admin login
+function openAdminModal(){pinInput='';updatePin();buildPad();document.getElementById('admin-modal').classList.add('open');}
+function closeAdminModal(){document.getElementById('admin-modal').classList.remove('open');}
+function buildPad(){const np=document.getElementById('numpad');np.innerHTML='';[1,2,3,4,5,6,7,8,9,'⌫',0,'✓'].forEach(k=>{const b=document.createElement('button');b.className='num-btn'+(k==='✓'?' enter':'')+(k==='⌫'?' clear':'');b.textContent=k;b.onclick=()=>handlePin(k);np.appendChild(b);});}
+function handlePin(k){if(k==='⌫'){pinInput=pinInput.slice(0,-1);}else if(k==='✓'){checkPin();return;}else if(pinInput.length<4){pinInput+=k;}updatePin();if(pinInput.length===4)setTimeout(checkPin,200);}
+function updatePin(){for(let i=0;i<4;i++){const d=document.getElementById(`pin-${i}`);if(d){d.textContent=i<pinInput.length?'●':'•';d.classList.toggle('filled',i<pinInput.length);}}}
+function checkPin(){
+  if(pinInput===DB.adminPassword){
+    closeAdminModal();currentUser=null;isAdmin=true;isViewer=false;
+    // Save admin mode to localStorage
+    localStorage.setItem('isAdmin', 'true');
+    if(document.getElementById('screen-register').classList.contains('active')){switchScreen('screen-register','screen-app');setTimeout(()=>enterApp(true,false),420);}
+    else{enterApp(true,false);}
+    showToast('ברוך הבא, מנהל! 🔧','success');
+  } else {pinInput='';updatePin();showToast('סיסמה שגויה','error');}
+}
+async function changeAdminPassword(){const np=document.getElementById('new-password').value.trim();if(!/^\d{4}$/.test(np)){showToast('חייב להיות 4 ספרות','error');return;}DB.adminPassword=np;await saveDB();document.getElementById('new-password').value='';showToast('הסיסמה שונתה ✅','success');}
+
+function fmt(d){if(!d)return'';return new Date(d).toLocaleDateString('he-IL');}
+function showToast(msg,type=''){
+  // Special celebration for welcome and request submission
+  if(msg.includes('ברוך הבא') || msg.includes('הבקשה נשלחה')){
+    showCelebration(msg, type);
+    return;
+  }
+  // Regular small toast for other messages
+  const c=document.getElementById('toast-container'),t=document.createElement('div');
+  t.className=`toast ${type}`;
+  const ic={success:'✅',error:'❌','':'🎬'};
+  t.innerHTML=`<span class="toast-icon">${ic[type]||'🎬'}</span><span class="toast-msg">${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(70px)';t.style.transition='0.4s';setTimeout(()=>t.remove(),400);},3200);
+}
+
+function showCelebration(msg, type){
+  // Create huge celebration overlay
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+  `;
+  
+  const isWelcome = msg.includes('ברוך הבא');
+  const icon = isWelcome ? '🎉' : '✈️';
+  const title = isWelcome ? 'ברוך הבא!' : 'הבקשה נשלחה בהצלחה!';
+  const subtitle = isWelcome ? msg : 'החופשה שלך בדרך... ✨';
+  
+  const card = document.createElement('div');
+  card.style.cssText = `
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 30px;
+    padding: 60px;
+    text-align: center;
+    max-width: 600px;
+    box-shadow: 0 30px 90px rgba(0,0,0,0.5);
+    animation: popIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    position: relative;
+    overflow: hidden;
+  `;
+  
+  // Animated particles
+  let particles = '';
+  for(let i=0; i<20; i++){
+    const x = Math.random() * 100;
+    const delay = Math.random() * 2;
+    const duration = 2 + Math.random() * 2;
+    particles += `<div style="position:absolute;left:${x}%;top:-20px;font-size:36px;animation:fall ${duration}s linear ${delay}s infinite;">${icon}</div>`;
+  }
+  
+  card.innerHTML = `
+    <style>
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes popIn { 
+        0% { transform: scale(0.3); opacity: 0; }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      @keyframes fall {
+        to { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+      }
+      @keyframes plane {
+        0% { transform: translateX(-100px) translateY(0); }
+        50% { transform: translateX(0) translateY(-10px); }
+        100% { transform: translateX(100px) translateY(0); }
+      }
+    </style>
+    ${particles}
+    <div style="font-size: 120px; margin-bottom: 20px; animation: popIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.2s backwards;">
+      ${icon}
+    </div>
+    <h1 style="color: white; font-size: 48px; font-weight: 900; margin: 0 0 15px 0; text-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+      ${title}
+    </h1>
+    <p style="color: rgba(255,255,255,0.95); font-size: 24px; margin: 0 0 30px 0; font-weight: 500;">
+      ${subtitle}
+    </p>
+    ${!isWelcome ? `
+      <div style="background: rgba(255,255,255,0.2); padding: 20px; border-radius: 15px; backdrop-filter: blur(10px); margin-top: 30px;">
+        <div style="font-size: 60px; animation: plane 3s ease-in-out infinite;">✈️</div>
+        <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">הבקשה נשלחה למנהל לאישור</p>
+      </div>
+    ` : ''}
+    <button onclick="this.closest('[style*=fixed]').remove()" style="
+      background: white;
+      color: #667eea;
+      border: none;
+      padding: 18px 50px;
+      border-radius: 15px;
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 30px;
+      font-family: 'Heebo', sans-serif;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      transition: all 0.3s;
+    " onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 30px rgba(0,0,0,0.3)';" onmouseout="this.style.transform=''; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.2)';">
+      מעולה! 🎉
+    </button>
+  `;
+  
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+  
+  // Auto close after 5 seconds
+  setTimeout(() => {
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.5s';
+    setTimeout(() => overlay.remove(), 500);
+  }, 5000);
+  
+  // Click outside to close
+  overlay.onclick = (e) => {
+    if(e.target === overlay) overlay.remove();
+  };
+}
+
+document.addEventListener('click',e=>{const p=document.getElementById('notifications-panel'),bell=document.getElementById('bell-btn');if(p.classList.contains('open')&&!p.contains(e.target)&&!bell.contains(e.target))p.classList.remove('open');});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'){if(document.getElementById('screen-register').classList.contains('active')){if(document.getElementById('form-login').style.display!=='none')loginUser();else registerUser();}}});
+
+// ============ CANVAS BACKGROUND ANIMATION ============
+function initCanvas() {
+  const canvas = document.getElementById('bg-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  function resize() { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+
+  let t = 0;
+
+  // ON AIR fade state
+  let onAirAlpha = 1.0, onAirHoldTimer = 0, onAirState = 'on';
+  const ON_HOLD = 200, OFF_HOLD = 70;
+
+  // Audio waveform strings
+  const NUM_STRINGS = 8;
+  const strings = Array.from({length: NUM_STRINGS}, (_, i) => ({
+    phase: Math.random() * Math.PI * 2,
+    speed: 0.007 + Math.random() * 0.013,
+    freq:  0.007 + i * 0.0025,
+    freq2: 0.019 + Math.random() * 0.01,
+    amp:   10 + Math.random() * 26,
+    yFrac: 0.32 + (i / (NUM_STRINGS - 1)) * 0.38
+  }));
+
+  // Mixer faders
+  const NUM_FADERS = 8;
+  const faders = Array.from({length: NUM_FADERS}, () => ({
+    pos: 0.2 + Math.random() * 0.65,
+    targetPos: 0.2 + Math.random() * 0.65,
+    changeTimer: Math.random() * 130
+  }));
+
+  // Hammock sway
+  let hammockAngle = 0;
+
+  // ---- SKY + SUN ----
+  function drawSky(W, H) {
+    const hor = H * 0.62;
+    // Sky gradient — bright day
+    const sky = ctx.createLinearGradient(0, 0, 0, hor);
+    sky.addColorStop(0,    '#1e90d4');
+    sky.addColorStop(0.45, '#56b8f5');
+    sky.addColorStop(0.82, '#a8dff8');
+    sky.addColorStop(1,    '#fde68a');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, hor);
+
+    // Sun
+    const sx = W * 0.72, sy = H * 0.18;
+    ctx.save();
+    // Glow
+    const glow = ctx.createRadialGradient(sx, sy, 10, sx, sy, 110);
+    glow.addColorStop(0,   'rgba(255,240,100,0.55)');
+    glow.addColorStop(0.5, 'rgba(255,200,50,0.18)');
+    glow.addColorStop(1,   'rgba(255,160,0,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(sx, sy, 110, 0, Math.PI*2); ctx.fill();
+    // Disk
+    ctx.shadowColor = 'rgba(255,230,80,0.9)'; ctx.shadowBlur = 30;
+    ctx.beginPath(); ctx.arc(sx, sy, 34, 0, Math.PI*2);
+    ctx.fillStyle = '#ffe040'; ctx.fill();
+    ctx.shadowBlur = 0;
+    // Rays
+    for (let r = 0; r < 12; r++) {
+      const angle = (r / 12) * Math.PI * 2 + t * 0.003;
+      const r1 = 40, r2 = 56 + (r % 3) * 5;
+      ctx.beginPath();
+      ctx.moveTo(sx + Math.cos(angle)*r1, sy + Math.sin(angle)*r1);
+      ctx.lineTo(sx + Math.cos(angle)*r2, sy + Math.sin(angle)*r2);
+      ctx.strokeStyle = 'rgba(255,230,80,0.45)'; ctx.lineWidth = 2; ctx.stroke();
+    }
+    ctx.restore();
+
+    // Fluffy clouds
+    const clouds = [
+      {x: W*0.08, y: H*0.12, r: 32}, {x: W*0.14, y: H*0.10, r: 22},
+      {x: W*0.22, y: H*0.13, r: 28}, {x: W*0.16, y: H*0.14, r: 18},
+      {x: W*0.40, y: H*0.07, r: 26}, {x: W*0.47, y: H*0.05, r: 20},
+      {x: W*0.54, y: H*0.08, r: 30},
+    ];
+    clouds.forEach(c => {
+      ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.fill();
+    });
+  }
+
+  // ---- SEA ----
+  function drawSea(W, H) {
+    const hor = H * 0.62;
+    // Sea body
+    const sea = ctx.createLinearGradient(0, hor, 0, H * 0.86);
+    sea.addColorStop(0,   '#1a9bd4');
+    sea.addColorStop(0.4, '#1278a8');
+    sea.addColorStop(1,   '#0d5578');
+    ctx.fillStyle = sea;
+    ctx.fillRect(0, hor, W, H * 0.86 - hor);
+
+    // Sun glitter on water
+    const glitter = ctx.createLinearGradient(W*0.6, hor, W*0.6, H*0.86);
+    glitter.addColorStop(0,   'rgba(255,240,120,0.35)');
+    glitter.addColorStop(0.5, 'rgba(255,200,60,0.12)');
+    glitter.addColorStop(1,   'rgba(255,160,0,0.03)');
+    ctx.beginPath();
+    ctx.moveTo(W*0.58, hor); ctx.lineTo(W*0.86, hor);
+    ctx.lineTo(W*0.95, H*0.86); ctx.lineTo(W*0.45, H*0.86);
+    ctx.closePath();
+    ctx.fillStyle = glitter; ctx.fill();
+
+    // Waves
+    for (let layer = 0; layer < 4; layer++) {
+      const wy = hor + 18 + layer * ((H*0.86 - hor - 18) / 4);
+      const amp = 4 - layer * 0.6;
+      const spd = (0.014 - layer*0.003) * (layer%2===0 ? 1 : -1);
+      ctx.beginPath();
+      for (let x = 0; x <= W; x += 5) {
+        const y = wy + Math.sin(x*0.014 + t*spd + layer*1.4)*amp
+                     + Math.sin(x*0.03  + t*spd*1.5 + layer)*amp*0.4;
+        x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      ctx.strokeStyle = `rgba(255,255,255,${0.18 - layer*0.035})`;
+      ctx.lineWidth = 1.2; ctx.stroke();
+    }
+  }
+
+  // ---- SAND ----
+  function drawSand(W, H) {
+    const sandTop = H * 0.82;
+    const sand = ctx.createLinearGradient(0, sandTop, 0, H);
+    sand.addColorStop(0,   '#f5d98a');
+    sand.addColorStop(0.3, '#e8c76a');
+    sand.addColorStop(1,   '#d4a843');
+    ctx.fillStyle = sand;
+    // Curved beach edge
+    ctx.beginPath();
+    ctx.moveTo(0, sandTop + H*0.04);
+    ctx.bezierCurveTo(W*0.25, sandTop - H*0.02, W*0.75, sandTop + H*0.06, W, sandTop + H*0.02);
+    ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
+    ctx.fill();
+    // Wet sand edge
+    ctx.beginPath();
+    ctx.moveTo(0, sandTop + H*0.05);
+    ctx.bezierCurveTo(W*0.25, sandTop - H*0.01, W*0.75, sandTop + H*0.07, W, sandTop + H*0.03);
+    for (let x = W; x >= 0; x -= 5) {
+      const y = sandTop + H*0.03 + Math.sin(x*0.02 + t*0.01)*2 + (x===W ? 0 : 0);
+    }
+    ctx.strokeStyle = 'rgba(200,165,60,0.5)'; ctx.lineWidth = 2; ctx.stroke();
+  }
+
+  // ---- PALM TREE (left side) ----
+  // ---- PALM TREE — far right ----
+  function drawPalm(W, H) {
+    const bx = W * 0.91, by = H * 0.86;
+    const sway = Math.sin(t * 0.012) * 0.035;
+    ctx.save();
+    ctx.translate(bx, by);
+    // Trunk
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(-6 + sway*18, -H*0.10, -14 + sway*28, -H*0.22, -18 + sway*38, -H*0.36);
+    ctx.strokeStyle = '#7a4f2a'; ctx.lineWidth = 13; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.strokeStyle = '#9a6235'; ctx.lineWidth = 8; ctx.stroke();
+    // Rings
+    for (let r = 0; r < 5; r++) {
+      const ry = -H*(0.07 + r*0.062), rx = -3 + sway*12 - r*2.5;
+      ctx.beginPath(); ctx.arc(rx, ry, 5, 0.3, Math.PI-0.3);
+      ctx.strokeStyle = 'rgba(90,45,12,0.35)'; ctx.lineWidth = 2; ctx.stroke();
+    }
+    // Crown fronds
+    const crownX = -18 + sway*38, crownY = -H*0.36;
+    const frondAngles = [-2.4, -1.9, -1.4, -0.9, -0.4, 0.1, 0.6];
+    frondAngles.forEach((angle, fi) => {
+      const fSway = Math.sin(t*0.016 + fi*0.9) * 0.07;
+      const fa = angle + fSway;
+      const len = H*0.10 + (fi%3)*H*0.022;
+      ctx.save();
+      ctx.translate(crownX, crownY);
+      ctx.rotate(fa);
+      ctx.beginPath(); ctx.moveTo(0,0);
+      ctx.quadraticCurveTo(len*0.5, len*0.2, len, len*0.08);
+      ctx.strokeStyle='#4a7a18'; ctx.lineWidth=2.5; ctx.stroke();
+      for (let l=1; l<=6; l++) {
+        const lx=(l/7)*len, ly=(l/7)*len*0.14, lw=(len/7)*0.52*(1-l/9);
+        ctx.beginPath();
+        ctx.ellipse(lx-lw*0.3, ly-lw*0.55, lw, lw*0.26, fa*0.15-0.5, 0, Math.PI*2);
+        ctx.fillStyle=`rgba(${48+l*7},${125+l*5},${18+l*4},0.8)`; ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(lx-lw*0.3, ly+lw*0.38, lw, lw*0.23, fa*0.15+0.4, 0, Math.PI*2);
+        ctx.fillStyle=`rgba(${42+l*7},${115+l*5},${12+l*4},0.72)`; ctx.fill();
+      }
+      ctx.restore();
+    });
+    // Coconuts
+    [[-0.12,-0.04],[0.1,-0.07],[-0.06,0.05]].forEach(([ox,oy])=>{
+      ctx.beginPath(); ctx.arc(crownX+ox*28, crownY+oy*28, 5, 0, Math.PI*2);
+      ctx.fillStyle='#4e3018'; ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  // ---- HAMMOCK — right side, between palm and edge ----
+  function drawHammock(W, H) {
+    const sway = Math.sin(t * 0.016) * 6;
+    // Hammock anchored to palm trunk area and a post
+    const lx = W*0.72, rx = W*0.92;
+    const ropeY = H*0.70;
+    const sagY  = ropeY + 30 + sway*0.2;
+
+    // Left post
+    ctx.beginPath(); ctx.moveTo(lx, ropeY+8); ctx.lineTo(lx-2, H*0.88);
+    ctx.strokeStyle='#7a4f2a'; ctx.lineWidth=7; ctx.stroke();
+
+    // Hammock fabric
+    ctx.beginPath();
+    ctx.moveTo(lx, ropeY);
+    ctx.bezierCurveTo(lx+(rx-lx)*0.28, sagY+10, lx+(rx-lx)*0.72, sagY+10, rx, ropeY);
+    ctx.bezierCurveTo(lx+(rx-lx)*0.72, sagY+24, lx+(rx-lx)*0.28, sagY+24, lx, ropeY);
+    ctx.closePath();
+    const hg = ctx.createLinearGradient(lx, ropeY, lx, sagY+24);
+    hg.addColorStop(0,  '#d06018'); hg.addColorStop(0.5,'#f08828'); hg.addColorStop(1,'#b84c00');
+    ctx.fillStyle=hg; ctx.fill();
+    ctx.strokeStyle='#963c00'; ctx.lineWidth=1.5; ctx.stroke();
+    // Stripes
+    for (let s=0; s<5; s++) {
+      const sx = lx + (s+1)*(rx-lx)/6;
+      ctx.beginPath(); ctx.moveTo(sx, ropeY-1);
+      ctx.bezierCurveTo(sx, sagY+12, sx, sagY+14, sx, ropeY+1);
+      ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=1; ctx.stroke();
+    }
+    // Rope ties
+    ctx.beginPath(); ctx.moveTo(lx,ropeY); ctx.lineTo(lx-3,ropeY-14);
+    ctx.beginPath(); ctx.moveTo(rx,ropeY); ctx.lineTo(rx+2,ropeY-14);
+    ctx.strokeStyle='#c0903a'; ctx.lineWidth=2; ctx.stroke();
+
+    // Person lying in hammock — head on right (towards palm)
+    const px = lx + (rx-lx)*0.5 + sway*0.15;
+    const py = sagY + 8;
+
+    // Body
+    ctx.beginPath(); ctx.ellipse(px, py-2, 32, 9, 0.05, 0, Math.PI*2);
+    ctx.fillStyle='rgba(50,30,15,0.75)'; ctx.fill();
+    // Head (right side)
+    ctx.beginPath(); ctx.arc(px+28, py-7, 10, 0, Math.PI*2);
+    ctx.fillStyle='rgba(50,30,15,0.75)'; ctx.fill();
+    // Sun hat
+    ctx.beginPath(); ctx.ellipse(px+28, py-15, 16, 4.5, 0, 0, Math.PI*2);
+    ctx.fillStyle='rgba(210,150,25,0.82)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(px+28, py-19, 9, Math.PI, 0);
+    ctx.fillStyle='rgba(210,150,25,0.82)'; ctx.fill();
+    // Arm holding TV remote (left arm, slightly raised)
+    ctx.beginPath(); ctx.moveTo(px-10, py);
+    ctx.quadraticCurveTo(px-18, py-18, px-22, py-28);
+    ctx.strokeStyle='rgba(50,30,15,0.7)'; ctx.lineWidth=6; ctx.lineCap='round'; ctx.stroke();
+
+    // ---- Mini TV floating in front of person ----
+    const tvX = px - 52, tvY = py - 72;
+    const tvW = 68, tvH = 50;
+    // TV stand/base
+    ctx.beginPath(); ctx.moveTo(tvX+tvW*0.38, tvY+tvH); ctx.lineTo(tvX+tvW*0.38, tvY+tvH+8);
+    ctx.moveTo(tvX+tvW*0.62, tvY+tvH); ctx.lineTo(tvX+tvW*0.62, tvY+tvH+8);
+    ctx.moveTo(tvX+tvW*0.25, tvY+tvH+8); ctx.lineTo(tvX+tvW*0.75, tvY+tvH+8);
+    ctx.strokeStyle='#333'; ctx.lineWidth=3; ctx.stroke();
+    // TV body
+    ctx.beginPath(); ctx.roundRect(tvX, tvY, tvW, tvH, 5);
+    ctx.fillStyle='#1a1a28'; ctx.fill();
+    ctx.strokeStyle='#444'; ctx.lineWidth=1.5; ctx.stroke();
+    // Screen
+    const scrX=tvX+4, scrY=tvY+4, scrW=tvW-8, scrH=tvH-10;
+    ctx.beginPath(); ctx.roundRect(scrX, scrY, scrW, scrH, 3);
+    // Screen glow — blue TV light
+    const scrGrad = ctx.createLinearGradient(scrX, scrY, scrX, scrY+scrH);
+    scrGrad.addColorStop(0,  '#0a1535');
+    scrGrad.addColorStop(0.3,'#0d2060');
+    scrGrad.addColorStop(1,  '#071030');
+    ctx.fillStyle=scrGrad; ctx.fill();
+    // NEWS ticker bar at bottom of screen
+    ctx.fillStyle='rgba(180,20,20,0.95)';
+    ctx.fillRect(scrX, scrY+scrH-10, scrW, 10);
+    ctx.font='bold 6px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle='white';
+    ctx.fillText('NEWS', scrX+scrW/2, scrY+scrH-5);
+    // News anchor silhouette on screen
+    ctx.fillStyle='rgba(160,180,220,0.45)';
+    ctx.beginPath(); ctx.arc(scrX+scrW*0.5, scrY+scrH*0.38, 7, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(scrX+scrW*0.5, scrY+scrH*0.65, 11, 8, 0, 0, Math.PI*2); ctx.fill();
+    // Desk line on screen
+    ctx.beginPath(); ctx.moveTo(scrX+2, scrY+scrH*0.7); ctx.lineTo(scrX+scrW-2, scrY+scrH*0.7);
+    ctx.strokeStyle='rgba(100,120,180,0.3)'; ctx.lineWidth=1; ctx.stroke();
+    // Screen reflection glare
+    ctx.beginPath(); ctx.moveTo(scrX+2,scrY+2); ctx.lineTo(scrX+scrW*0.35,scrY+2); ctx.lineTo(scrX+2,scrY+scrH*0.25); ctx.closePath();
+    ctx.fillStyle='rgba(255,255,255,0.05)'; ctx.fill();
+    // TV indicator dot
+    ctx.beginPath(); ctx.arc(tvX+tvW-6, tvY+tvH-5, 2.5, 0, Math.PI*2);
+    const tvDotAlpha = 0.5 + 0.5*Math.sin(t*0.08);
+    ctx.fillStyle=`rgba(80,220,80,${tvDotAlpha})`; ctx.fill();
+    // Screen glow cast on person's face
+    ctx.save();
+    const faceGlow = ctx.createRadialGradient(tvX+tvW/2, tvY+tvH/2, 5, tvX+tvW/2, tvY+tvH/2, 50);
+    faceGlow.addColorStop(0,  'rgba(30,80,200,0.18)');
+    faceGlow.addColorStop(1,  'rgba(30,80,200,0)');
+    ctx.fillStyle=faceGlow;
+    ctx.beginPath(); ctx.arc(tvX+tvW/2, tvY+tvH/2, 50, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    ctx.textAlign='start';
+  }
+
+  // ---- ON AIR — top RIGHT, smooth fade ----
+  function drawOnAir(W) {
+    if (onAirAlpha <= 0) return;
+    const bw=160, bh=46, bx=W-bw-14, by=16, rx=7, a=onAirAlpha;
+    ctx.save();
+    ctx.shadowColor=`rgba(220,20,20,${a*0.85})`; ctx.shadowBlur=28*a;
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, rx);
+    ctx.fillStyle=`rgba(175,12,12,${0.92*a})`; ctx.fill();
+    ctx.strokeStyle=`rgba(255,55,55,${0.55*a})`; ctx.lineWidth=1.2; ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.beginPath(); ctx.arc(bx+13, by+23, 6, 0, Math.PI*2);
+    ctx.shadowColor=`rgba(255,0,0,${a})`; ctx.shadowBlur=12*a;
+    ctx.fillStyle=`rgba(255,25,25,${a})`; ctx.fill(); ctx.shadowBlur=0;
+    ctx.font='bold 19px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle=`rgba(255,255,255,${0.96*a})`;
+    ctx.fillText('ON AIR', bx+bw*0.62, by+23);
+    ctx.restore(); ctx.textAlign='start';
+  }
+
+  function updateOnAir() {
+    if (onAirState==='on')       { onAirAlpha=1; if(++onAirHoldTimer>ON_HOLD){onAirState='fadeout';onAirHoldTimer=0;} }
+    else if(onAirState==='fadeout'){ onAirAlpha=Math.max(0,onAirAlpha-0.018); if(onAirAlpha<=0)onAirState='off'; }
+    else if(onAirState==='off')   { onAirAlpha=0; if(++onAirHoldTimer>OFF_HOLD){onAirState='fadein';onAirHoldTimer=0;} }
+    else if(onAirState==='fadein') { onAirAlpha=Math.min(1,onAirAlpha+0.024); if(onAirAlpha>=1)onAirState='on'; }
+  }
+
+  // Plane state — flies from right to left across sky
+  let planeX = -120, planeY = 0, planeInit = false;
+  function resetPlane(W, H) {
+    planeX = W + 120;
+    planeY = H * (0.12 + Math.random() * 0.22);
+  }
+
+  function drawPlane(W, H) {
+    if (!planeInit) { resetPlane(W, H); planeInit = true; }
+    planeX -= 1.4;
+    if (planeX < -140) resetPlane(W, H);
+    const px = planeX, py = planeY;
+    ctx.save();
+    ctx.translate(px, py);
+    // Contrail
+    ctx.beginPath();
+    for (let i = 0; i < 80; i++) {
+      const tx = i * 1.6, alpha = (1 - i/80) * 0.18;
+      ctx.beginPath(); ctx.arc(tx + 18, 0, 2.5 - i*0.025, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,255,255,${alpha})`; ctx.fill();
+    }
+    // Fuselage
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 22, 6, 0, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fill();
+    // Nose
+    ctx.beginPath();
+    ctx.moveTo(-22, 0); ctx.lineTo(-32, 2); ctx.lineTo(-22, 4);
+    ctx.fillStyle = 'rgba(230,230,230,0.9)'; ctx.fill();
+    // Main wings
+    ctx.beginPath();
+    ctx.moveTo(-4, 0); ctx.lineTo(10, -22); ctx.lineTo(16, -20); ctx.lineTo(4, 0);
+    ctx.moveTo(-4, 0); ctx.lineTo(10, 22); ctx.lineTo(16, 20); ctx.lineTo(4, 0);
+    ctx.fillStyle = 'rgba(240,240,255,0.88)'; ctx.fill();
+    // Tail wings
+    ctx.beginPath();
+    ctx.moveTo(14, 0); ctx.lineTo(22, -10); ctx.lineTo(24, -8); ctx.lineTo(17, 0);
+    ctx.moveTo(14, 0); ctx.lineTo(22, 10); ctx.lineTo(24, 8); ctx.lineTo(17, 0);
+    ctx.fillStyle = 'rgba(220,220,240,0.85)'; ctx.fill();
+    // Window strip
+    ctx.fillStyle = 'rgba(135,200,255,0.6)';
+    ctx.fillRect(-14, -3, 20, 5);
+    // Engine
+    ctx.beginPath(); ctx.ellipse(2, 8, 5, 3, 0, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(180,180,200,0.8)'; ctx.fill();
+    ctx.restore();
+  }
+
+  // Cocktail — static, bottom left corner of scene
+  function drawCocktail(W, H) {
+    const cx = W * 0.88, cy = H * 0.80;
+    ctx.save();
+    ctx.translate(cx, cy);
+    // Glass body (triangle shape)
+    ctx.beginPath();
+    ctx.moveTo(-18, -30); ctx.lineTo(18, -30);
+    ctx.lineTo(6, 8); ctx.lineTo(-6, 8); ctx.closePath();
+    const glassGrad = ctx.createLinearGradient(-18,-30,18,8);
+    glassGrad.addColorStop(0, 'rgba(255,180,50,0.75)');
+    glassGrad.addColorStop(0.5, 'rgba(255,120,30,0.65)');
+    glassGrad.addColorStop(1, 'rgba(200,80,20,0.55)');
+    ctx.fillStyle = glassGrad; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.2; ctx.stroke();
+    // Ice cubes
+    ctx.fillStyle = 'rgba(200,240,255,0.45)';
+    ctx.fillRect(-10, -25, 8, 7); ctx.fillRect(2, -22, 8, 7);
+    // Straw
+    ctx.beginPath(); ctx.moveTo(4, 8); ctx.lineTo(14, -38);
+    ctx.strokeStyle = 'rgba(255,80,80,0.85)'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(6, 8); ctx.lineTo(16, -38);
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1.5; ctx.stroke();
+    // Stem
+    ctx.beginPath(); ctx.moveTo(-6, 8); ctx.lineTo(6, 8); ctx.lineTo(4, 20); ctx.lineTo(-4, 20);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fill();
+    // Base
+    ctx.beginPath(); ctx.ellipse(0, 20, 10, 3, 0, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fill();
+    // Slice of orange on rim
+    ctx.beginPath(); ctx.arc(-16, -30, 7, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,160,0,0.85)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(-16, -30, 5, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,200,50,0.7)'; ctx.fill();
+    // Shine
+    ctx.beginPath(); ctx.moveTo(-14,-28); ctx.lineTo(-4,-26); ctx.lineTo(-6,-20); ctx.lineTo(-16,-22); ctx.closePath();
+    ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.fill();
+    // Tiny umbrella
+    ctx.save(); ctx.translate(8, -30);
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,14);
+    ctx.strokeStyle='rgba(200,100,50,0.8)'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-10,0); ctx.bezierCurveTo(-10,-12,10,-12,10,0); ctx.closePath();
+    ctx.fillStyle='rgba(255,80,80,0.75)'; ctx.fill();
+    ctx.restore();
+    ctx.restore();
+  }
+
+  function loop() {
+    const W=canvas.width, H=canvas.height;
+    ctx.clearRect(0,0,W,H); t++;
+    updateOnAir();
+    drawSky(W,H);
+    drawSea(W,H);
+    drawSand(W,H);
+    drawPlane(W,H);
+    drawCocktail(W,H);
+    drawPalm(W,H);
+    drawHammock(W,H);
+    drawOnAir(W);
+    requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+(async function init(){
+  // Wait for Firebase to be available
+  let attempts = 0;
+  while (typeof firebase === 'undefined' && attempts < 50) {
+    await new Promise(r => setTimeout(r, 100));
+    attempts++;
+  }
+  initCanvas();
+  await loadDB();
+  await loadUsers();
+  await loadShared();
+  
+  // Check for remembered admin mode
+  const adminMode = localStorage.getItem('isAdmin');
+  if(adminMode === 'true'){
+    isAdmin = true;
+    currentUser = null;
+    switchScreen('screen-register','screen-app');
+    setTimeout(()=>enterApp(true, false),100);
+  } else {
+    // Check for remembered user and auto-login
+    const remembered = localStorage.getItem('rememberedUser');
+    if(remembered){
+      try{
+        const user = JSON.parse(remembered);
+        // Verify user still exists in database
+        const dbUser = DB.users.find(u=>u.id===user.id);
+        if(dbUser){
+          currentUser = dbUser;
+          switchScreen('screen-register','screen-app');
+          setTimeout(()=>enterApp(),100);
+        } else {
+          // User deleted, clear localStorage
+          localStorage.removeItem('rememberedUser');
+        }
+      } catch(e){
+        localStorage.removeItem('rememberedUser');
+      }
+    }
+  }
+})();
+
+// ===== VACATION APP INTEGRATION =====
+function initVacationApp(){
+  // Auto-login to vacation app using sidur credentials
+  const vContainer = document.getElementById('vacation-container');
+  if(!vContainer) return;
+  
+  // Hide register screen, show app screen
+  const regScreen = document.getElementById('screen-register');
+  const appScreen = document.getElementById('screen-app');
+  if(regScreen) regScreen.style.display='none';
+  if(appScreen){ appScreen.style.display='flex'; appScreen.classList.add('active'); }
+  
+  // Set vacation currentUser from sidur currentEmp
+  if(isMgr && pinTarget==='primary'){
+    // Primary manager = vacation admin
+    vacEnterAdmin();
+  } else if(currentEmp){
+    // Map department from sidur to vacation
+    const deptMap = {};
+    departments.forEach(d=>{ deptMap[d.id]=d.name; });
+    const deptName = deptMap[currentEmp.department_id] || currentEmp.role || 'כללי';
+    vacEnterEmployee(currentEmp.full_name, currentEmp.email||currentEmp.id+'@sidur.local', deptName);
+  }
+}
+
+async function vacEnterEmployee(name, email, dept){
+  await loadShared();
+  // find or create user in vacation DB
+  let user = DB.users.find(u=>u.email===email);
+  if(!user){
+    user = {id: Date.now().toString(), name, email, dept, createdAt: new Date().toISOString()};
+    DB.users.push(user);
+    await saveUsers();
+  }
+  currentUser = user;
+  await enterApp(false, false);
+}
+
+async function vacEnterAdmin(){
+  await loadShared();
+  await enterApp(true, false);
+}
+
+
+// ===== VACATION APP JS =====
+
+let DB={users:[],requests:[],deptReps:{},viewers:[],adminPassword:'2209',notifications:[]};
+let currentUser=null,isAdmin=false,isViewer=false;
+let calMonth=new Date().getMonth(),calYear=new Date().getFullYear();
+let adminCalMonth=new Date().getMonth(),adminCalYear=new Date().getFullYear();
+let viewerCalMonth=new Date().getMonth(),viewerCalYear=new Date().getFullYear();
+let pinInput='';
+const MH=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+const DH=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+const DEPTS=['סאונד','ניתוב','במאים','ע.במאי',"סיג'י/פרומפטר",'צלמים','מנהלי במה','כללי'];
+const DI={'סאונד':'🎵','ניתוב':'📡','במאים':'🎭','ע.במאי':'🎬',"סיג'י/פרומפטר":'💻','צלמים':'📷','מנהלי במה':'🎪','כללי':'⚙️'};
+
+function sendDecisionEmail(req, action, ccEmails) {
+  console.log('📧 sendDecisionEmail called with:', {
+    to: req.email,
+    cc: ccEmails,
+    action: action
+  });
+  
+  // Build recommendation section for email body
+  let recSection = '';
+  if(req.recommendedBy && req.recommendationReason) {
+    recSection = `\n\n💬 המלצת ${req.recommendedBy}:\n"${req.recommendationReason}"`;
+  } else if(req.recommendation) {
+    // If has recommendation but no reason
+    const recText = req.recommendation === 'recommended' ? 'ממליץ לאשר' : 'לא ממליץ';
+    recSection = `\n\n💬 המלצה: ${recText}`;
+  }
+  
+  const subject = action==='approved'
+    ? `✅ בקשת החופשה שלך אושרה — ${fmt(req.start)} עד ${fmt(req.end)}`
+    : `❌ בקשת החופשה שלך נדחתה — ${fmt(req.start)} עד ${fmt(req.end)}`;
+    
+  const body = action==='approved'
+    ? `שלום ${req.name},\n\nשמחים לעדכן אותך כי בקשת החופשה שלך אושרה ✅\n\nפרטי הבקשה:\n━━━━━━━━━━━━━━━\n👤 שם: ${req.name}\n🏢 מחלקה: ${req.dept}\n📅 תאריך התחלה: ${fmt(req.start)}\n📅 תאריך סיום: ${fmt(req.end)}\n📝 סיבה: ${req.reason}${recSection}\n━━━━━━━━━━━━━━━\n\nחופשה נעימה!\n🎬 צוות האולפן`
+    : `שלום ${req.name},\n\nלצערנו, בקשת החופשה שלך נדחתה ❌\n\nפרטי הבקשה:\n━━━━━━━━━━━━━━━\n👤 שם: ${req.name}\n🏢 מחלקה: ${req.dept}\n📅 תאריך התחלה: ${fmt(req.start)}\n📅 תאריך סיום: ${fmt(req.end)}\n📝 סיבה: ${req.reason}${recSection}\n━━━━━━━━━━━━━━━\n\nלשאלות ופניות נוספות, אנא פנה/י למנהל הישיר.\n🎬 צוות האולפן`;
+  
+  // Build TO list - include employee + all CC emails (since Outlook deeplink doesn't support CC properly)
+  let allToEmails = [req.email];
+  if(ccEmails && ccEmails.length > 0) {
+    allToEmails = allToEmails.concat(ccEmails);
+  }
+  // Remove duplicates
+  allToEmails = [...new Set(allToEmails)];
+  
+  const toString = allToEmails.join(';');
+  console.log('📧 All TO emails:', toString);
+  
+  // Build Outlook URL - put everyone in TO since CC doesn't work in deeplink
+  let outlookUrl = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(toString)}`;
+  outlookUrl += `&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  
+  console.log('📧 Final URL:', outlookUrl);
+  
+  window.open(outlookUrl, '_blank');
+}
+// ============ STORAGE — Firebase Firestore ============
+// Firebase loaded via CDN in head
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBEJUFClOuTRRTfbF9RMvRXd4HanrRr7kc",
+  authDomain: "final-b9ed2.firebaseapp.com",
+  projectId: "final-b9ed2",
+  storageBucket: "final-b9ed2.firebasestorage.app",
+  messagingSenderId: "473280810760",
+  appId: "1:473280810760:web:214813ce4ba4abbba726bd"
+};
+
+let _db = null;
+function getFS() {
+  if (!_db) {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    _db = firebase.firestore();
+  }
+  return _db;
+}
+
+async function loadDB() {
+  try {
+    const fs = getFS();
+    const doc = await fs.collection('studio').doc('main').get();
+    if (doc.exists) {
+      const d = doc.data();
+      DB.requests      = d.requests      || [];
+      DB.deptReps      = d.deptReps      || {};
+      DB.viewers       = d.viewers       || [];
+      DB.notifications = d.notifications || [];
+      DB.adminPassword = d.adminPassword || DB.adminPassword;
+    }
+  } catch(e) {
+    console.warn('loadDB error', e);
+    if (e.code === 'permission-denied') {
+      showToast('שגיאת הרשאות Firebase — בדוק Rules ב-Firestore', 'error');
+    } else if (e.message && e.message.includes('blocked')) {
+      showToast('הדומיין לא מאושר ב-Firebase — הוסף ב-Authorized Domains', 'error');
+    }
+  }
+}
+
+async function saveDB() {
+  try {
+    await getFS().collection('studio').doc('main').set({
+      requests:      DB.requests,
+      deptReps:      DB.deptReps,
+      viewers:       DB.viewers,
+      notifications: DB.notifications,
+      adminPassword: DB.adminPassword
+    });
+  } catch(e) { console.warn('saveDB error', e); }
+}
+
+async function loadShared() {
+  await loadDB(); // Firestore is always shared
+}
+
+async function loadUsers() {
+  try {
+    const doc = await getFS().collection('studio').doc('users').get();
+    if (doc.exists && doc.data().list) DB.users = doc.data().list;
+  } catch(e) { console.warn('loadUsers error', e); }
+}
+
+async function saveUsers() {
+  try {
+    await getFS().collection('studio').doc('users').set({ list: DB.users });
+  } catch(e) { console.warn('saveUsers error', e); }
+}
+
+// Screen transition
+function switchScreen(fromId,toId){
+  const from=document.getElementById(fromId),to=document.getElementById(toId);
+  from.classList.add('fade-out');
+  setTimeout(()=>{from.classList.remove('active','fade-out');from.style.display='none';to.style.display='';requestAnimationFrame(()=>{to.classList.add('active');});},400);
+}
+
+// Register/Login
+function switchRegisterTab(t){
+  document.querySelectorAll('.register-tab').forEach((b,i)=>b.classList.toggle('active',(i===0&&t==='register')||(i===1&&t==='login')));
+  document.getElementById('form-register').style.display=t==='register'?'block':'none';
+  document.getElementById('form-login').style.display=t==='login'?'block':'none';
+}
+async function registerUser(){
+  const name=document.getElementById('reg-name').value.trim();
+  const email=document.getElementById('reg-email').value.trim();
+  const dept=document.getElementById('reg-dept').value;
+  if(!name||!email||!dept){showToast('אנא מלא את כל השדות','error');return;}
+  await loadUsers();
+  if(DB.users.find(u=>u.email===email)){showToast('מייל זה כבר רשום','error');return;}
+  const user={id:Date.now().toString(),name,email,dept,createdAt:new Date().toISOString()};
+  DB.users.push(user);await saveUsers();
+  currentUser=user;
+  // Save to localStorage for auto-login
+  localStorage.setItem('rememberedUser', JSON.stringify(user));
+  switchScreen('screen-register','screen-app');
+  setTimeout(()=>enterApp(),420);
+  showToast(`ברוך הבא, ${name}! 🎬`,'success');
+}
+async function loginUser(){
+  const email=document.getElementById('login-email').value.trim();
+  if(!email){showToast('הכנס מייל','error');return;}
+  await loadUsers();
+  const user=DB.users.find(u=>u.email===email);
+  if(!user){showToast('משתמש לא נמצא. אנא הירשם','error');return;}
+  currentUser=user;
+  // Save to localStorage for auto-login
+  localStorage.setItem('rememberedUser', JSON.stringify(user));
+  switchScreen('screen-register','screen-app');
+  setTimeout(()=>enterApp(),420);
+  showToast(`ברוך הבא, ${user.name}! 🎬`,'success');
+}
+function logout(){
+  currentUser=null;isAdmin=false;isViewer=false;
+  // Clear remembered user and admin mode
+  localStorage.removeItem('rememberedUser');
+  localStorage.removeItem('isAdmin');
+  document.getElementById('admin-btn-app').style.display='none';
+  // Restore employee tabs visibility
+  const rBtn=document.querySelector('[data-tab="tab-request"]');
+  const cBtn=document.querySelector('[data-tab="tab-calendar"]');
+  if(rBtn)rBtn.style.display='';
+  if(cBtn)cBtn.style.display='';
+  switchScreen('screen-app','screen-register');
+}
+
+// Enter app
+async function enterApp(adminMode=false,viewerMode=false){
+  await loadShared();
+  isAdmin=adminMode;isViewer=viewerMode;
+  ['tab-rep-btn','tab-admin-btn','tab-admin-cal-btn','tab-admin-req-btn','tab-admin-settings-btn','tab-viewer-btn'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+  document.getElementById('admin-btn-app').style.display='none';
+  const rBtn=document.querySelector('[data-tab="tab-request"]');
+  rBtn.style.opacity='';rBtn.style.pointerEvents='';
+  if(isAdmin){
+    document.getElementById('header-name').textContent='🔧 מנהל על';
+    document.getElementById('header-dept').textContent='ניהול';
+    // Hide employee-only tabs
+    document.querySelector('[data-tab="tab-request"]').style.display='none';
+    document.querySelector('[data-tab="tab-calendar"]').style.display='none';
+    // Show 3 admin tabs
+    ['tab-admin-cal-btn','tab-admin-req-btn','tab-admin-settings-btn'].forEach(id=>document.getElementById(id).style.display='flex');
+    renderAdminTab();showTab('tab-admin-cal',document.getElementById('tab-admin-cal-btn'));
+  } else if(isViewer){
+    document.getElementById('header-name').textContent=currentUser?currentUser.name:'צופה';
+    document.getElementById('header-dept').textContent='צפייה בלבד';
+    document.getElementById('tab-viewer-btn').style.display='flex';
+    rBtn.style.opacity='0.4';rBtn.style.pointerEvents='none';
+    showTab('tab-viewer-cal',document.getElementById('tab-viewer-btn'));renderViewerCalendar();
+  } else {
+    document.getElementById('header-name').textContent=currentUser.name;
+    document.getElementById('header-dept').textContent=currentUser.dept;
+    document.getElementById('admin-btn-app').style.display='flex';
+    if(Object.values(DB.deptReps).includes(currentUser.id)) document.getElementById('tab-rep-btn').style.display='flex';
+    if(DB.viewers.includes(currentUser.id)) document.getElementById('tab-viewer-btn').style.display='flex';
+    document.getElementById('req-name').value=currentUser.name;
+    document.getElementById('req-dept').value=currentUser.dept;
+    renderMyRequests();checkNotifications();
+    
+    showTab('tab-request',document.querySelector('[data-tab="tab-request"]'));
+    renderDeptCalendar();
+  }
+}
+
+
+function showTab(tabId,btn){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.app-tab').forEach(b=>b.classList.remove('active'));
+  const panel=document.getElementById(tabId);if(panel)panel.classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(tabId==='tab-calendar')renderDeptCalendar();
+  if(tabId==='tab-admin-cal')renderAdminCalendar();
+  if(tabId==='tab-admin-req')renderReqTable();
+  if(tabId==='tab-admin-settings'){renderDeptGrid();renderViewerSection();renderUsersList();}
+  if(tabId==='tab-admin')renderAdminTab();
+  if(tabId==='tab-viewer-cal')renderViewerCalendar();
+  if(tabId==='tab-rep')renderRepTab();
+}
+
+// Submit request
+function showAdminAlert(name, start, end){
+  // Flash the notification badge so admin sees new request
+  const badge = document.getElementById('notif-badge');
+  if(badge){ badge.style.transform='scale(1.8)'; badge.style.background='#ff0000';
+    setTimeout(()=>{badge.style.transform='';badge.style.background='';},1500); }
+}
+
+
+
+// Israeli Holidays 2026-2028
+const IL_HOLIDAYS = {
+  // 2026
+  '2026-02-02':'ט\' בשבט',
+  '2026-03-03':'פורים',
+  '2026-04-01':'ערב פסח','2026-04-02':'פסח','2026-04-03':'פסח','2026-04-04':'פסח',
+  '2026-04-05':'פסח','2026-04-06':'פסח','2026-04-07':'פסח','2026-04-08':'פסח',
+  '2026-04-22':'יום הזיכרון','2026-04-23':'יום העצמאות',
+  '2026-05-22':'שבועות',
+  '2026-07-23':'תשעה באב',
+  '2026-09-11':'ערב ראש השנה','2026-09-12':'ראש השנה','2026-09-13':'ראש השנה',
+  '2026-09-20':'ערב יום כיפור','2026-09-21':'יום כיפור',
+  '2026-09-25':'ערב סוכות','2026-09-26':'סוכות','2026-09-27':'סוכות','2026-09-28':'סוכות','2026-09-29':'סוכות',
+  '2026-09-30':'סוכות','2026-10-01':'סוכות','2026-10-02':'סוכות','2026-10-03':'שמחת תורה',
+  '2026-12-04':'ערב חנוכה','2026-12-05':'חנוכה','2026-12-06':'חנוכה','2026-12-07':'חנוכה','2026-12-08':'חנוכה',
+  '2026-12-09':'חנוכה','2026-12-10':'חנוכה','2026-12-11':'חנוכה','2026-12-12':'חנוכה',
+  // 2027
+  '2027-01-22':'ט\' בשבט',
+  '2027-02-23':'פורים',
+  '2027-03-22':'ערב פסח','2027-03-23':'פסח','2027-03-24':'פסח','2027-03-25':'פסח',
+  '2027-03-26':'פסח','2027-03-27':'פסח','2027-03-28':'פסח','2027-03-29':'פסח',
+  '2027-04-12':'יום הזיכרון','2027-04-13':'יום העצמאות',
+  '2027-05-12':'שבועות',
+  '2027-07-13':'תשעה באב',
+  '2027-10-01':'ערב ראש השנה','2027-10-02':'ראש השנה','2027-10-03':'ראש השנה',
+  '2027-10-10':'ערב יום כיפור','2027-10-11':'יום כיפור',
+  '2027-10-15':'ערב סוכות','2027-10-16':'סוכות','2027-10-17':'סוכות','2027-10-18':'סוכות','2027-10-19':'סוכות',
+  '2027-10-20':'סוכות','2027-10-21':'סוכות','2027-10-22':'סוכות','2027-10-23':'שמחת תורה',
+  '2027-12-24':'ערב חנוכה','2027-12-25':'חנוכה','2027-12-26':'חנוכה','2027-12-27':'חנוכה','2027-12-28':'חנוכה',
+  '2027-12-29':'חנוכה','2027-12-30':'חנוכה','2027-12-31':'חנוכה','2028-01-01':'חנוכה',
+  // 2028
+  '2028-02-11':'ט\' בשבט',
+  '2028-03-12':'פורים',
+  '2028-04-11':'ערב פסח','2028-04-12':'פסח','2028-04-13':'פסח','2028-04-14':'פסח',
+  '2028-04-15':'פסח','2028-04-16':'פסח','2028-04-17':'פסח','2028-04-18':'פסח',
+  '2028-05-02':'יום הזיכרון','2028-05-03':'יום העצמאות',
+  '2028-05-31':'שבועות',
+  '2028-08-01':'תשעה באב',
+  '2028-09-20':'ערב ראש השנה','2028-09-21':'ראש השנה','2028-09-22':'ראש השנה',
+  '2028-09-29':'ערב יום כיפור','2028-09-30':'יום כיפור',
+  '2028-10-04':'ערב סוכות','2028-10-05':'סוכות','2028-10-06':'סוכות','2028-10-07':'סוכות','2028-10-08':'סוכות',
+  '2028-10-09':'סוכות','2028-10-10':'סוכות','2028-10-11':'סוכות','2028-10-12':'שמחת תורה',
+  '2028-12-12':'ערב חנוכה','2028-12-13':'חנוכה','2028-12-14':'חנוכה','2028-12-15':'חנוכה','2028-12-16':'חנוכה',
+  '2028-12-17':'חנוכה','2028-12-18':'חנוכה','2028-12-19':'חנוכה','2028-12-20':'חנוכה'
+};
+
+function onStartDateChange(){
+  const start=document.getElementById('req-start').value;
+  const endEl=document.getElementById('req-end');
+  if(start){endEl.min=start;if(endEl.value&&endEl.value<start)endEl.value=start;}
+}
+
+async function submitRequest(){
+  const start=document.getElementById('req-start').value;
+  const end=document.getElementById('req-end').value;
+  const reason=document.getElementById('req-reason').value.trim();
+  if(!start||!end||!reason){showToast('אנא מלא את כל השדות','error');return;}
+  if(end<start){showToast('תאריך הסיום חייב להיות אחרי ההתחלה','error');return;}
+  
+  await loadShared();
+  
+  // Check for conflicts with other requests in same department
+  const conflicts = DB.requests.filter(r => {
+    // Same department, not rejected, not the current user
+    if(r.dept !== currentUser.dept) return false;
+    if(r.status === 'rejected') return false;
+    if(r.userId === currentUser.id) return false;
+    
+    // Check date overlap
+    const reqStart = new Date(r.start);
+    const reqEnd = new Date(r.end);
+    const newStart = new Date(start);
+    const newEnd = new Date(end);
+    
+    // Overlap exists if: new request starts before other ends AND new request ends after other starts
+    return newStart <= reqEnd && newEnd >= reqStart;
+  });
+  
+  // If conflicts found, warn user
+  if(conflicts.length > 0) {
+    const conflictNames = conflicts.map(c => {
+      const overlapStart = new Date(Math.max(new Date(c.start), new Date(start)));
+      const overlapEnd = new Date(Math.min(new Date(c.end), new Date(end)));
+      return `${c.name} (${fmt(overlapStart.toISOString().split('T')[0])} - ${fmt(overlapEnd.toISOString().split('T')[0])})`;
+    }).join('\n');
+    
+    const continueSubmit = confirm(
+      `⚠️ שים לב!\n\n` +
+      `קיימת חפיפה עם עובדים אחרים במחלקה שלך:\n\n${conflictNames}\n\n` +
+      `זה עלול להקשות על אישור החופשה.\n\n` +
+      `האם בכל זאת תרצה להגיש את הבקשה?`
+    );
+    
+    if(!continueSubmit) {
+      showToast('הבקשה בוטלה','');
+      return;
+    }
+  }
+  
+  // Continue with submission
+  const req={id:Date.now().toString(),userId:currentUser.id,name:currentUser.name,dept:currentUser.dept,email:currentUser.email,start,end,reason,status:'pending',recommendation:null,createdAt:new Date().toISOString()};
+  DB.requests.push(req);
+  const repId=DB.deptReps[currentUser.dept];
+  const forList=['admin'];
+  if(repId&&repId!==currentUser.id) forList.push(repId);
+  DB.notifications.push({id:Date.now().toString()+'n',requestId:req.id,type:'new_request',text:`🎬 בקשת חופשה חדשה מ-${req.name} (${req.dept}) — ${fmt(start)} עד ${fmt(end)}`,for:forList,read:[],createdAt:new Date().toISOString()});
+  await saveDB();
+  showToast('הבקשה נשלחה! 🎬','success');
+  document.getElementById('req-start').value='';document.getElementById('req-end').value='';document.getElementById('req-reason').value='';
+  renderMyRequests();checkNotifications();
+  // Admin notification badge
+  showAdminAlert(req.name, req.start, req.end);
+  // Send email notification
+  sendEmailNotification(req);
+}
+
+function sendEmailNotification(req){
+  // ============================================
+  // EmailJS Configuration - הגדרת שליחת מייל
+  // ============================================
+  // כדי שזה יעבוד, עשה את הצעדים הבאים:
+  // 1. לך ל-https://www.emailjs.com והירשם (חינמי)
+  // 2. צור Email Service (Gmail/Outlook וכו')
+  // 3. צור Email Template עם המשתנים: {{from_name}}, {{dept}}, {{start_date}}, {{end_date}}, {{reason}}, {{site_url}}
+  // 4. העתק את ה-Public Key, Service ID ו-Template ID והדבק למטה
+  
+  const EMAILJS_CONFIG = {
+    publicKey: 'YOUR_PUBLIC_KEY',      // <-- הדבק כאן את ה-Public Key מ-EmailJS
+    serviceId: 'YOUR_SERVICE_ID',      // <-- הדבק כאן את ה-Service ID
+    templateId: 'YOUR_TEMPLATE_ID'     // <-- הדבק כאן את ה-Template ID
+  };
+  
+  // אם EmailJS מוגדר - שלח מייל אמיתי
+  if (EMAILJS_CONFIG.publicKey !== 'YOUR_PUBLIC_KEY' && typeof emailjs !== 'undefined') {
+    const templateParams = {
+      from_name: req.name,
+      dept: req.dept,
+      start_date: fmt(req.start),
+      end_date: fmt(req.end),
+      reason: req.reason,
+      site_url: window.location.href,
+      to_email: 'admin@example.com'  // <-- כתובת המייל של המנהל
+    };
+    
+    emailjs.send(
+      EMAILJS_CONFIG.serviceId,
+      EMAILJS_CONFIG.templateId,
+      templateParams,
+      EMAILJS_CONFIG.publicKey
+    ).then(
+      (response) => {
+        console.log('✅ Email sent successfully!', response.status, response.text);
+      },
+      (error) => {
+        console.error('❌ Email failed:', error);
+        // Fallback to browser notification
+        showBrowserNotification(req);
+      }
+    );
+  } else {
+    // אם EmailJS לא מוגדר - הצג התראת דפדפן בלבד
+    console.warn('⚠️ EmailJS not configured - showing browser notification only');
+    console.log('📧 To enable automatic emails, configure EmailJS at https://www.emailjs.com');
+    showBrowserNotification(req);
+  }
+}
+
+function showBrowserNotification(req){
+  // Browser notification as fallback
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('בקשת חופשה חדשה', {
+      body: `${req.name} ביקש חופשה: ${fmt(req.start)} - ${fmt(req.end)}`,
+      icon: '🎬'
+    });
+  } else if ('Notification' in window && Notification.permission !== 'denied') {
+    Notification.requestPermission().then(permission => {
+      if (permission === 'granted') {
+        new Notification('בקשת חופשה חדשה', {
+          body: `${req.name} ביקש חופשה: ${fmt(req.start)} - ${fmt(req.end)}`
+        });
+      }
+    });
+  }
+}
+
+function renderMyRequests(){
+  const list=document.getElementById('my-requests-list');
+  const mine=DB.requests.filter(r=>r.userId===currentUser.id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  if(!mine.length){list.innerHTML='<div class="empty-state"><span class="icon">✈️</span><p>אין בקשות עדיין</p></div>';return;}
+  const sm={pending:['⏳','ממתין','pending'],approved:['✅','אושרה','approved'],rejected:['❌','נדחתה','rejected']};
+  list.innerHTML=mine.map(r=>{const d=new Date(r.start);const[ic,lb,cl]=sm[r.status]||sm.pending;
+  const cancelBtn=r.status==='pending'?`<button class="action-btn btn-reject" style="margin-right:8px;font-size:13px" onclick="cancelRequest('${r.id}')">🗑️ בטל בקשה</button>`:'';
+  return`<div class="my-request-item"><div class="req-date-box"><div class="req-date-day">${d.getDate()}</div><div class="req-date-mon">${MH[d.getMonth()].substring(0,3)}</div></div><div class="req-info"><h4>${r.reason}</h4><p>📅 ${fmt(r.start)} — ${fmt(r.end)}</p></div><span class="status-badge ${cl}">${ic} ${lb}</span>${cancelBtn}</div>`;}).join('');
+}
+
+async function cancelRequest(reqId){
+  if(!confirm('לבטל את הבקשה?'))return;
+  await loadShared();
+  DB.requests=DB.requests.filter(r=>r.id!==reqId);
+  DB.notifications=DB.notifications.filter(n=>n.requestId!==reqId);
+  await saveDB();
+  showToast('הבקשה בוטלה','success');
+  renderMyRequests();
+  renderDeptCalendar(); // Refresh calendar to remove deleted request
+  checkNotifications();
+}
+
+// Rep tab
+function renderRepTab(){
+  if(!currentUser)return;
+  const myDepts=Object.entries(DB.deptReps).filter(([d,uid])=>uid===currentUser.id).map(([d])=>d);
+  const list=document.getElementById('rep-requests-list');
+  if(!myDepts.length){list.innerHTML='<div class="empty-state"><span class="icon">💼</span><p>אינך מוגדר כנציג מחלקה</p></div>';return;}
+  
+  // If rep is "כללי", show ALL departments. Otherwise show only their departments.
+  const isGeneralRep = myDepts.includes('כללי');
+  const repReqs = isGeneralRep 
+    ? DB.requests.filter(r=>r.userId!==currentUser.id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))
+    : DB.requests.filter(r=>myDepts.includes(r.dept)&&r.userId!==currentUser.id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  
+  if(!repReqs.length){list.innerHTML='<div class="rep-intro" style="background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border:1px solid #A5D6A7"><div class="rep-intro-icon">✅</div><div><h3 style="color:#1B5E20">אין בקשות הממתינות להמלצה</h3><p style="color:#2E7D32">בקשות חדשות יופיעו כאן</p></div></div>';return;}
+  
+  // Show message if general rep
+  if(isGeneralRep){
+    const banner = document.createElement('div');
+    banner.style.cssText='background:linear-gradient(135deg,#e3f2fd,#bbdefb);border:2px solid #2196f3;border-radius:12px;padding:15px;margin-bottom:20px;text-align:center;';
+    banner.innerHTML='<strong style="color:#1565c0;font-size:16px">⚙️ נציג כללי - רואה בקשות מכל המחלקות</strong>';
+    list.appendChild(banner);
+  }
+  
+  const recL={recommended:'<span class="status-badge recommended">👍 ממליץ לאישור</span>',not_recommended:'<span class="status-badge not-recommended">👎 לא ממליץ</span>'};
+  const sm={pending:['⏳','ממתין','pending'],approved:['✅','אושרה','approved'],rejected:['❌','נדחתה','rejected']};
+  list.innerHTML+=repReqs.map(r=>{
+    const[si,sl,sc]=sm[r.status]||sm.pending;
+    let acts;
+    if(r.status!=='pending'){
+      acts='<span style="color:var(--text-light);font-size:13px">הבקשה טופלה על ידי המנהל</span>';
+    }
+    else if(r.recommendation){
+      acts=`
+        <div style="margin-top:10px">
+          ${recL[r.recommendation]}
+          ${r.recommendationReason ? `<div style="background:#f5f5f5;padding:8px;border-radius:6px;margin-top:8px;font-size:14px;"><strong>סיבה:</strong> ${r.recommendationReason}</div>` : ''}
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <button class="action-btn btn-not-recommend" onclick="openRepReasonModal('${r.id}','not_recommended')">שנה ל-👎</button>
+            <button class="action-btn btn-recommend" onclick="openRepReasonModal('${r.id}','recommended')">שנה ל-👍</button>
+          </div>
+        </div>
+      `;
+    }
+    else{
+      acts=`
+        <div class="rep-actions" style="margin-top:10px">
+          <button class="action-btn btn-recommend" onclick="openRepReasonModal('${r.id}','recommended')">👍 ממליץ לאשר</button>
+          <button class="action-btn btn-not-recommend" onclick="openRepReasonModal('${r.id}','not_recommended')">👎 לא ממליץ</button>
+        </div>
+      `;
+    }
+    return`<div class="rep-request-item"><div class="rep-req-header"><div><div class="rep-req-name">👤 ${r.name}</div><div class="rep-req-dates">📅 ${fmt(r.start)} — ${fmt(r.end)} &nbsp;|&nbsp; ${r.dept}</div></div><span class="status-badge ${sc}">${si} ${sl}</span></div><div class="rep-req-reason">💬 ${r.reason}</div>${acts}</div>`;
+  }).join('');
+}
+
+function openRepReasonModal(reqId, action){
+  const isRecommend = action === 'recommended';
+  const title = isRecommend ? '👍 ממליץ לאשר' : '👎 לא ממליץ';
+  const placeholder = isRecommend ? 'למה אתה ממליץ לאשר? (אופציונלי)' : 'למה אתה לא ממליץ? (אופציונלי)';
+  
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:white;border-radius:16px;padding:30px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <h3 style="margin:0 0 20px 0;font-size:24px;color:var(--dark);">${title}</h3>
+      <textarea id="rep-reason-input" placeholder="${placeholder}" style="width:100%;min-height:100px;padding:12px;border:2px solid var(--border);border-radius:10px;font-family:'Heebo',sans-serif;font-size:16px;resize:vertical;"></textarea>
+      <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+        <button onclick="this.closest('[style*=fixed]').remove()" style="padding:10px 20px;border:1px solid #ddd;background:white;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;">ביטול</button>
+        <button onclick="submitRepAction('${reqId}','${action}')" style="padding:10px 30px;border:none;background:${isRecommend?'var(--green)':'var(--red)'};color:white;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-weight:700;">שלח</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  document.getElementById('rep-reason-input').focus();
+}
+
+async function submitRepAction(reqId, action){
+  const reason = document.getElementById('rep-reason-input').value.trim();
+  await repAction(reqId, action, reason);
+}
+
+async function repAction(reqId,action,reason=''){
+  await loadShared();
+  const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
+  req.recommendation=action;
+  req.recommendationReason=reason;
+  req.recommendedBy=currentUser.name.split(' ')[0]; // Save first name only
+  const reasonText = reason ? ` (${reason})` : '';
+  DB.notifications.push({id:Date.now().toString()+'r',requestId:reqId,type:'recommendation',text:`💼 נציג ${currentUser.name} ${action==='recommended'?'ממליץ לאשר':'לא ממליץ'} את בקשת ${req.name} (${req.dept})${reasonText}`,for:['admin'],read:[],createdAt:new Date().toISOString()});
+  await saveDB();
+  showToast(action==='recommended'?'👍 המלצת אישור נשמרה':'👎 המלצת דחייה נשמרה',action==='recommended'?'success':'');
+  checkNotifications();
+  // Close modal and then render - use setTimeout to ensure modal is found and removed
+  setTimeout(()=>{
+    const modal = document.querySelector('[style*="position:fixed"]');
+    if(modal) modal.remove();
+    renderRepTab();
+  }, 100);
+}
+
+// Calendar
+function renderCal(cid,year,month,reqs){
+  const c=document.getElementById(cid);if(!c)return;c.innerHTML='';
+  DH.forEach(d=>{const el=document.createElement('div');el.className='cal-day-name';el.textContent=d;c.appendChild(el);});
+  const fd=new Date(year,month,1).getDay(),dm=new Date(year,month+1,0).getDate(),td=new Date();
+  for(let i=0;i<fd;i++){const el=document.createElement('div');el.className='cal-day other-month';c.appendChild(el);}
+  for(let d=1;d<=dm;d++){
+    const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isT=td.getFullYear()===year&&td.getMonth()===month&&td.getDate()===d;
+    const hol=IL_HOLIDAYS[ds];
+    const de=document.createElement('div');
+    de.className='cal-day'+(isT?' today':'')+(hol?' holiday':'');
+    if(hol){
+      de.style.border='2px solid #0038b8';
+      de.style.position='relative';
+      de.style.overflow='visible';
+      // Add waving Star of David in background - less transparent
+      const star=document.createElement('div');
+      star.innerHTML='✡';
+      star.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:78px;color:rgba(0,56,184,0.25);pointer-events:none;z-index:0;animation:star-wave 3s ease-in-out infinite;';
+      de.appendChild(star);
+    }
+    const ne=document.createElement('div');ne.className='cal-day-num';ne.textContent=d;ne.style.position='relative';ne.style.zIndex='3';de.appendChild(ne);
+    // Holiday label - centered at top, same line as date
+    if(hol){const hl=document.createElement('div');hl.style.cssText='font-size:9px;color:#0038b8;font-weight:800;padding:2px 4px;text-align:center;position:absolute;top:3px;left:50%;transform:translateX(-50%);z-index:3;background:rgba(255,255,255,0.95);border-radius:4px;white-space:nowrap;';hl.textContent='✡ '+hol;de.appendChild(hl);}
+    const dr=reqs.filter(r=>ds>=r.start&&ds<=r.end&&r.status!=='rejected');
+    // Create a container for events in 2 columns
+    const evContainer = document.createElement('div');
+    evContainer.style.cssText='display:flex;flex-wrap:wrap;gap:2px;justify-content:space-between;position:relative;z-index:2;';
+    dr.slice(0,6).forEach((r, index)=>{
+      const ev=document.createElement('div');
+      ev.className=`cal-event ${r.status}`;
+      // Show only first name to save space
+      const firstName=r.name.split(' ')[0];
+      ev.textContent=firstName;
+      ev.title=`${r.name} — ${fmt(r.start)} עד ${fmt(r.end)}`;
+      ev.onclick=()=>showEvt(r);
+      ev.style.position='relative';
+      ev.style.zIndex='2';
+      ev.style.flex='0 0 48%';
+      // Add red warning dot if there's overlap (multiple people on same day)
+      if(dr.length > 1){
+        const dot = document.createElement('span');
+        dot.style.cssText = `position:absolute;top:1px;left:2px;width:5px;height:5px;border-radius:50%;background:#ff0000;box-shadow:0 0 3px rgba(255,0,0,0.6);`;
+        dot.title = `⚠️ חפיפה: ${dr.length} עובדים באותו תאריך`;
+        ev.appendChild(dot);
+      }
+      evContainer.appendChild(ev);
+    });
+    de.appendChild(evContainer);
+    // Show "+X more" that opens modal with all names
+    if(dr.length>6){
+      const m=document.createElement('div');
+      m.style.cssText='font-size:10px;color:var(--orange);font-weight:700;padding:2px 4px;cursor:pointer;background:rgba(255,107,0,0.1);border-radius:3px;display:inline-block;margin-top:2px;position:relative;z-index:2;';
+      m.textContent=`+${dr.length-6} נוספים`;
+      m.onclick=()=>showDayDetails(ds, dr);
+      m.title='לחץ לראות את כל העובדים';
+      de.appendChild(m);
+    }
+    c.appendChild(de);
+  }
+}
+function renderDeptCalendar(){document.getElementById('cal-month-display').textContent=`${MH[calMonth]} ${calYear}`;renderCal('dept-calendar',calYear,calMonth,currentUser?DB.requests.filter(r=>r.dept===currentUser.dept):[]);}
+function changeMonth(d){calMonth+=d;if(calMonth<0){calMonth=11;calYear--;}if(calMonth>11){calMonth=0;calYear++;}renderDeptCalendar();}
+function renderAdminCalendar(){document.getElementById('admin-cal-month-display').textContent=`${MH[adminCalMonth]} ${adminCalYear}`;const f=document.getElementById('admin-cal-filter').value;renderCal('admin-calendar',adminCalYear,adminCalMonth,f==='all'?DB.requests:DB.requests.filter(r=>r.dept===f));}
+function changeAdminMonth(d){adminCalMonth+=d;if(adminCalMonth<0){adminCalMonth=11;adminCalYear--;}if(adminCalMonth>11){adminCalMonth=0;adminCalYear++;}renderAdminCalendar();}
+function renderViewerCalendar(){document.getElementById('viewer-cal-month-display').textContent=`${MH[viewerCalMonth]} ${viewerCalYear}`;const f=document.getElementById('viewer-cal-filter').value;renderCal('viewer-calendar',viewerCalYear,viewerCalMonth,f==='all'?DB.requests:DB.requests.filter(r=>r.dept===f));}
+function changeViewerMonth(d){viewerCalMonth+=d;if(viewerCalMonth<0){viewerCalMonth=11;viewerCalYear--;}if(viewerCalMonth>11){viewerCalMonth=0;viewerCalYear++;}renderViewerCalendar();}
+
+function showDayDetails(date, requests){
+  const sm={pending:['⏳','ממתין','pending'],approved:['✅','אושרה','approved']};
+  const content = `
+    <div style="max-height:400px;overflow-y:auto">
+      <h3 style="margin:0 0 12px 0;color:var(--dark);font-size:19px">📅 ${fmt(date)} — ${requests.length} עובדים</h3>
+      ${requests.map(r=>{
+        const[si,sl,sc]=sm[r.status]||sm.pending;
+        return`<div style="background:white;border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer;" onclick="showEvt({id:'${r.id}',name:'${r.name}',dept:'${r.dept}',start:'${r.start}',end:'${r.end}',reason:\`${r.reason}\`,status:'${r.status}',recommendation:'${r.recommendation||''}'})">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <strong style="font-size:16px">👤 ${r.name}</strong>
+            <span class="status-badge ${sc}" style="font-size:13px">${si} ${sl}</span>
+          </div>
+          <div style="font-size:14px;color:var(--text-light)">
+            🏢 ${r.dept} &nbsp;|&nbsp; 📅 ${fmt(r.start)} — ${fmt(r.end)}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+  document.getElementById('event-modal-content').innerHTML=content;
+  document.getElementById('event-modal').classList.add('open');
+}
+
+function showEvt(req){
+  const sm={pending:['⏳','ממתין','pending'],approved:['✅','אושרה','approved'],rejected:['❌','נדחתה','rejected']};
+  const[si,sl,sc]=sm[req.status]||sm.pending;
+  const rm={recommended:'👍 ממולץ לאישור',not_recommended:'👎 לא מומלץ'};
+  document.getElementById('event-modal-content').innerHTML=`<div style="display:grid;gap:11px;font-size:15px"><div style="display:flex;justify-content:space-between"><strong>👤 שם:</strong><span>${req.name}</span></div><div style="display:flex;justify-content:space-between"><strong>🏢 מחלקה:</strong><span>${req.dept}</span></div><div style="display:flex;justify-content:space-between"><strong>📅 תאריכים:</strong><span>${fmt(req.start)} — ${fmt(req.end)}</span></div><div><strong>📝 סיבה:</strong><p style="margin-top:5px;background:var(--bg);padding:9px;border-radius:7px;font-size:14px">${req.reason}</p></div><div style="display:flex;justify-content:space-between;align-items:center"><strong>📊 סטטוס:</strong><span class="status-badge ${sc}">${si} ${sl}</span></div>${req.recommendation?`<div style="display:flex;justify-content:space-between"><strong>💬 המלצה:</strong><span>${rm[req.recommendation]}</span></div>`:''}</div>`;
+  document.getElementById('event-modal').classList.add('open');
+}
+function closeEventModal(){document.getElementById('event-modal').classList.remove('open');}
+
+// Admin tab
+function renderAdminTab(){
+  const reqs=DB.requests;
+  document.getElementById('stat-total').textContent=reqs.length;
+  document.getElementById('stat-pending').textContent=reqs.filter(r=>r.status==='pending').length;
+  document.getElementById('stat-approved').textContent=reqs.filter(r=>r.status==='approved').length;
+  document.getElementById('stat-rejected').textContent=reqs.filter(r=>r.status==='rejected').length;
+  renderAdminCalendar();renderReqTable();renderDeptGrid();renderViewerSection();renderUsersList();
+}
+function renderReqTable(){
+  const tb=document.getElementById('admin-requests-tbody');
+  // Sort: pending first, then by creation date (newest first)
+  const sorted=[...DB.requests].sort((a,b)=>{
+    // Pending requests go first
+    if(a.status==='pending' && b.status!=='pending') return -1;
+    if(a.status!=='pending' && b.status==='pending') return 1;
+    // Within same status, sort by date (newest first)
+    return new Date(b.createdAt)-new Date(a.createdAt);
+  });
+  if(!sorted.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:26px;color:var(--text-light)">אין בקשות עדיין</td></tr>';return;}
+  const sm={pending:['⏳','ממתין','pending'],approved:['✅','אושרה','approved'],rejected:['❌','נדחתה','rejected']};
+  const rm={recommended:['👍','מומלץ','recommended'],not_recommended:['👎','לא מומלץ','not-recommended']};
+  
+  // Function to format date and time
+  const formatDateTime = (dateStr) => {
+    const d = new Date(dateStr);
+    const date = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+    const time = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    return `${date}<br><span style="color:var(--text-light);font-size:11px">${time}</span>`;
+  };
+  
+  tb.innerHTML=sorted.map(r=>{
+    const[si,sl,sc]=sm[r.status]||sm.pending;
+    const rec=r.recommendation?rm[r.recommendation]:null;
+    const recWithReason = rec ? `<span class="status-badge ${rec[2]}">${rec[0]} ${rec[1]}${r.recommendationReason?` <span style="cursor:pointer;" onclick="alert('סיבת ההמלצה:\\n${r.recommendationReason.replace(/'/g, "\\'")}')">💬</span>`:''}</span>` : '<span style="color:var(--text-light);font-size:12px">—</span>';
+    
+    // Always show all buttons - admin can change status anytime
+    const acts = `
+      <button class="action-btn btn-approve" onclick="adminAction('${r.id}','approved')">✅</button>
+      <button class="action-btn btn-reject" onclick="adminAction('${r.id}','rejected')">❌</button>
+      <button class="action-btn" style="background:#fee;color:#c00;border:1px solid #fcc" onclick="adminDeleteRequest('${r.id}')">🗑️</button>
+    `;
+    
+    return`<tr><td><strong>${r.name}</strong></td><td>${r.dept}</td><td style="font-size:13px">${fmt(r.start)}<br><span style="color:var(--text-light)">עד</span> ${fmt(r.end)}</td><td style="font-size:13px;max-width:250px;word-wrap:break-word;white-space:normal;">${r.reason}</td><td>${recWithReason}</td><td><span class="status-badge ${sc}">${si} ${sl}</span></td><td style="font-size:12px">${formatDateTime(r.createdAt)}</td><td>${acts}</td></tr>`;
+  }).join('');
+}
+async function adminDeleteRequest(reqId){
+  if(!confirm('למחוק את הבקשה לגמרי?'))return;
+  await loadShared();
+  DB.requests=DB.requests.filter(r=>r.id!==reqId);
+  DB.notifications=DB.notifications.filter(n=>n.requestId!==reqId);
+  await saveDB();
+  showToast('הבקשה נמחקה','success');
+  // Refresh all calendars and views
+  renderAdminTab();
+  renderDeptCalendar();
+  renderViewerCalendar();
+  renderMyRequests();
+}
+
+async function adminAction(reqId,action){
+  await loadShared();
+  const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
+  
+  console.log('🔍 Request details:', {
+    name: req.name,
+    dept: req.dept,
+    email: req.email
+  });
+  console.log('🔍 DB.deptReps:', DB.deptReps);
+  console.log('🔍 All users:', DB.users ? DB.users.map(u => ({name: u.name, email: u.email, dept: u.dept})) : 'NO USERS');
+  
+  req.status=action;
+  DB.notifications.push({id:Date.now().toString()+'a',requestId:reqId,type:action==='approved'?'request_approved':'request_rejected',text:`${action==='approved'?'✅ בקשתך אושרה':'❌ בקשתך נדחתה'} — ${fmt(req.start)} עד ${fmt(req.end)}`,for:[req.userId],read:[],createdAt:new Date().toISOString()});
+  await saveDB();
+  showToast(action==='approved'?'✅ הבקשה אושרה!':'❌ הבקשה נדחתה!',action==='approved'?'success':'error');
+  
+  // Collect ALL CC emails NOW (before setTimeout)
+  let allCCEmails = [];
+  
+  // 1. Department rep email - find the user by repId
+  const repId = DB.deptReps ? DB.deptReps[req.dept] : null;
+  console.log('🔍 Looking for rep of dept:', req.dept, '=> repId:', repId);
+  
+  if(repId && DB.users) {
+    const repUser = DB.users.find(u => u.id === repId);
+    console.log('🔍 Found rep user:', repUser);
+    if(repUser && repUser.email) {
+      allCCEmails.push(repUser.email);
+      console.log('✅ נציג מחלקה:', repUser.name, repUser.email);
+    } else {
+      console.log('❌ לא נמצא נציג למחלקה:', req.dept);
+    }
+  } else {
+    console.log('❌ אין repId או users');
+  }
+  
+  // 2. Efrat's email - always
+  allCCEmails.push('efratn@kan.org.il');
+  
+  // Remove duplicates and filter out empty
+  allCCEmails = [...new Set(allCCEmails)].filter(e => e);
+  
+  console.log('📧 כל המיילים ב-CC:', allCCEmails);
+  
+  setTimeout(()=>sendDecisionEmail(req, action, allCCEmails), 350);
+  renderAdminTab();
+}
+
+function renderDeptGrid(){
+  const grid=document.getElementById('dept-assign-grid');
+  grid.innerHTML=DEPTS.map((dept, idx)=>{
+    // For each department, show users from same dept + all users from "כללי"
+    const deptUsers = DB.users.filter(u=>u.dept===dept);
+    const generalUsers = DB.users.filter(u=>u.dept==='כללי');
+    const availableUsers = [...deptUsers, ...generalUsers];
+    // Remove duplicates if any
+    const uniqueUsers = availableUsers.filter((u, i, arr) => arr.findIndex(x=>x.id===u.id) === i);
+    const curr=DB.deptReps[dept]||'';
+    const deptId = `drep-${idx}`;
+    return`<div class="dept-card"><h4>${DI[dept]||'🏢'} ${dept}</h4><select class="dept-rep-select" id="${deptId}" data-dept="${dept}"><option value="">ללא נציג</option>${uniqueUsers.map(u=>`<option value="${u.id}" ${curr===u.id?'selected':''}>${u.name}${u.dept!==dept?' (כללי)':''}</option>`).join('')}${!uniqueUsers.length?'<option disabled>אין עובדים</option>':''}</select></div>`;
+  }).join('');
+}
+async function saveDeptReps(){
+  await loadShared();
+  // Use data-dept attribute instead of parsing ID
+  document.querySelectorAll('.dept-rep-select').forEach(el=>{
+    const dept = el.getAttribute('data-dept');
+    if(dept) DB.deptReps[dept] = el.value;
+  });
+  await saveDB();showToast('נציגי המחלקות עודכנו ✅','success');
+  if(currentUser){const isRep=Object.values(DB.deptReps).includes(currentUser.id);document.getElementById('tab-rep-btn').style.display=isRep?'flex':'none';}
+}
+
+function renderViewerSection(){
+  const sel=document.getElementById('viewer-select');
+  sel.innerHTML='<option value="">בחר...</option>'+DB.users.map(u=>`<option value="${u.id}">${u.name} (${u.dept})</option>`).join('');
+  const list=document.getElementById('viewer-list');
+  const viewers=DB.users.filter(u=>DB.viewers.includes(u.id));
+  if(!viewers.length){list.innerHTML='<span style="color:var(--text-light);font-size:13px">אין צופים</span>';return;}
+  list.innerHTML=viewers.map(v=>`<div class="viewer-tag">👁 ${v.name} (${v.dept})<button class="viewer-remove" onclick="removeViewer('${v.id}')">✕</button></div>`).join('');
+}
+async function addViewer(){await loadShared();const id=document.getElementById('viewer-select').value;if(!id){showToast('בחר עובד','error');return;}if(DB.viewers.includes(id)){showToast('כבר מוגדר','error');return;}DB.viewers.push(id);await saveDB();renderViewerSection();showToast('צופה נוסף ✅','success');}
+async function removeViewer(id){await loadShared();DB.viewers=DB.viewers.filter(v=>v!==id);await saveDB();renderViewerSection();showToast('צופה הוסר');}
+
+function renderUsersList(){
+  const list=document.getElementById('users-manage-list');
+  if(!list)return;
+  if(!DB.users.length){list.innerHTML='<span style="color:var(--text-light);font-size:14px">אין משתמשים רשומים</span>';return;}
+  list.innerHTML=DB.users.map(u=>`<div class="viewer-tag" style="background:#fff;border:1px solid #eee;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:8px"><span>👤 <strong>${u.name}</strong> — ${u.dept}<br><small style="color:#888">${u.email}</small></span><button class="viewer-remove" style="background:#fee;color:#c00;border:1px solid #fcc;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px" onclick="adminDeleteUser('${u.id}')">🗑️ מחק</button></div>`).join('');
+}
+async function adminDeleteUser(userId){
+  if(!confirm('למחוק את המשתמש לגמרי? כל הבקשות שלו יימחקו גם כן.'))return;
+  await loadShared();
+  DB.users=DB.users.filter(u=>u.id!==userId);
+  DB.requests=DB.requests.filter(r=>r.userId!==userId);
+  DB.viewers=DB.viewers.filter(v=>v!==userId);
+  Object.keys(DB.deptReps).forEach(d=>{if(DB.deptReps[d]===userId)DB.deptReps[d]='';});
+  await saveDB();await saveUsers();
+  showToast('המשתמש נמחק','success');
+  renderUsersList();renderAdminTab();
+}
+
+// Notifications
+function checkNotifications(){
+  if(!currentUser&&!isAdmin)return;
+  const uid=isAdmin?'admin':currentUser.id;
+  const unread=DB.notifications.filter(n=>n.for.includes(uid)&&!n.read.includes(uid));
+  const dot=document.getElementById('notif-dot');if(dot)dot.style.display=unread.length?'block':'none';
+}
+function toggleNotifications(){const p=document.getElementById('notifications-panel');p.classList.toggle('open');if(p.classList.contains('open'))renderNotifs();}
+function renderNotifs(){
+  const uid=isAdmin?'admin':currentUser?.id;if(!uid)return;
+  const mine=DB.notifications.filter(n=>n.for.includes(uid)).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const list=document.getElementById('notif-list');
+  if(!mine.length){list.innerHTML='<div class="no-notif">🎬 אין עדכונים</div>';return;}
+  list.innerHTML=mine.map(n=>{
+    const u=!n.read.includes(uid);
+    const d=new Date(n.createdAt);
+    return`<div class="notif-item ${u?'unread':''}" onclick="openNotifDetail('${n.id}')">
+      <div class="notif-clap">🎬</div>
+      <div class="notif-body">
+        <div class="notif-text">${n.text}</div>
+        <div class="notif-time">${d.toLocaleDateString('he-IL')} ${d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      ${u?'<span class="notif-badge">חדש</span>':''}
+    </div>`;
+  }).join('');
+}
+
+async function openNotifDetail(notifId){
+  const uid=isAdmin?'admin':currentUser?.id;
+  const n=DB.notifications.find(x=>x.id===notifId);
+  if(!n)return;
+  // mark read
+  if(!n.read.includes(uid)){n.read.push(uid);await saveDB();checkNotifications();renderNotifs();}
+  // close panel
+  document.getElementById('notifications-panel').classList.remove('open');
+  // find request
+  const req=DB.requests.find(r=>r.id===n.requestId);
+  if(!req){showToast('הבקשה לא נמצאה','error');return;}
+  // show detail modal with navigate button
+  const sm={pending:['⏳','ממתין','pending'],approved:['✅','אושרה','approved'],rejected:['❌','נדחתה','rejected']};
+  const[si,sl,sc]=sm[req.status]||sm.pending;
+  const rm={recommended:'👍 ממולץ לאישור',not_recommended:'👎 לא מומלץ'};
+  let navBtn='';
+  if(isAdmin){navBtn=`<button class="btn-submit" onclick="closeEventModal();showTab('tab-admin-req',document.getElementById('tab-admin-req-btn'));" style="width:100%;margin-top:14px">🔧 עבור לבקשות</button>`;}
+  else if(Object.values(DB.deptReps).includes(currentUser?.id)){navBtn=`<button class="btn-submit" onclick="closeEventModal();showTab('tab-rep',document.getElementById('tab-rep-btn'));" style="width:100%;margin-top:14px">💼 עבור להמלצות</button>`;}
+  else{navBtn=`<button class="btn-submit" onclick="closeEventModal();showTab('tab-request',document.querySelector('[data-tab=tab-request]'));" style="width:100%;margin-top:14px">📋 עבור לבקשות שלי</button>`;}
+  document.getElementById('event-modal-content').innerHTML=`
+    <div style="display:grid;gap:11px;font-size:15px">
+      <div style="background:var(--orange-pale);border-radius:9px;padding:10px 14px;font-size:14px;font-weight:600;color:var(--dark)">${n.text}</div>
+      <div style="display:flex;justify-content:space-between"><strong>👤 שם:</strong><span>${req.name}</span></div>
+      <div style="display:flex;justify-content:space-between"><strong>🏢 מחלקה:</strong><span>${req.dept}</span></div>
+      <div style="display:flex;justify-content:space-between"><strong>📅 תאריכים:</strong><span>${fmt(req.start)} — ${fmt(req.end)}</span></div>
+      <div><strong>📝 סיבה:</strong><p style="margin-top:5px;background:var(--bg);padding:9px;border-radius:7px;font-size:14px">${req.reason}</p></div>
+      <div style="display:flex;justify-content:space-between;align-items:center"><strong>📊 סטטוס:</strong><span class="status-badge ${sc}">${si} ${sl}</span></div>
+      ${req.recommendation?`<div style="display:flex;justify-content:space-between"><strong>💬 המלצה:</strong><span>${rm[req.recommendation]||req.recommendation}</span></div>`:''}
+      ${navBtn}
+    </div>`;
+  document.getElementById('event-modal').classList.add('open');
+}
+
+async function markRead(id){const uid=isAdmin?'admin':currentUser?.id;const n=DB.notifications.find(n=>n.id===id);if(n&&!n.read.includes(uid)){n.read.push(uid);await saveDB();checkNotifications();renderNotifs();}}
+
+// Admin login
+function openAdminModal(){pinInput='';updatePin();buildPad();document.getElementById('admin-modal').classList.add('open');}
+function closeAdminModal(){document.getElementById('admin-modal').classList.remove('open');}
+function buildPad(){const np=document.getElementById('numpad');np.innerHTML='';[1,2,3,4,5,6,7,8,9,'⌫',0,'✓'].forEach(k=>{const b=document.createElement('button');b.className='num-btn'+(k==='✓'?' enter':'')+(k==='⌫'?' clear':'');b.textContent=k;b.onclick=()=>handlePin(k);np.appendChild(b);});}
+function handlePin(k){if(k==='⌫'){pinInput=pinInput.slice(0,-1);}else if(k==='✓'){checkPin();return;}else if(pinInput.length<4){pinInput+=k;}updatePin();if(pinInput.length===4)setTimeout(checkPin,200);}
+function updatePin(){for(let i=0;i<4;i++){const d=document.getElementById(`pin-${i}`);if(d){d.textContent=i<pinInput.length?'●':'•';d.classList.toggle('filled',i<pinInput.length);}}}
+function checkPin(){
+  if(pinInput===DB.adminPassword){
+    closeAdminModal();currentUser=null;isAdmin=true;isViewer=false;
+    // Save admin mode to localStorage
+    localStorage.setItem('isAdmin', 'true');
+    if(document.getElementById('screen-register').classList.contains('active')){switchScreen('screen-register','screen-app');setTimeout(()=>enterApp(true,false),420);}
+    else{enterApp(true,false);}
+    showToast('ברוך הבא, מנהל! 🔧','success');
+  } else {pinInput='';updatePin();showToast('סיסמה שגויה','error');}
+}
+async function changeAdminPassword(){const np=document.getElementById('new-password').value.trim();if(!/^\d{4}$/.test(np)){showToast('חייב להיות 4 ספרות','error');return;}DB.adminPassword=np;await saveDB();document.getElementById('new-password').value='';showToast('הסיסמה שונתה ✅','success');}
+
+function fmt(d){if(!d)return'';return new Date(d).toLocaleDateString('he-IL');}
+function showToast(msg,type=''){
+  // Special celebration for welcome and request submission
+  if(msg.includes('ברוך הבא') || msg.includes('הבקשה נשלחה')){
+    showCelebration(msg, type);
+    return;
+  }
+  // Regular small toast for other messages
+  const c=document.getElementById('toast-container'),t=document.createElement('div');
+  t.className=`toast ${type}`;
+  const ic={success:'✅',error:'❌','':'🎬'};
+  t.innerHTML=`<span class="toast-icon">${ic[type]||'🎬'}</span><span class="toast-msg">${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(70px)';t.style.transition='0.4s';setTimeout(()=>t.remove(),400);},3200);
+}
+
+function showCelebration(msg, type){
+  // Create huge celebration overlay
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+  `;
+  
+  const isWelcome = msg.includes('ברוך הבא');
+  const icon = isWelcome ? '🎉' : '✈️';
+  const title = isWelcome ? 'ברוך הבא!' : 'הבקשה נשלחה בהצלחה!';
+  const subtitle = isWelcome ? msg : 'החופשה שלך בדרך... ✨';
+  
+  const card = document.createElement('div');
+  card.style.cssText = `
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 30px;
+    padding: 60px;
+    text-align: center;
+    max-width: 600px;
+    box-shadow: 0 30px 90px rgba(0,0,0,0.5);
+    animation: popIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    position: relative;
+    overflow: hidden;
+  `;
+  
+  // Animated particles
+  let particles = '';
+  for(let i=0; i<20; i++){
+    const x = Math.random() * 100;
+    const delay = Math.random() * 2;
+    const duration = 2 + Math.random() * 2;
+    particles += `<div style="position:absolute;left:${x}%;top:-20px;font-size:36px;animation:fall ${duration}s linear ${delay}s infinite;">${icon}</div>`;
+  }
+  
+  card.innerHTML = `
+    <style>
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes popIn { 
+        0% { transform: scale(0.3); opacity: 0; }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      @keyframes fall {
+        to { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+      }
+      @keyframes plane {
+        0% { transform: translateX(-100px) translateY(0); }
+        50% { transform: translateX(0) translateY(-10px); }
+        100% { transform: translateX(100px) translateY(0); }
+      }
+    </style>
+    ${particles}
+    <div style="font-size: 120px; margin-bottom: 20px; animation: popIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.2s backwards;">
+      ${icon}
+    </div>
+    <h1 style="color: white; font-size: 48px; font-weight: 900; margin: 0 0 15px 0; text-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+      ${title}
+    </h1>
+    <p style="color: rgba(255,255,255,0.95); font-size: 24px; margin: 0 0 30px 0; font-weight: 500;">
+      ${subtitle}
+    </p>
+    ${!isWelcome ? `
+      <div style="background: rgba(255,255,255,0.2); padding: 20px; border-radius: 15px; backdrop-filter: blur(10px); margin-top: 30px;">
+        <div style="font-size: 60px; animation: plane 3s ease-in-out infinite;">✈️</div>
+        <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">הבקשה נשלחה למנהל לאישור</p>
+      </div>
+    ` : ''}
+    <button onclick="this.closest('[style*=fixed]').remove()" style="
+      background: white;
+      color: #667eea;
+      border: none;
+      padding: 18px 50px;
+      border-radius: 15px;
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 30px;
+      font-family: 'Heebo', sans-serif;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      transition: all 0.3s;
+    " onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 30px rgba(0,0,0,0.3)';" onmouseout="this.style.transform=''; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.2)';">
+      מעולה! 🎉
+    </button>
+  `;
+  
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+  
+  // Auto close after 5 seconds
+  setTimeout(() => {
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.5s';
+    setTimeout(() => overlay.remove(), 500);
+  }, 5000);
+  
+  // Click outside to close
+  overlay.onclick = (e) => {
+    if(e.target === overlay) overlay.remove();
+  };
+}
+
+document.addEventListener('click',e=>{const p=document.getElementById('notifications-panel'),bell=document.getElementById('bell-btn');if(p.classList.contains('open')&&!p.contains(e.target)&&!bell.contains(e.target))p.classList.remove('open');});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'){if(document.getElementById('screen-register').classList.contains('active')){if(document.getElementById('form-login').style.display!=='none')loginUser();else registerUser();}}});
+
+// ============ CANVAS BACKGROUND ANIMATION ============
+function initCanvas() {
+  const canvas = document.getElementById('bg-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  function resize() { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+
+  let t = 0;
+
+  // ON AIR fade state
+  let onAirAlpha = 1.0, onAirHoldTimer = 0, onAirState = 'on';
+  const ON_HOLD = 200, OFF_HOLD = 70;
+
+  // Audio waveform strings
+  const NUM_STRINGS = 8;
+  const strings = Array.from({length: NUM_STRINGS}, (_, i) => ({
+    phase: Math.random() * Math.PI * 2,
+    speed: 0.007 + Math.random() * 0.013,
+    freq:  0.007 + i * 0.0025,
+    freq2: 0.019 + Math.random() * 0.01,
+    amp:   10 + Math.random() * 26,
+    yFrac: 0.32 + (i / (NUM_STRINGS - 1)) * 0.38
+  }));
+
+  // Mixer faders
+  const NUM_FADERS = 8;
+  const faders = Array.from({length: NUM_FADERS}, () => ({
+    pos: 0.2 + Math.random() * 0.65,
+    targetPos: 0.2 + Math.random() * 0.65,
+    changeTimer: Math.random() * 130
+  }));
+
+  // Hammock sway
+  let hammockAngle = 0;
+
+  // ---- SKY + SUN ----
+  function drawSky(W, H) {
+    const hor = H * 0.62;
+    // Sky gradient — bright day
+    const sky = ctx.createLinearGradient(0, 0, 0, hor);
+    sky.addColorStop(0,    '#1e90d4');
+    sky.addColorStop(0.45, '#56b8f5');
+    sky.addColorStop(0.82, '#a8dff8');
+    sky.addColorStop(1,    '#fde68a');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, hor);
+
+    // Sun
+    const sx = W * 0.72, sy = H * 0.18;
+    ctx.save();
+    // Glow
+    const glow = ctx.createRadialGradient(sx, sy, 10, sx, sy, 110);
+    glow.addColorStop(0,   'rgba(255,240,100,0.55)');
+    glow.addColorStop(0.5, 'rgba(255,200,50,0.18)');
+    glow.addColorStop(1,   'rgba(255,160,0,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(sx, sy, 110, 0, Math.PI*2); ctx.fill();
+    // Disk
+    ctx.shadowColor = 'rgba(255,230,80,0.9)'; ctx.shadowBlur = 30;
+    ctx.beginPath(); ctx.arc(sx, sy, 34, 0, Math.PI*2);
+    ctx.fillStyle = '#ffe040'; ctx.fill();
+    ctx.shadowBlur = 0;
+    // Rays
+    for (let r = 0; r < 12; r++) {
+      const angle = (r / 12) * Math.PI * 2 + t * 0.003;
+      const r1 = 40, r2 = 56 + (r % 3) * 5;
+      ctx.beginPath();
+      ctx.moveTo(sx + Math.cos(angle)*r1, sy + Math.sin(angle)*r1);
+      ctx.lineTo(sx + Math.cos(angle)*r2, sy + Math.sin(angle)*r2);
+      ctx.strokeStyle = 'rgba(255,230,80,0.45)'; ctx.lineWidth = 2; ctx.stroke();
+    }
+    ctx.restore();
+
+    // Fluffy clouds
+    const clouds = [
+      {x: W*0.08, y: H*0.12, r: 32}, {x: W*0.14, y: H*0.10, r: 22},
+      {x: W*0.22, y: H*0.13, r: 28}, {x: W*0.16, y: H*0.14, r: 18},
+      {x: W*0.40, y: H*0.07, r: 26}, {x: W*0.47, y: H*0.05, r: 20},
+      {x: W*0.54, y: H*0.08, r: 30},
+    ];
+    clouds.forEach(c => {
+      ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.fill();
+    });
+  }
+
+  // ---- SEA ----
+  function drawSea(W, H) {
+    const hor = H * 0.62;
+    // Sea body
+    const sea = ctx.createLinearGradient(0, hor, 0, H * 0.86);
+    sea.addColorStop(0,   '#1a9bd4');
+    sea.addColorStop(0.4, '#1278a8');
+    sea.addColorStop(1,   '#0d5578');
+    ctx.fillStyle = sea;
+    ctx.fillRect(0, hor, W, H * 0.86 - hor);
+
+    // Sun glitter on water
+    const glitter = ctx.createLinearGradient(W*0.6, hor, W*0.6, H*0.86);
+    glitter.addColorStop(0,   'rgba(255,240,120,0.35)');
+    glitter.addColorStop(0.5, 'rgba(255,200,60,0.12)');
+    glitter.addColorStop(1,   'rgba(255,160,0,0.03)');
+    ctx.beginPath();
+    ctx.moveTo(W*0.58, hor); ctx.lineTo(W*0.86, hor);
+    ctx.lineTo(W*0.95, H*0.86); ctx.lineTo(W*0.45, H*0.86);
+    ctx.closePath();
+    ctx.fillStyle = glitter; ctx.fill();
+
+    // Waves
+    for (let layer = 0; layer < 4; layer++) {
+      const wy = hor + 18 + layer * ((H*0.86 - hor - 18) / 4);
+      const amp = 4 - layer * 0.6;
+      const spd = (0.014 - layer*0.003) * (layer%2===0 ? 1 : -1);
+      ctx.beginPath();
+      for (let x = 0; x <= W; x += 5) {
+        const y = wy + Math.sin(x*0.014 + t*spd + layer*1.4)*amp
+                     + Math.sin(x*0.03  + t*spd*1.5 + layer)*amp*0.4;
+        x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      ctx.strokeStyle = `rgba(255,255,255,${0.18 - layer*0.035})`;
+      ctx.lineWidth = 1.2; ctx.stroke();
+    }
+  }
+
+  // ---- SAND ----
+  function drawSand(W, H) {
+    const sandTop = H * 0.82;
+    const sand = ctx.createLinearGradient(0, sandTop, 0, H);
+    sand.addColorStop(0,   '#f5d98a');
+    sand.addColorStop(0.3, '#e8c76a');
+    sand.addColorStop(1,   '#d4a843');
+    ctx.fillStyle = sand;
+    // Curved beach edge
+    ctx.beginPath();
+    ctx.moveTo(0, sandTop + H*0.04);
+    ctx.bezierCurveTo(W*0.25, sandTop - H*0.02, W*0.75, sandTop + H*0.06, W, sandTop + H*0.02);
+    ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
+    ctx.fill();
+    // Wet sand edge
+    ctx.beginPath();
+    ctx.moveTo(0, sandTop + H*0.05);
+    ctx.bezierCurveTo(W*0.25, sandTop - H*0.01, W*0.75, sandTop + H*0.07, W, sandTop + H*0.03);
+    for (let x = W; x >= 0; x -= 5) {
+      const y = sandTop + H*0.03 + Math.sin(x*0.02 + t*0.01)*2 + (x===W ? 0 : 0);
+    }
+    ctx.strokeStyle = 'rgba(200,165,60,0.5)'; ctx.lineWidth = 2; ctx.stroke();
+  }
+
+  // ---- PALM TREE (left side) ----
+  // ---- PALM TREE — far right ----
+  function drawPalm(W, H) {
+    const bx = W * 0.91, by = H * 0.86;
+    const sway = Math.sin(t * 0.012) * 0.035;
+    ctx.save();
+    ctx.translate(bx, by);
+    // Trunk
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(-6 + sway*18, -H*0.10, -14 + sway*28, -H*0.22, -18 + sway*38, -H*0.36);
+    ctx.strokeStyle = '#7a4f2a'; ctx.lineWidth = 13; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.strokeStyle = '#9a6235'; ctx.lineWidth = 8; ctx.stroke();
+    // Rings
+    for (let r = 0; r < 5; r++) {
+      const ry = -H*(0.07 + r*0.062), rx = -3 + sway*12 - r*2.5;
+      ctx.beginPath(); ctx.arc(rx, ry, 5, 0.3, Math.PI-0.3);
+      ctx.strokeStyle = 'rgba(90,45,12,0.35)'; ctx.lineWidth = 2; ctx.stroke();
+    }
+    // Crown fronds
+    const crownX = -18 + sway*38, crownY = -H*0.36;
+    const frondAngles = [-2.4, -1.9, -1.4, -0.9, -0.4, 0.1, 0.6];
+    frondAngles.forEach((angle, fi) => {
+      const fSway = Math.sin(t*0.016 + fi*0.9) * 0.07;
+      const fa = angle + fSway;
+      const len = H*0.10 + (fi%3)*H*0.022;
+      ctx.save();
+      ctx.translate(crownX, crownY);
+      ctx.rotate(fa);
+      ctx.beginPath(); ctx.moveTo(0,0);
+      ctx.quadraticCurveTo(len*0.5, len*0.2, len, len*0.08);
+      ctx.strokeStyle='#4a7a18'; ctx.lineWidth=2.5; ctx.stroke();
+      for (let l=1; l<=6; l++) {
+        const lx=(l/7)*len, ly=(l/7)*len*0.14, lw=(len/7)*0.52*(1-l/9);
+        ctx.beginPath();
+        ctx.ellipse(lx-lw*0.3, ly-lw*0.55, lw, lw*0.26, fa*0.15-0.5, 0, Math.PI*2);
+        ctx.fillStyle=`rgba(${48+l*7},${125+l*5},${18+l*4},0.8)`; ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(lx-lw*0.3, ly+lw*0.38, lw, lw*0.23, fa*0.15+0.4, 0, Math.PI*2);
+        ctx.fillStyle=`rgba(${42+l*7},${115+l*5},${12+l*4},0.72)`; ctx.fill();
+      }
+      ctx.restore();
+    });
+    // Coconuts
+    [[-0.12,-0.04],[0.1,-0.07],[-0.06,0.05]].forEach(([ox,oy])=>{
+      ctx.beginPath(); ctx.arc(crownX+ox*28, crownY+oy*28, 5, 0, Math.PI*2);
+      ctx.fillStyle='#4e3018'; ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  // ---- HAMMOCK — right side, between palm and edge ----
+  function drawHammock(W, H) {
+    const sway = Math.sin(t * 0.016) * 6;
+    // Hammock anchored to palm trunk area and a post
+    const lx = W*0.72, rx = W*0.92;
+    const ropeY = H*0.70;
+    const sagY  = ropeY + 30 + sway*0.2;
+
+    // Left post
+    ctx.beginPath(); ctx.moveTo(lx, ropeY+8); ctx.lineTo(lx-2, H*0.88);
+    ctx.strokeStyle='#7a4f2a'; ctx.lineWidth=7; ctx.stroke();
+
+    // Hammock fabric
+    ctx.beginPath();
+    ctx.moveTo(lx, ropeY);
+    ctx.bezierCurveTo(lx+(rx-lx)*0.28, sagY+10, lx+(rx-lx)*0.72, sagY+10, rx, ropeY);
+    ctx.bezierCurveTo(lx+(rx-lx)*0.72, sagY+24, lx+(rx-lx)*0.28, sagY+24, lx, ropeY);
+    ctx.closePath();
+    const hg = ctx.createLinearGradient(lx, ropeY, lx, sagY+24);
+    hg.addColorStop(0,  '#d06018'); hg.addColorStop(0.5,'#f08828'); hg.addColorStop(1,'#b84c00');
+    ctx.fillStyle=hg; ctx.fill();
+    ctx.strokeStyle='#963c00'; ctx.lineWidth=1.5; ctx.stroke();
+    // Stripes
+    for (let s=0; s<5; s++) {
+      const sx = lx + (s+1)*(rx-lx)/6;
+      ctx.beginPath(); ctx.moveTo(sx, ropeY-1);
+      ctx.bezierCurveTo(sx, sagY+12, sx, sagY+14, sx, ropeY+1);
+      ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=1; ctx.stroke();
+    }
+    // Rope ties
+    ctx.beginPath(); ctx.moveTo(lx,ropeY); ctx.lineTo(lx-3,ropeY-14);
+    ctx.beginPath(); ctx.moveTo(rx,ropeY); ctx.lineTo(rx+2,ropeY-14);
+    ctx.strokeStyle='#c0903a'; ctx.lineWidth=2; ctx.stroke();
+
+    // Person lying in hammock — head on right (towards palm)
+    const px = lx + (rx-lx)*0.5 + sway*0.15;
+    const py = sagY + 8;
+
+    // Body
+    ctx.beginPath(); ctx.ellipse(px, py-2, 32, 9, 0.05, 0, Math.PI*2);
+    ctx.fillStyle='rgba(50,30,15,0.75)'; ctx.fill();
+    // Head (right side)
+    ctx.beginPath(); ctx.arc(px+28, py-7, 10, 0, Math.PI*2);
+    ctx.fillStyle='rgba(50,30,15,0.75)'; ctx.fill();
+    // Sun hat
+    ctx.beginPath(); ctx.ellipse(px+28, py-15, 16, 4.5, 0, 0, Math.PI*2);
+    ctx.fillStyle='rgba(210,150,25,0.82)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(px+28, py-19, 9, Math.PI, 0);
+    ctx.fillStyle='rgba(210,150,25,0.82)'; ctx.fill();
+    // Arm holding TV remote (left arm, slightly raised)
+    ctx.beginPath(); ctx.moveTo(px-10, py);
+    ctx.quadraticCurveTo(px-18, py-18, px-22, py-28);
+    ctx.strokeStyle='rgba(50,30,15,0.7)'; ctx.lineWidth=6; ctx.lineCap='round'; ctx.stroke();
+
+    // ---- Mini TV floating in front of person ----
+    const tvX = px - 52, tvY = py - 72;
+    const tvW = 68, tvH = 50;
+    // TV stand/base
+    ctx.beginPath(); ctx.moveTo(tvX+tvW*0.38, tvY+tvH); ctx.lineTo(tvX+tvW*0.38, tvY+tvH+8);
+    ctx.moveTo(tvX+tvW*0.62, tvY+tvH); ctx.lineTo(tvX+tvW*0.62, tvY+tvH+8);
+    ctx.moveTo(tvX+tvW*0.25, tvY+tvH+8); ctx.lineTo(tvX+tvW*0.75, tvY+tvH+8);
+    ctx.strokeStyle='#333'; ctx.lineWidth=3; ctx.stroke();
+    // TV body
+    ctx.beginPath(); ctx.roundRect(tvX, tvY, tvW, tvH, 5);
+    ctx.fillStyle='#1a1a28'; ctx.fill();
+    ctx.strokeStyle='#444'; ctx.lineWidth=1.5; ctx.stroke();
+    // Screen
+    const scrX=tvX+4, scrY=tvY+4, scrW=tvW-8, scrH=tvH-10;
+    ctx.beginPath(); ctx.roundRect(scrX, scrY, scrW, scrH, 3);
+    // Screen glow — blue TV light
+    const scrGrad = ctx.createLinearGradient(scrX, scrY, scrX, scrY+scrH);
+    scrGrad.addColorStop(0,  '#0a1535');
+    scrGrad.addColorStop(0.3,'#0d2060');
+    scrGrad.addColorStop(1,  '#071030');
+    ctx.fillStyle=scrGrad; ctx.fill();
+    // NEWS ticker bar at bottom of screen
+    ctx.fillStyle='rgba(180,20,20,0.95)';
+    ctx.fillRect(scrX, scrY+scrH-10, scrW, 10);
+    ctx.font='bold 6px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle='white';
+    ctx.fillText('NEWS', scrX+scrW/2, scrY+scrH-5);
+    // News anchor silhouette on screen
+    ctx.fillStyle='rgba(160,180,220,0.45)';
+    ctx.beginPath(); ctx.arc(scrX+scrW*0.5, scrY+scrH*0.38, 7, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(scrX+scrW*0.5, scrY+scrH*0.65, 11, 8, 0, 0, Math.PI*2); ctx.fill();
+    // Desk line on screen
+    ctx.beginPath(); ctx.moveTo(scrX+2, scrY+scrH*0.7); ctx.lineTo(scrX+scrW-2, scrY+scrH*0.7);
+    ctx.strokeStyle='rgba(100,120,180,0.3)'; ctx.lineWidth=1; ctx.stroke();
+    // Screen reflection glare
+    ctx.beginPath(); ctx.moveTo(scrX+2,scrY+2); ctx.lineTo(scrX+scrW*0.35,scrY+2); ctx.lineTo(scrX+2,scrY+scrH*0.25); ctx.closePath();
+    ctx.fillStyle='rgba(255,255,255,0.05)'; ctx.fill();
+    // TV indicator dot
+    ctx.beginPath(); ctx.arc(tvX+tvW-6, tvY+tvH-5, 2.5, 0, Math.PI*2);
+    const tvDotAlpha = 0.5 + 0.5*Math.sin(t*0.08);
+    ctx.fillStyle=`rgba(80,220,80,${tvDotAlpha})`; ctx.fill();
+    // Screen glow cast on person's face
+    ctx.save();
+    const faceGlow = ctx.createRadialGradient(tvX+tvW/2, tvY+tvH/2, 5, tvX+tvW/2, tvY+tvH/2, 50);
+    faceGlow.addColorStop(0,  'rgba(30,80,200,0.18)');
+    faceGlow.addColorStop(1,  'rgba(30,80,200,0)');
+    ctx.fillStyle=faceGlow;
+    ctx.beginPath(); ctx.arc(tvX+tvW/2, tvY+tvH/2, 50, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    ctx.textAlign='start';
+  }
+
+  // ---- ON AIR — top RIGHT, smooth fade ----
+  function drawOnAir(W) {
+    if (onAirAlpha <= 0) return;
+    const bw=160, bh=46, bx=W-bw-14, by=16, rx=7, a=onAirAlpha;
+    ctx.save();
+    ctx.shadowColor=`rgba(220,20,20,${a*0.85})`; ctx.shadowBlur=28*a;
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, rx);
+    ctx.fillStyle=`rgba(175,12,12,${0.92*a})`; ctx.fill();
+    ctx.strokeStyle=`rgba(255,55,55,${0.55*a})`; ctx.lineWidth=1.2; ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.beginPath(); ctx.arc(bx+13, by+23, 6, 0, Math.PI*2);
+    ctx.shadowColor=`rgba(255,0,0,${a})`; ctx.shadowBlur=12*a;
+    ctx.fillStyle=`rgba(255,25,25,${a})`; ctx.fill(); ctx.shadowBlur=0;
+    ctx.font='bold 19px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle=`rgba(255,255,255,${0.96*a})`;
+    ctx.fillText('ON AIR', bx+bw*0.62, by+23);
+    ctx.restore(); ctx.textAlign='start';
+  }
+
+  function updateOnAir() {
+    if (onAirState==='on')       { onAirAlpha=1; if(++onAirHoldTimer>ON_HOLD){onAirState='fadeout';onAirHoldTimer=0;} }
+    else if(onAirState==='fadeout'){ onAirAlpha=Math.max(0,onAirAlpha-0.018); if(onAirAlpha<=0)onAirState='off'; }
+    else if(onAirState==='off')   { onAirAlpha=0; if(++onAirHoldTimer>OFF_HOLD){onAirState='fadein';onAirHoldTimer=0;} }
+    else if(onAirState==='fadein') { onAirAlpha=Math.min(1,onAirAlpha+0.024); if(onAirAlpha>=1)onAirState='on'; }
+  }
+
+  // Plane state — flies from right to left across sky
+  let planeX = -120, planeY = 0, planeInit = false;
+  function resetPlane(W, H) {
+    planeX = W + 120;
+    planeY = H * (0.12 + Math.random() * 0.22);
+  }
+
+  function drawPlane(W, H) {
+    if (!planeInit) { resetPlane(W, H); planeInit = true; }
+    planeX -= 1.4;
+    if (planeX < -140) resetPlane(W, H);
+    const px = planeX, py = planeY;
+    ctx.save();
+    ctx.translate(px, py);
+    // Contrail
+    ctx.beginPath();
+    for (let i = 0; i < 80; i++) {
+      const tx = i * 1.6, alpha = (1 - i/80) * 0.18;
+      ctx.beginPath(); ctx.arc(tx + 18, 0, 2.5 - i*0.025, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,255,255,${alpha})`; ctx.fill();
+    }
+    // Fuselage
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 22, 6, 0, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fill();
+    // Nose
+    ctx.beginPath();
+    ctx.moveTo(-22, 0); ctx.lineTo(-32, 2); ctx.lineTo(-22, 4);
+    ctx.fillStyle = 'rgba(230,230,230,0.9)'; ctx.fill();
+    // Main wings
+    ctx.beginPath();
+    ctx.moveTo(-4, 0); ctx.lineTo(10, -22); ctx.lineTo(16, -20); ctx.lineTo(4, 0);
+    ctx.moveTo(-4, 0); ctx.lineTo(10, 22); ctx.lineTo(16, 20); ctx.lineTo(4, 0);
+    ctx.fillStyle = 'rgba(240,240,255,0.88)'; ctx.fill();
+    // Tail wings
+    ctx.beginPath();
+    ctx.moveTo(14, 0); ctx.lineTo(22, -10); ctx.lineTo(24, -8); ctx.lineTo(17, 0);
+    ctx.moveTo(14, 0); ctx.lineTo(22, 10); ctx.lineTo(24, 8); ctx.lineTo(17, 0);
+    ctx.fillStyle = 'rgba(220,220,240,0.85)'; ctx.fill();
+    // Window strip
+    ctx.fillStyle = 'rgba(135,200,255,0.6)';
+    ctx.fillRect(-14, -3, 20, 5);
+    // Engine
+    ctx.beginPath(); ctx.ellipse(2, 8, 5, 3, 0, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(180,180,200,0.8)'; ctx.fill();
+    ctx.restore();
+  }
+
+  // Cocktail — static, bottom left corner of scene
+  function drawCocktail(W, H) {
+    const cx = W * 0.88, cy = H * 0.80;
+    ctx.save();
+    ctx.translate(cx, cy);
+    // Glass body (triangle shape)
+    ctx.beginPath();
+    ctx.moveTo(-18, -30); ctx.lineTo(18, -30);
+    ctx.lineTo(6, 8); ctx.lineTo(-6, 8); ctx.closePath();
+    const glassGrad = ctx.createLinearGradient(-18,-30,18,8);
+    glassGrad.addColorStop(0, 'rgba(255,180,50,0.75)');
+    glassGrad.addColorStop(0.5, 'rgba(255,120,30,0.65)');
+    glassGrad.addColorStop(1, 'rgba(200,80,20,0.55)');
+    ctx.fillStyle = glassGrad; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.2; ctx.stroke();
+    // Ice cubes
+    ctx.fillStyle = 'rgba(200,240,255,0.45)';
+    ctx.fillRect(-10, -25, 8, 7); ctx.fillRect(2, -22, 8, 7);
+    // Straw
+    ctx.beginPath(); ctx.moveTo(4, 8); ctx.lineTo(14, -38);
+    ctx.strokeStyle = 'rgba(255,80,80,0.85)'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(6, 8); ctx.lineTo(16, -38);
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1.5; ctx.stroke();
+    // Stem
+    ctx.beginPath(); ctx.moveTo(-6, 8); ctx.lineTo(6, 8); ctx.lineTo(4, 20); ctx.lineTo(-4, 20);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fill();
+    // Base
+    ctx.beginPath(); ctx.ellipse(0, 20, 10, 3, 0, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fill();
+    // Slice of orange on rim
+    ctx.beginPath(); ctx.arc(-16, -30, 7, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,160,0,0.85)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(-16, -30, 5, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,200,50,0.7)'; ctx.fill();
+    // Shine
+    ctx.beginPath(); ctx.moveTo(-14,-28); ctx.lineTo(-4,-26); ctx.lineTo(-6,-20); ctx.lineTo(-16,-22); ctx.closePath();
+    ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.fill();
+    // Tiny umbrella
+    ctx.save(); ctx.translate(8, -30);
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,14);
+    ctx.strokeStyle='rgba(200,100,50,0.8)'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-10,0); ctx.bezierCurveTo(-10,-12,10,-12,10,0); ctx.closePath();
+    ctx.fillStyle='rgba(255,80,80,0.75)'; ctx.fill();
+    ctx.restore();
+    ctx.restore();
+  }
+
+  function loop() {
+    const W=canvas.width, H=canvas.height;
+    ctx.clearRect(0,0,W,H); t++;
+    updateOnAir();
+    drawSky(W,H);
+    drawSea(W,H);
+    drawSand(W,H);
+    drawPlane(W,H);
+    drawCocktail(W,H);
+    drawPalm(W,H);
+    drawHammock(W,H);
+    drawOnAir(W);
+    requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+(async function init(){
+  // Wait for Firebase to be available
+  let attempts = 0;
+  while (typeof firebase === 'undefined' && attempts < 50) {
+    await new Promise(r => setTimeout(r, 100));
+    attempts++;
+  }
+  initCanvas();
+  await loadDB();
+  await loadUsers();
+  await loadShared();
+  
+  // Check for remembered admin mode
+  const adminMode = localStorage.getItem('isAdmin');
+  if(adminMode === 'true'){
+    isAdmin = true;
+    currentUser = null;
+    switchScreen('screen-register','screen-app');
+    setTimeout(()=>enterApp(true, false),100);
+  } else {
+    // Check for remembered user and auto-login
+    const remembered = localStorage.getItem('rememberedUser');
+    if(remembered){
+      try{
+        const user = JSON.parse(remembered);
+        // Verify user still exists in database
+        const dbUser = DB.users.find(u=>u.id===user.id);
+        if(dbUser){
+          currentUser = dbUser;
+          switchScreen('screen-register','screen-app');
+          setTimeout(()=>enterApp(),100);
+        } else {
+          // User deleted, clear localStorage
+          localStorage.removeItem('rememberedUser');
+        }
+      } catch(e){
+        localStorage.removeItem('rememberedUser');
+      }
+    }
+  }
+})();
+
+</script>
+</body>
+</html>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -505,6 +4176,7 @@ function enterMgr(label='מנהל',type='primary'){
   document.getElementById('hdr-rl').textContent='מנהל מערכת';
   document.getElementById('nav-stats').style.display='inline-block';
   document.getElementById('nav-settings').style.display='inline-block';
+  document.getElementById('nav-vacation').style.display='inline-block';
   const bcBar=document.getElementById('mgr-broadcast-bar');
   if(bcBar) bcBar.style.display='flex';
   loadAll().then(()=>loadWeekData()).then(()=>{
@@ -649,6 +4321,7 @@ async function initApp(user){
     const ftBtn2=document.getElementById('freelance-toggle');
     if(ftBtn2) ftBtn2.style.display='none';
   }
+  document.getElementById('nav-vacation').style.display='inline-block';
   renderDeptTabs();
   renderSchedule();
   requestNotifications();
@@ -2200,7 +5873,8 @@ async function delEmp(id){if(!confirm('למחוק עובד?'))return;await sb.fr
 // ── NAV ──
 function showView(v,e){
   activeView=v;openDropdown=null;
-  ['schedule','stats','settings'].forEach(x=>document.getElementById('view-'+x).style.display=x===v?'block':'none');
+  ['schedule','stats','settings','vacation'].forEach(x=>{const el=document.getElementById('view-'+x);if(el)el.style.display=x===v?'block':'none';});
+  if(v==='vacation') setTimeout(initVacationApp,100);
   document.getElementById('wk-nav').style.display=v==='settings'?'none':'block';
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   if(e) e.target.classList.add('active');
