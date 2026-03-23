@@ -972,7 +972,6 @@ async function toggleCVPublish(id){
   renderDeptTabs();
   renderSchedule();
   await sb.from('combined_views').update({published:newVal}).eq('id',id);
-  if(newVal) notifyPublishedCV(cv);
 }
 function setCombined(id){
   activeCombinedId=id;openDropdown=null;
