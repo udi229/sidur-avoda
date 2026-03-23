@@ -2506,42 +2506,9 @@ function initCanvas() {
 })();
 
 // ===== VACATION APP INTEGRATION =====
-let _vacationInitialized = false;
-function initVacationApp(){
-  if(_vacationInitialized) return;
-  _vacationInitialized = true;
-
-  if(isMgr && pinTarget==='primary'){
-    vacEnterAdmin();
-  } else if(currentEmp){
-    const deptMap = {};
-    departments.forEach(d=>{ deptMap[d.id]=d.name; });
-    const deptName = deptMap[currentEmp.department_id] || 'כללי';
-    const email = currentEmp.email || (currentEmp.id+'@sidur.local');
-    vacEnterEmployee(currentEmp.full_name, email, deptName);
-  }
-}
-
-async function vacEnterEmployee(name, email, dept){
-  await loadShared();
-  // find or create user in vacation DB
-  let user = DB.users.find(u=>u.email===email);
-  if(!user){
-    user = {id: Date.now().toString(), name, email, dept, createdAt: new Date().toISOString()};
-    DB.users.push(user);
-    await saveUsers();
-  }
-  currentUser = user;
-  await enterApp(false, false);
-}
-
-async function vacEnterAdmin(){
-  await loadShared();
-  await enterApp(true, false);
-}
-
-
-// ===== VACATION APP JS =====
+// ===== VACATION APP - SCOPED =====
+const VacApp = (function(){
+  // Private scope for vacation app
 
 let DB={users:[],requests:[],deptReps:{},viewers:[],adminPassword:'2209',notifications:[]};
 let currentUser=null,isAdmin=false,isViewer=false;
@@ -5915,6 +5882,35 @@ function showNotification(title, body){
   const {data:{session}}=await sb.auth.getSession();
   if(session) await initApp(session.user);
 })();
+
+
+  // Expose public API
+  return {
+    enterEmployee: vacEnterEmployee,
+    enterAdmin: vacEnterAdmin,
+    init: function(name, email, dept, adminMode){
+      if(adminMode){
+        vacEnterAdmin();
+      } else {
+        vacEnterEmployee(name, email, dept);
+      }
+    }
+  };
+})();
+
+function initVacationApp(){
+  if(window._vacationInitialized) return;
+  window._vacationInitialized = true;
+  if(isMgr && pinTarget==='primary'){
+    VacApp.init(null, null, null, true);
+  } else if(currentEmp){
+    const deptMap = {};
+    departments.forEach(d=>{ deptMap[d.id]=d.name; });
+    const deptName = deptMap[currentEmp.department_id] || 'כללי';
+    const email = currentEmp.email || (currentEmp.id+'@sidur.local');
+    VacApp.init(currentEmp.full_name, email, deptName, false);
+  }
+}
 </script>
 </body>
 </html>
