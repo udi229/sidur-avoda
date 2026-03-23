@@ -313,10 +313,10 @@
           style="padding:8px 16px;border:1.5px solid #00ff88;border-radius:20px;font-size:13px;
           font-weight:700;cursor:pointer;font-family:inherit;background:white;color:#047857;
           white-space:nowrap;box-shadow:0 0 8px #00ff8844;transition:all 0.2s">המשמרות שלי</button>
-        <button id="toolbar-submit-btn" onclick="toolbarSubmit()" style="display:none;padding:8px 16px;
-          border:1.5px solid #ff003c;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;
-          font-family:inherit;background:white;color:#be123c;white-space:nowrap;
-          box-shadow:0 0 8px #ff003c44;transition:all 0.3s">סיימתי סידור</button>
+        <button id="my-shifts-btn-tl" onclick="toggleMyShifts()"
+          style="display:none;padding:8px 16px;border:1.5px solid #00ff88;border-radius:20px;font-size:13px;
+          font-weight:700;cursor:pointer;font-family:inherit;background:white;color:#047857;
+          white-space:nowrap;box-shadow:0 0 8px #00ff8844;transition:all 0.2s">המשמרות שלי</button>
         <button id="freelance-toggle" onclick="toggleFreelanceHighlight()"
           style="display:none;padding:8px 16px;border:1.5px solid #f59e0b;border-radius:20px;
           font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:white;
@@ -513,6 +513,8 @@ function enterMgr(label='מנהל',type='primary'){
     if(ftBtn) ftBtn.style.display='inline-block';
     const srch=document.getElementById('sched-search');
     if(srch) srch.style.display='block';
+    const myShiftsBtn=document.getElementById('my-shifts-btn');
+    if(myShiftsBtn) myShiftsBtn.style.display='none';
     updateWeekUI();renderDeptTabs();renderSchedule();renderOnlineList();
   });
   // presence for manager
@@ -633,6 +635,13 @@ async function initApp(user){
     if(ftBtn) ftBtn.style.display='inline-block';
     const srchBtn=document.getElementById('sched-search');
     if(srchBtn) srchBtn.style.display='block';
+    // show my-shifts near freelancer for team leads, hide main one
+    if(currentEmp.role==='team_lead'){
+      const myShiftsMain=document.getElementById('my-shifts-btn');
+      if(myShiftsMain) myShiftsMain.style.display='none';
+      const myShiftsTL=document.getElementById('my-shifts-btn-tl');
+      if(myShiftsTL) myShiftsTL.style.display='inline-block';
+    }
   } else {
     // regular employee - hide search and freelancer, show only my-shifts-btn
     const srchBtn=document.getElementById('sched-search');
