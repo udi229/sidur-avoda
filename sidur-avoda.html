@@ -145,7 +145,7 @@
   .cdot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
 
   /* AUTH */
-  #auth-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; background:#111520; padding:16px; position:relative; overflow:hidden; }
+  #auth-screen { min-height:100vh; display:none; align-items:center; justify-content:center; background:#111520; padding:16px; position:fixed; inset:0; overflow:hidden; z-index:100; }
   .auth-box { background:rgba(255,255,255,0.97); border:1px solid #d0dcf0; border-radius:20px; padding:36px; width:100%; max-width:400px; box-shadow:0 0 80px rgba(255,230,100,0.35),0 8px 40px rgba(0,0,0,0.4); animation:cardflicker 3.5s ease-in-out infinite; }
   .auth-logo { font-size:38px; text-align:center; margin-bottom:6px; }
   .auth-title { font-size:26px; font-weight:900; text-align:center; margin-bottom:4px; color:#1a2030; }
@@ -1253,6 +1253,9 @@ function enterMgr(label='מנהל',type='primary'){
   document.getElementById('auth-screen').style.display='none';
   playWelcome(label, 'manager');
   document.getElementById('hub-screen').classList.add('active');
+  document.querySelectorAll('.hub-btn').forEach(btn=>btn.classList.add('show'));
+  const exitBtn=document.getElementById('hub-exit-btn');
+  if(exitBtn) exitBtn.classList.add('show');
   document.getElementById('hdr-nm').textContent=label;
   document.getElementById('hdr-rl').textContent='מנהל מערכת';
   document.getElementById('nav-stats').style.display='inline-block';
@@ -1344,6 +1347,9 @@ async function initApp(user){
   currentEmp=employees.find(e=>e.email.toLowerCase()===user.email.toLowerCase())||{id:null,full_name:user.email,email:user.email,role:'employee',department_id:null,position_percent:100};
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('hub-screen').classList.add('active');
+  document.querySelectorAll('.hub-btn').forEach(btn=>btn.classList.add('show'));
+  const exitBtn2=document.getElementById('hub-exit-btn');
+  if(exitBtn2) exitBtn2.classList.add('show');
   const _deptTitle=departments.find(d=>d.id===currentEmp?.department_id)?.title||null;
   playWelcome(currentEmp?.full_name||'', currentEmp?.role||'employee', _deptTitle);
   requestNotifPermission().then(setupNotifChannel);
@@ -4655,7 +4661,18 @@ function initSplash(){
     }
   }, 16);
 }
-function showHubOrAuth(){}
+function showHubOrAuth(){
+  // Check for saved session
+  const mgrSession = (() => { try{ return JSON.parse(localStorage.getItem('mgr-session')); }catch(e){return null;} })();
+  if(mgrSession && (Date.now()-mgrSession.ts) < 86400000*7){
+    // Auto-login manager
+    enterMgr(mgrSession.label||'מנהל', mgrSession.type||'primary');
+    return;
+  }
+  // No session — show auth screen
+  const auth = document.getElementById('auth-screen');
+  if(auth) auth.style.display='flex';
+}
 
 function goBackToHub(){
   // Hide all views, hide app
@@ -4695,6 +4712,15 @@ function showHub(){
 }
 
 function hubGo(dest){
+  // Check if logged in
+  if(!isMgr && !currentUser && !currentEmp){
+    // Not logged in - show auth first, store destination
+    window._hubDestAfterLogin = dest;
+    document.getElementById('hub-screen').classList.remove('active');
+    const auth = document.getElementById('auth-screen');
+    if(auth) auth.style.display='flex';
+    return;
+  }
   document.getElementById('hub-screen').classList.remove('active');
   document.getElementById('app').style.display='block';
   if(dest==='vacation'){
