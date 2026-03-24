@@ -46,8 +46,8 @@
   }
   .wk-lbl { font-size:10px; font-weight:700; color:#ff4400cc; text-transform:uppercase; letter-spacing:3px; font-family:Arial,sans-serif; margin-bottom:2px; }
   .wk-sub { font-size:12px; color:#94a3b8; }
-  .wk-dates { font-size:28px; font-weight:400; color:#ff2200; font-family:'DSEG7','Courier New',monospace; letter-spacing:2px; line-height:1; text-shadow:0 0 8px #ff220099, 0 0 20px #ff220044; }
-  .wk-ctrl { background:#0a0a0a; border:2px solid #222; border-radius:10px; padding:10px 16px; box-shadow:inset 0 2px 12px rgba(0,0,0,0.9), 0 0 0 1px #000; display:inline-flex; align-items:center; gap:10px; }
+  .wk-dates { font-size:20px; font-weight:400; color:#ff2200; font-family:'DSEG7','Courier New',monospace; letter-spacing:1px; line-height:1.2; text-shadow:0 0 8px #ff220099; white-space:nowrap; direction:ltr; display:block; }
+  .wk-ctrl { background:#0a0a0a; border:2px solid #222; border-radius:10px; padding:8px 12px; box-shadow:inset 0 2px 12px rgba(0,0,0,0.9); display:inline-flex; align-items:center; gap:8px; max-width:calc(100vw - 40px); }
   .wk-btn { background:#111; border:1px solid #2a2a2a; color:#ff2200; width:32px; height:32px; border-radius:6px; cursor:pointer; font-size:20px; font-weight:900; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
   .wk-btn:hover { background:#ff2200; color:#000; }
   .btn-tod { background:#111; border:1px solid #2a2a2a; color:#ff3300bb; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:10px; font-weight:700; font-family:Arial,sans-serif; letter-spacing:1px; transition:all 0.15s; }
@@ -623,7 +623,7 @@
     <div class="wk-nav" id="wk-nav" style="text-align:center">
       <div class="wk-ctrl" style="display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:nowrap">
         <button class="wk-btn" onclick="changeWeek(-1)">‹</button>
-        <div><div class="wk-title" id="wk-lbl">שבוע נוכחי</div><div class="wk-dates" id="wk-dt"></div></div>
+        <div style="text-align:center"><div class="wk-lbl" id="wk-lbl">שבוע נוכחי</div><div class="wk-dates" id="wk-dt" dir="ltr"></div></div>
         <button class="wk-btn" onclick="changeWeek(1)">›</button>
         <button class="btn-tod" onclick="goToday()">היום</button>
       </div>
@@ -1376,7 +1376,7 @@ function updateWeekUI(){
   const wkLbl=document.getElementById('wk-lbl');
   const wkDt=document.getElementById('wk-dt');
   if(wkLbl) wkLbl.textContent=lbl;
-  if(wkDt) wkDt.textContent=`${dates[0]} — ${dates[6]}`;
+  if(wkDt) wkDt.textContent=`${dates[0].replace('/','-')} / ${dates[6].replace('/','-')}`;
   const allApp=departments.length>0&&departments.every(d=>schedules[d.id]?.status==='approved');
   const anySubmitted2=Object.values(schedules).some(s=>s.team_submitted&&s.status!=='approved');
   const sb2=document.getElementById('wk-st');
