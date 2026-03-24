@@ -614,6 +614,69 @@
   .hub-btn-loz::before      { color:#ffaa00; }
   @keyframes hubRing { to{transform:rotate(360deg)} }
 
+  @keyframes neonBlink {
+    0%,100%{box-shadow:0 0 8px #ff1a1a88,0 0 16px #ff1a1a44;opacity:1}
+    50%{box-shadow:0 0 18px #ff1a1acc,0 0 36px #ff1a1a77;opacity:0.75}
+  }
+  /* Back to hub button - neon red blinking */
+  .btn-back-hub {
+    background:transparent;
+    border:2px solid #ff1a1a;
+    color:#ff1a1a;
+    border-radius:20px;
+    padding:6px 16px;
+    font-size:14px;
+    font-weight:900;
+    cursor:pointer;
+    font-family:inherit;
+    text-shadow:0 0 8px #ff1a1a88;
+    animation:neonBlink 1.2s ease-in-out infinite;
+    letter-spacing:1px;
+  }
+  .btn-back-hub:hover { background:#ff1a1a22; }
+  .btn-back-hub-vac {
+    background:transparent;
+    border:2px solid #ff1a1a;
+    color:#ff1a1a;
+    border-radius:8px;
+    padding:7px 14px;
+    font-family:'Heebo',sans-serif;
+    font-size:15px;
+    font-weight:900;
+    cursor:pointer;
+    text-shadow:0 0 8px #ff1a1a88;
+    animation:neonBlink 1.2s ease-in-out infinite;
+    letter-spacing:1px;
+  }
+  .btn-back-hub-vac:hover { background:#ff1a1a22; }
+  /* Small exit circle on hub */
+  .hub-btn-exit {
+    position:absolute;
+    bottom:28px;
+    left:50%;
+    transform:translateX(-50%);
+    width:72px; height:72px; border-radius:50%;
+    background:radial-gradient(circle at 40% 35%, #3a0505, #1a0000);
+    border:none;
+    cursor:pointer;
+    font-family:inherit;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    box-shadow: 0 0 0 2.5px #ff1a1a88, 0 0 18px #ff1a1a66, 0 0 40px #ff1a1a33;
+    transition:all 0.2s;
+    opacity:0;
+  }
+  .hub-btn-exit.show { opacity:1; transition:opacity 0.6s ease 0.7s; }
+  .hub-btn-exit:hover { box-shadow: 0 0 0 2.5px #ff1a1acc, 0 0 30px #ff1a1a99, 0 0 60px #ff1a1a55; }
+  .hub-btn-exit::before {
+    content:''; position:absolute; inset:-3px; border-radius:50%;
+    background:conic-gradient(from 0deg, transparent 0%, #ff1a1a 20%, transparent 40%);
+    animation:hubRing 2s linear infinite;
+    opacity:0.7;
+    filter:blur(1px);
+  }
+  .hub-btn-exit .exit-icon { font-size:20px; line-height:1; filter:drop-shadow(0 0 6px #ff1a1a); }
+  .hub-btn-exit .exit-label { font-size:10px; font-weight:700; color:#ff4444; letter-spacing:1px; }
+
   .hub-bg-grid {
     position:absolute; inset:0;
     background-image: linear-gradient(rgba(0,180,255,0.05) 1px, transparent 1px),
@@ -652,7 +715,10 @@
       <span class="hub-label">לוז</span>
       <span class="hub-label-soon">בקרוב</span>
     </button>
-  </div>
+    <button class="hub-btn-exit" id="hub-exit-btn" onclick="hubExit()">
+    <span class="exit-icon">🚪</span>
+    <span class="exit-label">יציאה</span>
+  </button>
 </div>
 
 <div id="auth-screen">
@@ -731,7 +797,7 @@
 <div id="app">
   <div class="header">
     <div class="hdr-in">
-      <div class="hdr-logo">🎬 <span>אולפנים</span></div>
+      <div class="hdr-logo">🎬</div>
       <div class="hdr-nav">
         <button class="nav-btn active" onclick="showView('schedule',event)">סידור</button>
         <button class="nav-btn" id="nav-stats" style="display:none" onclick="showView('stats',event)">סטטיסטיקות</button>
@@ -740,7 +806,7 @@
       </div>
       <div class="hdr-usr">
         <div><div class="usr-nm" id="hdr-nm"></div><div class="usr-rl" id="hdr-rl"></div></div>
-        <button class="btn-out" onclick="logout()">יציאה</button>
+        <button class="btn-back-hub" onclick="goBackToHub()">→ חזרה</button>
       </div>
     </div>
   </div>
@@ -877,7 +943,7 @@
     <div class="header-user">
       <div class="notification-bell" onclick="toggleNotifications()" id="bell-btn">🔔<span class="notification-dot" id="notif-dot"></span></div>
       <div class="user-badge"><span id="header-name">שם</span><span class="dept-badge" id="header-dept">מחלקה</span></div>
-      <button class="logout-btn" onclick="logout()">התנתק</button>
+      <button class="btn-back-hub-vac" onclick="goBackToHub()">→ חזרה</button>
     </div>
   </header>
   <div class="app-tabs" id="main-tabs">
@@ -4583,11 +4649,33 @@ function initSplash(){
         document.querySelectorAll('.hub-btn').forEach((btn,i)=>{
           setTimeout(()=>btn.classList.add('show'), i*220);
         });
+        const exitBtn=document.getElementById('hub-exit-btn');
+        if(exitBtn) exitBtn.classList.add('show');
       }, 60);
     }
   }, 16);
 }
 function showHubOrAuth(){}
+
+function goBackToHub(){
+  // Hide all views, hide app
+  document.getElementById('app').style.display='none';
+  // Reset vacation
+  window._vacInitialized = false;
+  // Show hub
+  document.getElementById('hub-screen').classList.add('active');
+  document.querySelectorAll('.hub-btn').forEach(btn=>btn.classList.add('show'));
+  const exitBtn=document.getElementById('hub-exit-btn');
+  if(exitBtn) exitBtn.classList.add('show');
+}
+
+function hubExit(){
+  // Go back to auth screen
+  document.getElementById('hub-screen').classList.remove('active');
+  document.getElementById('app').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
+  window._vacInitialized = false;
+}
 
 function showHub(){
   document.getElementById('hub-screen').classList.add('active');
