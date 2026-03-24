@@ -2929,7 +2929,7 @@ function showView(v,e){
   activeView=v;openDropdown=null;
   ['schedule','stats','settings','vacation'].forEach(x=>{const el=document.getElementById('view-'+x);if(el)el.style.display=x===v?'block':'none';});
   if(v==='vacation') setTimeout(initVacationApp,100);
-  document.getElementById('wk-nav').style.display=v==='settings'?'none':'block';
+  document.getElementById('wk-nav').style.display=(v==='settings'||v==='vacation')?'none':'block';
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   if(e) e.target.classList.add('active');
   if(v==='stats') renderStats();
