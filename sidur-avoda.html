@@ -3865,9 +3865,9 @@ async function markRead(id){const uid=isAdmin?'admin':currentUser?.id;const n=DB
 function openAdminModal(){pinInput='';updatePin();buildPad();document.getElementById('admin-modal').classList.add('open');}
 function closeAdminModal(){document.getElementById('admin-modal').classList.remove('open');}
 function buildPad(){const np=document.getElementById('numpad');np.innerHTML='';[1,2,3,4,5,6,7,8,9,'⌫',0,'✓'].forEach(k=>{const b=document.createElement('button');b.className='num-btn'+(k==='✓'?' enter':'')+(k==='⌫'?' clear':'');b.textContent=k;b.onclick=()=>handlePin(k);np.appendChild(b);});}
-function handlePin(k){if(k==='⌫'){pinInput=pinInput.slice(0,-1);}else if(k==='✓'){checkPin();return;}else if(pinInput.length<4){pinInput+=k;}updatePin();if(pinInput.length===4)setTimeout(checkPin,200);}
+function handlePin(k){if(k==='⌫'){pinInput=pinInput.slice(0,-1);}else if(k==='✓'){vacCheckPin();return;}else if(pinInput.length<4){pinInput+=k;}updatePin();if(pinInput.length===4)setTimeout(vacCheckPin,200);}
 function updatePin(){for(let i=0;i<4;i++){const d=document.getElementById(`pin-${i}`);if(d){d.textContent=i<pinInput.length?'●':'•';d.classList.toggle('filled',i<pinInput.length);}}}
-function checkPin(){
+function vacCheckPin(){
   if(pinInput===DB.adminPassword){
     closeAdminModal();currentUser=null;isAdmin=true;isViewer=false;
     // Save admin mode to localStorage
@@ -4519,7 +4519,7 @@ async function _vacationInit(){
   window.buildPad = buildPad;
   window.handlePin = handlePin;
   window.updatePin = updatePin;
-  window.checkPin = checkPin;
+  window.vacCheckPin = vacCheckPin;
   window.changeAdminPassword = changeAdminPassword;
   window.fmt = fmt;
   window.showToast = showToast;
