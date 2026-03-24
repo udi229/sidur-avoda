@@ -534,16 +534,16 @@
   /* ===== HUB SCREEN ===== */
   #hub-screen {
     position:fixed; inset:0; z-index:9990;
-    background:radial-gradient(ellipse at 50% 30%, #0d0820 0%, #050510 60%, #000 100%);
+    background:#030510;
     display:none; flex-direction:column; align-items:center; justify-content:center;
-    gap:0; overflow:hidden;
+    gap:0; overflow:hidden; padding-bottom:80px;
   }
   #hub-screen.active { display:flex; }
 
   /* Neon title box */
   .hub-title-wrap {
     position:relative; z-index:2;
-    text-align:center; margin-bottom:28px; margin-top:-40px;
+    text-align:center; margin-bottom:20px; margin-top:-20px;
   }
   .hub-neon-title {
     font-size:clamp(24px,6vw,38px); font-weight:900; color:#fff;
@@ -652,10 +652,7 @@
   }
 
   .hub-bg-grid {
-  #neural-bg {
-    position:absolute; inset:0; width:100%; height:100%;
-    pointer-events:none; z-index:0;
-  }
+
 
   /* === BACK BUTTONS NEON RED === */
   @keyframes neonBlink {
@@ -693,7 +690,6 @@
 </div>
 <!-- HUB SCREEN -->
 <div id="hub-screen">
-  <canvas id="neural-bg"></canvas>
 
   <div class="hub-title-wrap">
     <div class="hub-neon-title">אולפנים</div>
@@ -1271,7 +1267,6 @@ function enterMgr(label='מנהל',type='primary'){
   document.getElementById('auth-screen').style.display='none';
   playWelcome(label, 'manager');
   document.getElementById('hub-screen').classList.add('active');
-  if(!window._neuralInit){window._neuralInit=true;setTimeout(initNeuralBg,50);}
   document.querySelectorAll('.hub-card').forEach(card=>card.classList.add('show'));
   const exitBtn=document.getElementById('hub-exit-btn');
   if(exitBtn) exitBtn.classList.add('show');
@@ -1348,14 +1343,12 @@ function playWelcome(name, role, deptTitle){
   const toast=document.createElement('div');
   toast.style.cssText=`position:fixed;top:0;left:0;right:0;z-index:9999;
     background:linear-gradient(135deg,#050510 0%,#0a0520 40%,#150030 100%);
-    color:white;text-align:center;padding:26px 20px;font-family:inherit;direction:rtl;
-    border-bottom:2px solid #00d4ff;
-    box-shadow:0 4px 30px #00d4ff44,0 0 60px #ff003c22;
+    color:white;text-align:center;padding:18px 20px;font-family:inherit;direction:rtl;
+    border-bottom:1px solid #00d4ff44;
+    box-shadow:0 4px 20px #00d4ff22;
     animation:toastIn 0.4s ease-out,toastOut 0.5s ease-in 2.8s forwards`;
   toast.innerHTML=`
-    <div style="font-size:13px;color:#00d4ff;font-weight:700;margin-bottom:6px;letter-spacing:2px;text-transform:uppercase">${roleLabel}</div>
-    <div style="font-size:28px;font-weight:900;color:white;text-shadow:0 0 20px #ff003c,0 0 40px #ff003c66">ברוך הבא, ${firstName}!</div>
-    <div style="font-size:16px;font-weight:800;color:#ff003c;text-shadow:0 0 10px #ff003c;letter-spacing:4px;margin-top:6px">ON AIR • אולפנים</div>`;
+    <div style="font-size:36px;font-weight:900;color:white;text-shadow:0 0 20px #00d4ff,0 0 40px #00d4ff66;letter-spacing:2px">${firstName}</div>`;
   document.body.appendChild(toast);
   setTimeout(()=>{toast.remove();style.remove();},3500);
 }
@@ -1548,8 +1541,6 @@ function updateWeekUI(){
     }
   } else if(tbSubBtn){
     tbSubBtn.style.display='none';
-  } else if(submitBtn){
-    submitBtn.style.display='none';
   }
 
   // show manager notification if any dept submitted but not approved
@@ -2481,7 +2472,7 @@ function renderSchedule(){
         `<textarea id="team-note-ta" rows="3" placeholder="הערה לסידור..." style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:13px;outline:none;resize:vertical">${tNote}</textarea>
          <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
            <button onclick="saveTeamNote('${activeDeptId}')" style="background:#0f172a;color:white;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">שמור</button>
-           <button onclick="teamSubmit()" style="background:${submitted3?'#059669':'white'};color:${submitted3?'white':'#047857'};border:1.5px solid #00ff88;border-radius:20px;padding:6px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 0 8px #00ff8844">${submitted3?'✓ סיימתי סידור':'סיימתי סידור'}</button>
+
          </div>` :
         `<div style="background:#f8fafc;border-radius:8px;padding:10px;font-size:13px;color:${tNote?'#0f172a':'#94a3b8'};min-height:40px">${tNote||'אין הערה'}</div>`
       }
