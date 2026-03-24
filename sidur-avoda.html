@@ -582,13 +582,13 @@
     padding:2px;
     border-radius:16px;
     border:none;
-    background:conic-gradient(from var(--a,0deg), var(--c1), var(--c2), var(--c1));
+    background:conic-gradient(from var(--a,0deg), var(--c1), #ff1a6e, var(--c2), #cc44ff, var(--c1));
     animation:cardSpin 3s linear infinite;
     cursor:pointer;
     position:relative;
     opacity:0; transform:translateX(40px);
     transition:transform 0.15s;
-    filter:drop-shadow(0 0 8px var(--c1)) drop-shadow(0 0 20px var(--c1));
+    filter:drop-shadow(0 0 4px var(--c1)) drop-shadow(0 0 10px var(--c2));
   }
   .hub-card.show {
     opacity:1; transform:translateX(0);
@@ -631,7 +631,7 @@
   .hub-btn-exit {
     position:fixed; bottom:28px; right:28px;
     padding:2px; border-radius:12px;
-    background:conic-gradient(from var(--a,0deg), #ff0000, #ff6666, #ff0000);
+    background:conic-gradient(from var(--a,0deg), #ff0000, #ff4444, #cc0000, #ff2222, #ff0000);
     animation:cardSpin 2s linear infinite;
     border:none; cursor:pointer;
     z-index:3; opacity:0; transition:opacity 0.5s ease 0.8s;
@@ -652,13 +652,32 @@
   }
 
   .hub-bg-grid {
-  .hub-bg-grid {
-    position:absolute; inset:0;
-    background-image: linear-gradient(rgba(0,180,255,0.05) 1px, transparent 1px),
-                      linear-gradient(90deg, rgba(0,180,255,0.05) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events:none;
+  #neural-bg {
+    position:absolute; inset:0; width:100%; height:100%;
+    pointer-events:none; z-index:0;
   }
+
+  /* === BACK BUTTONS NEON RED === */
+  @keyframes neonBlink {
+    0%,100%{ box-shadow:0 0 6px #ff1a1a88,0 0 14px #ff1a1a44; border-color:#ff1a1a; color:#ff1a1a; opacity:1; }
+    50%{ box-shadow:0 0 14px #ff1a1acc,0 0 28px #ff1a1a77; border-color:#ff4444; color:#ff5555; opacity:0.8; }
+  }
+  .btn-back-hub {
+    background:transparent; border:2px solid #ff1a1a; color:#ff1a1a;
+    border-radius:20px; padding:6px 16px; font-size:14px; font-weight:900;
+    cursor:pointer; font-family:inherit; letter-spacing:1px;
+    text-shadow:0 0 8px #ff1a1a88;
+    animation:neonBlink 1.4s ease-in-out infinite;
+  }
+  .btn-back-hub:hover { background:#ff1a1a22; }
+  .btn-back-hub-vac {
+    background:transparent; border:2px solid #ff1a1a; color:#ff1a1a;
+    border-radius:8px; padding:7px 14px; font-family:'Heebo',sans-serif;
+    font-size:15px; font-weight:900; cursor:pointer; letter-spacing:1px;
+    text-shadow:0 0 8px #ff1a1a88;
+    animation:neonBlink 1.4s ease-in-out infinite;
+  }
+  .btn-back-hub-vac:hover { background:#ff1a1a22; }
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -674,7 +693,7 @@
 </div>
 <!-- HUB SCREEN -->
 <div id="hub-screen">
-  <div class="hub-bg-grid"></div>
+  <canvas id="neural-bg"></canvas>
 
   <div class="hub-title-wrap">
     <div class="hub-neon-title">אולפנים</div>
@@ -1252,6 +1271,7 @@ function enterMgr(label='מנהל',type='primary'){
   document.getElementById('auth-screen').style.display='none';
   playWelcome(label, 'manager');
   document.getElementById('hub-screen').classList.add('active');
+  if(!window._neuralInit){window._neuralInit=true;setTimeout(initNeuralBg,50);}
   document.querySelectorAll('.hub-card').forEach(card=>card.classList.add('show'));
   const exitBtn=document.getElementById('hub-exit-btn');
   if(exitBtn) exitBtn.classList.add('show');
@@ -4680,6 +4700,173 @@ function initSplash(){
     }
   }, 16);
 }
+function initNeuralBg(){
+  const canvas=document.getElementById('neural-bg');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+  const W=canvas.width, H=canvas.height;
+
+  // PCB grid - closer spacing like the image
+  const G=32;
+  const cols=Math.ceil(W/G)+1, rows=Math.ceil(H/G)+1;
+
+  // Build connected path segments on a grid
+  const segs=[];
+  const used=new Set();
+
+  function key(c,r){return c+','+r;}
+
+  // Generate many L-shaped and straight PCB traces
+  for(let i=0;i<120;i++){
+    const c0=Math.floor(Math.random()*cols);
+    const r0=Math.floor(Math.random()*rows);
+    const horiz=Math.random()<0.5;
+    const len=3+Math.floor(Math.random()*8);
+    const color=['#00aaff','#4488ff','#cc44ff','#ff2266','#00ddaa','#6644ff'][Math.floor(Math.random()*6)];
+    const alpha=0.25+Math.random()*0.2;
+
+    if(horiz){
+      const c1=Math.min(c0+len,cols-1);
+      segs.push({x1:c0*G,y1:r0*G,x2:c1*G,y2:r0*G,color,alpha});
+    } else {
+      const r1=Math.min(r0+len,rows-1);
+      segs.push({x1:c0*G,y1:r0*G,x2:c0*G,y2:r1*G,color,alpha});
+    }
+  }
+
+  // Add some L-shaped traces (like in image)
+  for(let i=0;i<60;i++){
+    const c0=Math.floor(Math.random()*cols);
+    const r0=Math.floor(Math.random()*rows);
+    const c1=c0+Math.floor(Math.random()*6)+2;
+    const r1=r0+Math.floor(Math.random()*6)+2;
+    const color=['#00aaff','#4488ff','#cc44ff','#ff2266','#00ddaa'][Math.floor(Math.random()*5)];
+    const alpha=0.2+Math.random()*0.15;
+    // horizontal then vertical (L-shape corner)
+    segs.push({x1:c0*G,y1:r0*G,x2:c1*G,y2:r0*G,color,alpha}); // horiz
+    segs.push({x1:c1*G,y1:r0*G,x2:c1*G,y2:r1*G,color,alpha}); // vert
+  }
+
+  // Pulses
+  const pulses=[];
+  function spawnPulse(){
+    const s=segs[Math.floor(Math.random()*segs.length)];
+    const forward=Math.random()<0.5;
+    pulses.push({
+      seg:s, p:forward?0:1,
+      speed:(0.008+Math.random()*0.012)*(forward?1:-1),
+      color:s.color
+    });
+  }
+  for(let i=0;i<25;i++) spawnPulse();
+
+  // Via pads — intersection dots
+  const vias=[];
+  for(let i=0;i<80;i++){
+    vias.push({
+      x:Math.floor(Math.random()*cols)*G,
+      y:Math.floor(Math.random()*rows)*G,
+      color:['#00aaff','#cc44ff','#ff2266','#00ddaa'][Math.floor(Math.random()*4)]
+    });
+  }
+
+  function draw(){
+    ctx.fillStyle='#02030e';
+    ctx.fillRect(0,0,W,H);
+
+    // Subtle grid dots
+    for(let r=0;r<=rows;r++){
+      for(let c=0;c<=cols;c++){
+        ctx.beginPath();
+        ctx.arc(c*G,r*G,1,0,Math.PI*2);
+        ctx.fillStyle='#0a1428';
+        ctx.fill();
+      }
+    }
+
+    // Draw traces
+    segs.forEach(s=>{
+      // Outer glow
+      ctx.beginPath();
+      ctx.moveTo(s.x1,s.y1);
+      ctx.lineTo(s.x2,s.y2);
+      ctx.strokeStyle=s.color;
+      ctx.globalAlpha=s.alpha*0.4;
+      ctx.lineWidth=4;
+      ctx.stroke();
+      // Core line
+      ctx.beginPath();
+      ctx.moveTo(s.x1,s.y1);
+      ctx.lineTo(s.x2,s.y2);
+      ctx.strokeStyle=s.color;
+      ctx.globalAlpha=s.alpha;
+      ctx.lineWidth=1.5;
+      ctx.stroke();
+      ctx.globalAlpha=1;
+    });
+
+    // Draw vias (round pads at intersections)
+    vias.forEach(v=>{
+      ctx.beginPath();
+      ctx.arc(v.x,v.y,4,0,Math.PI*2);
+      ctx.strokeStyle=v.color;
+      ctx.lineWidth=1.5;
+      ctx.globalAlpha=0.35;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(v.x,v.y,1.5,0,Math.PI*2);
+      ctx.fillStyle=v.color;
+      ctx.globalAlpha=0.5;
+      ctx.fill();
+      ctx.globalAlpha=1;
+    });
+
+    // Draw pulses
+    pulses.forEach(p=>{
+      p.p+=p.speed;
+      if(p.p>1.05) p.p=0;
+      if(p.p<-0.05) p.p=1;
+      const t=Math.max(0,Math.min(1,p.p));
+      const x=p.seg.x1+(p.seg.x2-p.seg.x1)*t;
+      const y=p.seg.y1+(p.seg.y2-p.seg.y1)*t;
+
+      // Large glow halo
+      const g=ctx.createRadialGradient(x,y,0,x,y,22);
+      g.addColorStop(0,p.color+'bb');
+      g.addColorStop(0.25,p.color+'44');
+      g.addColorStop(1,'transparent');
+      ctx.beginPath(); ctx.arc(x,y,22,0,Math.PI*2);
+      ctx.fillStyle=g; ctx.fill();
+
+      // Glowing trail along trace
+      const trailT=Math.max(0,t-0.08);
+      const tx=p.seg.x1+(p.seg.x2-p.seg.x1)*trailT;
+      const ty=p.seg.y1+(p.seg.y2-p.seg.y1)*trailT;
+      const tg=ctx.createLinearGradient(tx,ty,x,y);
+      tg.addColorStop(0,'transparent');
+      tg.addColorStop(0.5,p.color+'66');
+      tg.addColorStop(1,p.color+'cc');
+      ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(x,y);
+      ctx.strokeStyle=tg; ctx.lineWidth=3;
+      ctx.stroke();
+
+      // Bright core
+      ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2);
+      ctx.fillStyle='#fff';
+      ctx.globalAlpha=0.95; ctx.fill();
+      ctx.beginPath(); ctx.arc(x,y,2,0,Math.PI*2);
+      ctx.fillStyle=p.color;
+      ctx.globalAlpha=1; ctx.fill();
+    });
+
+    if(Math.random()<0.04 && pulses.length<35) spawnPulse();
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+
 function showHubOrAuth(){
   // Check manager session (30 days)
   try{
