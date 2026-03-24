@@ -4647,28 +4647,30 @@ function initSplash(){
     }
   }, 16);
 }
-async function showHubOrAuth(){
+function showHubOrAuth(){
+  console.log('showHubOrAuth called');
   // Check manager session (30 days)
   try{
     const saved = localStorage.getItem('mgr-session');
     if(saved){
       const s = JSON.parse(saved);
       if((Date.now()-s.ts) < 30*86400000){
+        console.log('restoring mgr session');
         enterMgr(s.label||'מנהל', s.type||'primary');
         return;
       } else {
         localStorage.removeItem('mgr-session');
       }
     }
-  } catch(e){}
-  // Check Supabase session
-  try{
-    const {data:{session}} = await sb.auth.getSession();
-    if(session){ await initApp(session.user); return; }
-  } catch(e){}
-  // No session — show auth
+  } catch(e){ console.log('session err',e); }
   const auth = document.getElementById('auth-screen');
-  if(auth) auth.style.display='flex';
+  console.log('auth element:', auth, 'current display:', auth?.style.display);
+  if(auth){ auth.style.display='flex'; console.log('auth shown'); }
+  // Also check supabase
+  sb.auth.getSession().then(({data:{session}})=>{
+    console.log('supabase session:', session);
+    if(session) initApp(session.user);
+  }).catch(e=>console.log('sb err',e));
 }
 
 function goBackToHub(){
