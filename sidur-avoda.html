@@ -4535,138 +4535,119 @@ function initSplash(){
   const canvas = document.getElementById('splash-canvas');
   if(!canvas){ showHubOrAuth(); return; }
   const ctx = canvas.getContext('2d');
+  canvas.width  = window.innerWidth  || 375;
+  canvas.height = window.innerHeight || 667;
+  const W = canvas.width, H = canvas.height;
 
-  // Size canvas to screen
-  const W = canvas.width  = window.innerWidth  || document.documentElement.clientWidth  || 375;
-  const H = canvas.height = window.innerHeight || document.documentElement.clientHeight || 667;
+  // 9 dots in 3x3 grid, centered
+  const GAP = Math.min(W, H) * 0.22;
+  const R0  = Math.min(W, H) * 0.055;
+  const cx = W/2, cy = H/2;
+  const DEFS = [
+    { color:'#00d4ff', hero:false },
+    { color:'#ff1a6e', hero:false },
+    { color:'#00ff99', hero:false },
+    { color:'#ffaa00', hero:false },
+    { color:'#cc44ff', hero:false },
+    { color:'#ff6600', hero:false },
+    // 3 heroes — bottom row  positions 6,7,8
+    { color:'#00aaff', hero:'schedule',  label:'📅', name:'סידור עבודה' },
+    { color:'#cc44ff', hero:'vacation',  label:'🏖', name:'לוח חופשות' },
+    { color:'#ffaa00', hero:'loz',       label:'📋', name:'לוז'         },
+  ];
+  // positions: 3 columns × 3 rows
+  const POSITIONS = [
+    [-1,-1],[ 0,-1],[ 1,-1],
+    [-1, 0],[ 0, 0],[ 1, 0],
+    [-1, 1],[ 0, 1],[ 1, 1],
+  ];
 
-  const COLORS = ['#00d4ff','#cc44ff','#ff1a6e','#00ff99','#ffaa00','#ff4444','#44aaff','#ff66cc'];
-  const SPACING = Math.max(48, Math.min(72, Math.floor(W/9)));
-  const COLS = Math.ceil(W/SPACING)+1;
-  const ROWS = Math.ceil(H/SPACING)+1;
-
-  // Build dots
-  const dots = [];
-  for(let r=0;r<ROWS;r++){
-    for(let c=0;c<COLS;c++){
-      dots.push({
-        x: c*SPACING + (SPACING/2),
-        y: r*SPACING + (SPACING/2),
-        r: c, c: r,
-        rad: 4+Math.random()*5,
-        color: COLORS[Math.floor(Math.random()*COLORS.length)],
-        phase: Math.random()*Math.PI*2,
-        spd:   0.05+Math.random()*0.07,
-        alpha: 0.2+Math.random()*0.55,
-        scale: 1,
-        dead: false,
-        isHero: null
-      });
-    }
-  }
-
-  // 3 hero dots near center
-  const mid = Math.floor(dots.length/2);
-  const midRow = Math.floor(ROWS/2);
-  const heroIdx = [
-    dots.findIndex(d=>d.r===midRow && d.c===Math.floor(COLS/2)-2),
-    dots.findIndex(d=>d.r===midRow && d.c===Math.floor(COLS/2)),
-    dots.findIndex(d=>d.r===midRow && d.c===Math.floor(COLS/2)+2)
-  ].map(i=> i<0 ? mid : i);
-
-  const heroColors  = ['#00aaff','#cc44ff','#ffaa00'];
-  const heroLabels  = ['📅','🏖','📋'];
-  const heroNames   = ['סידור עבודה','לוח חופשות','לוז'];
-  heroIdx.forEach((idx,i)=>{
-    dots[idx].isHero = i;
-    dots[idx].color  = heroColors[i];
-    dots[idx].alpha  = 1;
-    dots[idx].rad    = 7+Math.random()*4;
-  });
-
-  // Lines between random dots
-  const lines = Array.from({length:35},()=>({
-    a: dots[Math.floor(Math.random()*dots.length)],
-    b: dots[Math.floor(Math.random()*dots.length)],
+  const dots = DEFS.map((d,i)=>({
+    ...d,
+    x: cx + POSITIONS[i][0]*GAP,
+    y: cy + POSITIONS[i][1]*GAP,
     phase: Math.random()*Math.PI*2,
-    spd: 0.03+Math.random()*0.05
+    spd:   0.04 + Math.random()*0.05,
+    baseR: R0,
   }));
 
   let frame=0, shrinkFrame=0, mode='routing';
 
   function draw(){
     ctx.clearRect(0,0,W,H);
-    ctx.fillStyle='#050810'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#030508'; ctx.fillRect(0,0,W,H);
 
-    // faint grid
-    ctx.strokeStyle='rgba(0,150,255,0.05)'; ctx.lineWidth=1;
-    for(let c=0;c<=COLS;c++){ctx.beginPath();ctx.moveTo(c*SPACING,0);ctx.lineTo(c*SPACING,H);ctx.stroke();}
-    for(let r=0;r<=ROWS;r++){ctx.beginPath();ctx.moveTo(0,r*SPACING);ctx.lineTo(W,r*SPACING);ctx.stroke();}
-
-    // connection lines
-    if(mode==='routing'){
-      lines.forEach(l=>{
-        l.phase+=l.spd;
-        const a=(0.5+0.5*Math.sin(l.phase))*0.35;
-        if(a<0.03)return;
-        ctx.beginPath(); ctx.moveTo(l.a.x,l.a.y); ctx.lineTo(l.b.x,l.b.y);
-        ctx.strokeStyle=l.a.color; ctx.globalAlpha=a; ctx.lineWidth=1; ctx.stroke(); ctx.globalAlpha=1;
-      });
-    }
-
-    // dots
     dots.forEach(d=>{
-      if(d.dead)return;
-      d.phase+=d.spd;
+      d.phase += d.spd;
+      let rad, alpha, ringSize;
 
-      let rad, alpha;
       if(mode==='routing'){
-        rad   = d.rad*(0.65+0.35*Math.sin(d.phase));
-        alpha = d.alpha*(0.55+0.45*Math.sin(d.phase*1.2));
+        const pulse = 0.55 + 0.45*Math.sin(d.phase);
+        rad   = d.baseR * pulse;
+        alpha = 0.7 + 0.3*Math.sin(d.phase*1.1);
+        ringSize = rad*2.2;
       } else {
-        const t=Math.min(1,shrinkFrame/35);
-        if(d.isHero!==null){
-          rad   = d.rad*(1+t*3);
-          alpha = 1;
+        const t = Math.min(1, shrinkFrame/30);
+        if(d.hero){
+          // heroes: stay, pulse gently
+          const pulse = 0.85 + 0.15*Math.sin(d.phase);
+          rad       = d.baseR * pulse;
+          alpha     = 1;
+          ringSize  = rad*2.5;
         } else {
-          rad   = d.rad*(1-t);
-          alpha = d.alpha*(1-t);
-          if(t>=1){d.dead=true; return;}
+          // non-heroes: shrink to zero
+          const ease = t*t;
+          rad      = d.baseR*(1-ease);
+          alpha    = 1-ease;
+          ringSize = rad*2;
         }
       }
-      if(rad<=0)return;
 
-      // glow
-      const g=ctx.createRadialGradient(d.x,d.y,0,d.x,d.y,rad*3);
-      g.addColorStop(0,d.color); g.addColorStop(0.5,d.color); g.addColorStop(1,'transparent');
-      ctx.beginPath(); ctx.arc(d.x,d.y,rad*3,0,Math.PI*2);
-      ctx.fillStyle=g; ctx.globalAlpha=alpha*0.2; ctx.fill(); ctx.globalAlpha=1;
-      // core
+      if(rad < 0.5) return;
+
+      // outer glow ring
+      const g2 = ctx.createRadialGradient(d.x,d.y,rad*0.5,d.x,d.y,ringSize*1.8);
+      g2.addColorStop(0, d.color);
+      g2.addColorStop(0.6, d.color);
+      g2.addColorStop(1, 'transparent');
+      ctx.beginPath(); ctx.arc(d.x,d.y,ringSize*1.8,0,Math.PI*2);
+      ctx.fillStyle=g2; ctx.globalAlpha=alpha*0.18; ctx.fill(); ctx.globalAlpha=1;
+
+      // mid glow
+      const g1 = ctx.createRadialGradient(d.x,d.y,0,d.x,d.y,ringSize);
+      g1.addColorStop(0,'#ffffff');
+      g1.addColorStop(0.25, d.color);
+      g1.addColorStop(1,'transparent');
+      ctx.beginPath(); ctx.arc(d.x,d.y,ringSize,0,Math.PI*2);
+      ctx.fillStyle=g1; ctx.globalAlpha=alpha*0.5; ctx.fill(); ctx.globalAlpha=1;
+
+      // core dot
       ctx.beginPath(); ctx.arc(d.x,d.y,rad,0,Math.PI*2);
       ctx.fillStyle=d.color; ctx.globalAlpha=alpha; ctx.fill(); ctx.globalAlpha=1;
+
+      // sharp neon ring
+      ctx.beginPath(); ctx.arc(d.x,d.y,rad+2,0,Math.PI*2);
+      ctx.strokeStyle=d.color; ctx.lineWidth=2;
+      ctx.globalAlpha=alpha*0.9; ctx.stroke(); ctx.globalAlpha=1;
     });
 
     frame++;
-    if(mode==='routing') {
-      if(frame>=120) { mode='shrink'; shrinkFrame=0; }
-    } else {
-      shrinkFrame++;
-    }
+    if(mode==='routing' && frame>=120){ mode='shrink'; shrinkFrame=0; }
+    if(mode==='shrink'){ shrinkFrame++; }
   }
 
-  // Run at 60fps with setInterval (works in iframes too)
   const tid = setInterval(()=>{
     draw();
-    if(mode==='shrink' && shrinkFrame>45){
+    if(mode==='shrink' && shrinkFrame>40){
       clearInterval(tid);
-      // Hand off to hub
       splash.classList.add('hide');
       showHubOrAuth();
+      // position hub buttons over hero dots
       setTimeout(()=>{
         document.querySelectorAll('.hub-btn').forEach((btn,i)=>{
-          setTimeout(()=>btn.classList.add('show'), i*140);
+          setTimeout(()=>btn.classList.add('show'), i*150);
         });
-      },60);
+      }, 60);
     }
   }, 16);
 }
