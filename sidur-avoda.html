@@ -4670,11 +4670,23 @@ function goBackToHub(){
 }
 
 function hubExit(){
-  // Go back to auth screen
+  // Reset everything and show auth screen
   document.getElementById('hub-screen').classList.remove('active');
-  document.getElementById('app').style.display='none';
-  document.getElementById('auth-screen').style.display='flex';
+  const app = document.getElementById('app');
+  if(app) app.style.display='none';
+  const splash = document.getElementById('splash-screen');
+  if(splash) splash.classList.add('hide');
+  // Reset hub buttons for next time
+  document.querySelectorAll('.hub-btn').forEach(b=>b.classList.remove('show'));
+  const exitBtn = document.getElementById('hub-exit-btn');
+  if(exitBtn) exitBtn.classList.remove('show');
+  // Clear session
+  try{ localStorage.removeItem('mgr-session'); }catch(e){}
+  isMgr=false; currentEmp=null; currentUser=null;
   window._vacInitialized = false;
+  // Show auth
+  const auth = document.getElementById('auth-screen');
+  if(auth){ auth.style.display='flex'; auth.style.opacity='1'; auth.style.pointerEvents='auto'; }
 }
 
 function showHub(){
