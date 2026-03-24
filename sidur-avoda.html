@@ -933,6 +933,34 @@
         <div class="item-list" id="emp-list"></div>
       </div>
 
+      <!-- הגדרות לוח חופשות -->
+      <div class="set-sec">
+        <h3>🏖 לוח חופשות — נציגי מחלקות</h3>
+        <div class="dept-assign-grid" id="dept-assign-grid"></div>
+        <button class="btn-add" onclick="saveDeptReps()" style="margin-top:8px">💾 שמור</button>
+      </div>
+      <div class="set-sec">
+        <h3>🏖 לוח חופשות — ניהול משתמשים</h3>
+        <p style="font-size:13px;color:#94a3b8;margin-bottom:12px">מחיקת משתמש תמחק גם את כל הבקשות שלו</p>
+        <div id="users-manage-list"></div>
+      </div>
+      <div class="set-sec">
+        <h3>🏖 לוח חופשות — צופים</h3>
+        <p style="font-size:13px;color:#94a3b8;margin-bottom:12px">צופים רואים את כל לוחות המחלקות ללא יכולת שינוי</p>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <select class="s-inp" id="viewer-select" style="max-width:200px"><option value="">בחר עובד...</option></select>
+          <button class="btn-add" onclick="addViewer()">הוסף</button>
+        </div>
+        <div id="viewer-list"></div>
+      </div>
+      <div class="set-sec">
+        <h3>🏖 לוח חופשות — סיסמת מנהל</h3>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="s-inp" type="password" id="new-password" maxlength="4" placeholder="4 ספרות" style="max-width:120px;letter-spacing:6px;font-size:18px" />
+          <button class="btn-add" onclick="changeAdminPassword()">שנה</button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -954,7 +982,7 @@
     <button class="app-tab" id="tab-rep-btn" style="display:none" data-tab="tab-rep" onclick="showTab('tab-rep',this)">💼 המלצות נציג</button>
     <button class="app-tab" id="tab-admin-cal-btn" style="display:none" data-tab="tab-admin-cal" onclick="showTab('tab-admin-cal',this)">📅 יומן חופשות</button>
     <button class="app-tab" id="tab-admin-req-btn" style="display:none" data-tab="tab-admin-req" onclick="showTab('tab-admin-req',this)">📋 בקשות</button>
-    <button class="app-tab" id="tab-admin-settings-btn" style="display:none" data-tab="tab-admin-settings" onclick="showTab('tab-admin-settings',this)">⚙️ הגדרות</button>
+    <!-- settings tab moved to sidur -->
     <button class="app-tab" id="tab-viewer-btn" style="display:none" data-tab="tab-viewer-cal" onclick="showTab('tab-viewer-cal',this)">👁 צפייה כללית</button>
   </div>
   <div class="tab-panels">
@@ -1057,34 +1085,7 @@
     </div>
 
     <!-- ADMIN SETTINGS TAB -->
-    <div id="tab-admin-settings" class="tab-content">
-      <div class="settings-section">
-        <h3>🏢 נציגי מחלקות</h3>
-        <div class="dept-assign-grid" id="dept-assign-grid"></div>
-        <button class="btn-submit" onclick="saveDeptReps()">💾 שמור</button>
-      </div>
-      <div class="viewer-section">
-        <h3>👥 ניהול משתמשים</h3>
-        <p style="font-size:13px;color:var(--text-light);margin-bottom:12px">מחיקת משתמש תמחק גם את כל הבקשות שלו</p>
-        <div id="users-manage-list"></div>
-      </div>
-      <div class="viewer-section">
-        <h3>👁 הגדרת צופים</h3>
-        <p style="font-size:13px;color:var(--text-light);margin-bottom:12px">צופים רואים את כל לוחות המחלקות ללא יכולת שינוי</p>
-        <div class="form-row">
-          <div class="form-field"><label>בחר עובד</label><select id="viewer-select"><option value="">בחר...</option></select></div>
-          <div class="form-field" style="display:flex;align-items:flex-end"><button class="btn-submit" onclick="addViewer()" style="height:44px">הוסף</button></div>
-        </div>
-        <div class="viewer-list" id="viewer-list"></div>
-      </div>
-      <div class="settings-section">
-        <h3>🔑 שינוי סיסמת מנהל</h3>
-        <div class="form-row">
-          <div class="form-field"><label>סיסמה חדשה (4 ספרות)</label><input type="password" id="new-password" maxlength="4" placeholder="4 ספרות" style="letter-spacing:8px;font-size:20px"></div>
-          <div class="form-field" style="display:flex;align-items:flex-end"><button class="btn-submit" onclick="changeAdminPassword()" style="height:44px">שנה</button></div>
-        </div>
-      </div>
-    </div>
+    <!-- vacation settings moved to sidur settings tab -->
 
     <!-- VIEWER CAL -->
     <div id="tab-viewer-cal" class="tab-content">
@@ -1347,6 +1348,8 @@ async function initApp(user){
   currentUser=user;
   await loadAll();
   currentEmp=employees.find(e=>e.email.toLowerCase()===user.email.toLowerCase())||{id:null,full_name:user.email,email:user.email,role:'employee',department_id:null,position_percent:100};
+  // Auto-register in vacation app Firebase
+  _autoRegisterVacationUser(currentEmp);
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('hub-screen').classList.add('active');
   document.querySelectorAll('.hub-btn').forEach(btn=>btn.classList.add('show'));
@@ -2948,7 +2951,7 @@ function showView(v,e){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   if(e) e.target.classList.add('active');
   if(v==='stats') renderStats();
-  if(v==='settings') renderSettings();
+  if(v==='settings'){ renderSettings(); if(!window._vacInitialized){ initVacationApp(); } else { if(typeof renderDeptGrid==='function') renderDeptGrid(); if(typeof renderViewerSection==='function') renderViewerSection(); if(typeof renderUsersList==='function') renderUsersList(); } }
   if(v==='schedule'){renderDeptTabs();renderSchedule();}
 }
 function changeWeek(d){
@@ -2975,6 +2978,40 @@ function showNotification(title, body){
 // Session restore runs AFTER splash (via showHubOrAuth)
 // Keeping IIFE empty - showHubOrAuth handles it
 (async()=>{})();
+
+// Auto-register sidur user into vacation Firebase
+function _autoRegisterVacationUser(emp){
+  if(!emp || !emp.full_name || emp.id==='manager-local') return;
+  // Wait for Firebase to load, then register
+  const tryRegister = async () => {
+    if(typeof firebase==='undefined') return;
+    try{
+      const fs = firebase.firestore();
+      const snap = await fs.collection('shared').doc('data').get();
+      const data = snap.exists ? snap.data() : {};
+      const users = data.users||[];
+      const depts = data.deptReps ? Object.keys(data.deptReps) : [];
+      // Get dept name
+      const allDepts = window.departments||[];
+      const deptObj = allDepts.find(d=>d.id===emp.department_id);
+      const deptName = deptObj?.name||deptObj?.title||'כללי';
+      const email = emp.email||(emp.id+'@sidur.local');
+      // Check if already exists
+      const exists = users.find(u=>u.email===email);
+      if(!exists){
+        users.push({
+          id: Date.now().toString(),
+          name: emp.full_name,
+          email: email,
+          dept: deptName,
+          createdAt: new Date().toISOString()
+        });
+        await fs.collection('shared').doc('data').update({ users });
+      }
+    } catch(e){ /* silent fail */ }
+  };
+  setTimeout(tryRegister, 1000);
+}
 
 // ===== VACATION APP =====
 // Global showTab for vacation app tabs
@@ -3192,7 +3229,7 @@ async function enterApp(adminMode=false,viewerMode=false){
     document.querySelector('[data-tab="tab-request"]').style.display='none';
     document.querySelector('[data-tab="tab-calendar"]').style.display='none';
     // Show 3 admin tabs
-    ['tab-admin-cal-btn','tab-admin-req-btn','tab-admin-settings-btn'].forEach(id=>document.getElementById(id).style.display='flex');
+    ['tab-admin-cal-btn','tab-admin-req-btn'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='flex';});
     renderAdminTab();showTab('tab-admin-cal',document.getElementById('tab-admin-cal-btn'));
   } else if(isViewer){
     document.getElementById('header-name').textContent=currentUser?currentUser.name:'צופה';
