@@ -145,7 +145,7 @@
   .cdot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
 
   /* AUTH */
-  #auth-screen { min-height:100vh; display:none; align-items:center; justify-content:center; background:#111520; padding:16px; position:fixed; inset:0; overflow:hidden; z-index:100; }
+  #auth-screen { min-height:100vh; display:none; align-items:center; justify-content:center; background:#111520; padding:16px; position:fixed; inset:0; overflow:hidden; z-index:9995; }
   .auth-box { background:rgba(255,255,255,0.97); border:1px solid #d0dcf0; border-radius:20px; padding:36px; width:100%; max-width:400px; box-shadow:0 0 80px rgba(255,230,100,0.35),0 8px 40px rgba(0,0,0,0.4); animation:cardflicker 3.5s ease-in-out infinite; }
   .auth-logo { font-size:38px; text-align:center; margin-bottom:6px; }
   .auth-title { font-size:26px; font-weight:900; text-align:center; margin-bottom:4px; color:#1a2030; }
@@ -794,7 +794,7 @@
 </div>
 
 <!-- APP -->
-<div id="app">
+<div id="app" style="display:none">
   <div class="header">
     <div class="hdr-in">
       <div class="hdr-logo">🎬</div>
@@ -2970,25 +2970,9 @@ function showNotification(title, body){
   new Notification(title,{body,icon:'icon.png',badge:'icon.png',dir:'rtl',lang:'he'});
 }
 
-(async()=>{
-  // check for saved manager session (valid for 30 days)
-  try{
-    const saved=localStorage.getItem('mgr-session');
-    if(saved){
-      const s=JSON.parse(saved);
-      const age=(Date.now()-s.ts)/(1000*60*60*24); // days
-      if(age<30){
-        enterMgr(s.label||'מנהל', s.type||'primary');
-        return;
-      } else {
-        localStorage.removeItem('mgr-session');
-      }
-    }
-  } catch(e){}
-  // regular user session
-  const {data:{session}}=await sb.auth.getSession();
-  if(session) await initApp(session.user);
-})();
+// Session restore runs AFTER splash (via showHubOrAuth)
+// Keeping IIFE empty - showHubOrAuth handles it
+(async()=>{})();
 
 // ===== VACATION APP =====
 // Global showTab for vacation app tabs
@@ -4661,15 +4645,26 @@ function initSplash(){
     }
   }, 16);
 }
-function showHubOrAuth(){
-  // Check for saved session
-  const mgrSession = (() => { try{ return JSON.parse(localStorage.getItem('mgr-session')); }catch(e){return null;} })();
-  if(mgrSession && (Date.now()-mgrSession.ts) < 86400000*7){
-    // Auto-login manager
-    enterMgr(mgrSession.label||'מנהל', mgrSession.type||'primary');
-    return;
-  }
-  // No session — show auth screen
+async function showHubOrAuth(){
+  // Check manager session (30 days)
+  try{
+    const saved = localStorage.getItem('mgr-session');
+    if(saved){
+      const s = JSON.parse(saved);
+      if((Date.now()-s.ts) < 30*86400000){
+        enterMgr(s.label||'מנהל', s.type||'primary');
+        return;
+      } else {
+        localStorage.removeItem('mgr-session');
+      }
+    }
+  } catch(e){}
+  // Check Supabase session
+  try{
+    const {data:{session}} = await sb.auth.getSession();
+    if(session){ await initApp(session.user); return; }
+  } catch(e){}
+  // No session — show auth
   const auth = document.getElementById('auth-screen');
   if(auth) auth.style.display='flex';
 }
@@ -4687,23 +4682,24 @@ function goBackToHub(){
 }
 
 function hubExit(){
-  // Reset everything and show auth screen
-  document.getElementById('hub-screen').classList.remove('active');
+  // Hide hub fully
+  const hub = document.getElementById('hub-screen');
+  if(hub) hub.classList.remove('active');
+  document.querySelectorAll('.hub-btn').forEach(b=>b.classList.remove('show'));
+  const exitBtn = document.getElementById('hub-exit-btn');
+  if(exitBtn) exitBtn.classList.remove('show');
+  // Hide app and splash
   const app = document.getElementById('app');
   if(app) app.style.display='none';
   const splash = document.getElementById('splash-screen');
   if(splash) splash.classList.add('hide');
-  // Reset hub buttons for next time
-  document.querySelectorAll('.hub-btn').forEach(b=>b.classList.remove('show'));
-  const exitBtn = document.getElementById('hub-exit-btn');
-  if(exitBtn) exitBtn.classList.remove('show');
   // Clear session
   try{ localStorage.removeItem('mgr-session'); }catch(e){}
   isMgr=false; currentEmp=null; currentUser=null;
   window._vacInitialized = false;
-  // Show auth
+  // Show auth on top
   const auth = document.getElementById('auth-screen');
-  if(auth){ auth.style.display='flex'; auth.style.opacity='1'; auth.style.pointerEvents='auto'; }
+  if(auth) auth.style.display='flex';
 }
 
 function showHub(){
