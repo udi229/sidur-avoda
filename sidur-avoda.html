@@ -1376,7 +1376,7 @@ function updateWeekUI(){
   const wkLbl=document.getElementById('wk-lbl');
   const wkDt=document.getElementById('wk-dt');
   if(wkLbl) wkLbl.textContent=lbl;
-  if(wkDt) wkDt.textContent=`${dates[0].replace('/','-')} / ${dates[6].replace('/','-')}`;
+  if(wkDt) wkDt.textContent=`${dates[0]} - ${dates[6]}`;
   const allApp=departments.length>0&&departments.every(d=>schedules[d.id]?.status==='approved');
   const anySubmitted2=Object.values(schedules).some(s=>s.team_submitted&&s.status!=='approved');
   const sb2=document.getElementById('wk-st');
