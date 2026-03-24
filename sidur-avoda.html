@@ -160,7 +160,7 @@
   .auth-div { text-align:center; color:#c0cce0; font-size:13px; margin:14px 0; }
 
   /* PIN */
-  .modal-ov { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:200; }
+  .modal-ov { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:99999; }
   .modal-bx { background:white; border:1.5px solid #00d4ff; border-radius:16px; padding:28px; width:90%; max-width:340px; text-align:center; box-shadow:0 0 20px #00d4ff33; }
   .modal-bx h2 { margin:0 0 6px; font-size:18px; color:#0f172a; }
   .modal-bx p { color:#64748b; font-size:13px; margin:0 0 16px; }
@@ -4003,8 +4003,8 @@ function showCelebration(msg, type){
   };
 }
 
-document.addEventListener('click',e=>{const p=document.getElementById('notifications-panel'),bell=document.getElementById('bell-btn');if(p.classList.contains('open')&&!p.contains(e.target)&&!bell.contains(e.target))p.classList.remove('open');});
-document.addEventListener('keydown',e=>{if(e.key==='Enter'){if(document.getElementById('screen-register').classList.contains('active')){if(document.getElementById('form-login').style.display!=='none')loginUser();else registerUser();}}});
+document.addEventListener('click',e=>{const p=document.getElementById('notifications-panel'),bell=document.getElementById('bell-btn');if(p&&bell&&p.classList.contains('open')&&!p.contains(e.target)&&!bell.contains(e.target))p.classList.remove('open');});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'){const sr=document.getElementById('screen-register');if(sr&&sr.classList.contains('active')){if(document.getElementById('form-login').style.display!=='none')loginUser();else registerUser();}}});
 
 // ============ CANVAS BACKGROUND ANIMATION ============
 function initCanvas() {
@@ -4648,29 +4648,24 @@ function initSplash(){
   }, 16);
 }
 function showHubOrAuth(){
-  console.log('showHubOrAuth called');
   // Check manager session (30 days)
   try{
     const saved = localStorage.getItem('mgr-session');
     if(saved){
       const s = JSON.parse(saved);
       if((Date.now()-s.ts) < 30*86400000){
-        console.log('restoring mgr session');
         enterMgr(s.label||'מנהל', s.type||'primary');
         return;
       } else {
         localStorage.removeItem('mgr-session');
       }
     }
-  } catch(e){ console.log('session err',e); }
+  } catch(e){}
   const auth = document.getElementById('auth-screen');
-  console.log('auth element:', auth, 'current display:', auth?.style.display);
-  if(auth){ auth.style.display='flex'; console.log('auth shown'); }
-  // Also check supabase
+  if(auth) auth.style.display='flex';
   sb.auth.getSession().then(({data:{session}})=>{
-    console.log('supabase session:', session);
-    if(session) initApp(session.user);
-  }).catch(e=>console.log('sb err',e));
+    if(session){ if(auth) auth.style.display='none'; initApp(session.user); }
+  }).catch(()=>{});
 }
 
 function goBackToHub(){
