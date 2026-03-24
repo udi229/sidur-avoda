@@ -521,6 +521,134 @@
   .empty-state .icon { font-size:57px; margin-bottom:12px; display:block; opacity:.4; }
   .empty-state p { font-size:16px; font-weight:600; }
 
+
+  /* ===== SPLASH SCREEN ===== */
+  #splash-screen {
+    position:fixed; inset:0; z-index:9999;
+    background:#000;
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column;
+  }
+  #splash-screen.fade-out { animation: splashFade 0.6s ease forwards; }
+  @keyframes splashFade { to { opacity:0; pointer-events:none; } }
+
+  #splash-canvas { position:absolute; inset:0; width:100%; height:100%; }
+
+  .splash-logo {
+    position:relative; z-index:2;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    animation: splashPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  @keyframes splashPop { from{opacity:0;transform:scale(0.7)} to{opacity:1;transform:scale(1)} }
+
+  .splash-title {
+    font-size:52px; font-weight:900; color:#fff;
+    text-shadow: 0 0 30px #00d4ff, 0 0 60px #00d4ff88;
+    letter-spacing:2px;
+  }
+  .splash-sub {
+    font-size:14px; color:#ec4899;
+    text-shadow: 0 0 15px #ec489988;
+    letter-spacing:4px; text-transform:uppercase;
+  }
+  .splash-live {
+    margin-top:16px;
+    background:#ff1a1a;
+    border:1px solid #ff6666;
+    border-radius:8px;
+    padding:6px 28px;
+    font-size:22px; font-weight:900; color:#fff;
+    letter-spacing:6px;
+    box-shadow: 0 0 20px #ff000088, 0 0 40px #ff000044;
+    display:flex; align-items:center; gap:8px;
+    animation: livePulse 1s ease-in-out infinite;
+  }
+  @keyframes livePulse { 0%,100%{box-shadow:0 0 20px #ff000088,0 0 40px #ff000044} 50%{box-shadow:0 0 30px #ff0000cc,0 0 60px #ff000066} }
+  .splash-dot { width:10px; height:10px; border-radius:50%; background:#fff; animation:dotBlink 1s infinite; }
+  @keyframes dotBlink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ===== HUB SCREEN ===== */
+  #hub-screen {
+    position:fixed; inset:0; z-index:9990;
+    background:radial-gradient(ellipse at center, #0d1117 0%, #000 100%);
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    gap:40px;
+  }
+  #hub-screen.active { display:flex; }
+
+  .hub-title {
+    font-size:28px; font-weight:900; color:#fff;
+    text-shadow: 0 0 20px #00d4ff88;
+    letter-spacing:2px;
+  }
+
+  .hub-buttons {
+    display:flex; gap:28px; flex-wrap:wrap; justify-content:center;
+    padding:0 20px;
+  }
+
+  .hub-btn {
+    width:120px; height:120px; border-radius:50%;
+    border:none; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:8px; transition:transform 0.2s, box-shadow 0.2s;
+    position:relative; overflow:hidden;
+  }
+  .hub-btn:active { transform:scale(0.93); }
+  .hub-btn.disabled { opacity:0.4; cursor:not-allowed; }
+  .hub-btn.disabled:active { transform:none; }
+
+  .hub-btn-schedule {
+    background:radial-gradient(circle at 40% 35%, #1e3a5f, #0a1628);
+    box-shadow: 0 0 0 3px #00aaff55, 0 0 30px #00aaff44, 0 8px 24px rgba(0,0,0,0.6);
+  }
+  .hub-btn-schedule:hover { box-shadow: 0 0 0 3px #00aaff99, 0 0 50px #00aaff66, 0 8px 30px rgba(0,0,0,0.7); }
+
+  .hub-btn-vacation {
+    background:radial-gradient(circle at 40% 35%, #3b1f5f, #160a28);
+    box-shadow: 0 0 0 3px #cc44ff55, 0 0 30px #cc44ff44, 0 8px 24px rgba(0,0,0,0.6);
+  }
+  .hub-btn-vacation:hover { box-shadow: 0 0 0 3px #cc44ff99, 0 0 50px #cc44ff66, 0 8px 30px rgba(0,0,0,0.7); }
+
+  .hub-btn-schedule .hub-icon { font-size:36px; filter:drop-shadow(0 0 8px #00aaff); }
+  .hub-btn-vacation .hub-icon { font-size:36px; filter:drop-shadow(0 0 8px #cc44ff); }
+  .hub-btn-loz      .hub-icon { font-size:36px; filter:drop-shadow(0 0 8px #ffaa00); }
+
+  .hub-btn-loz {
+    background:radial-gradient(circle at 40% 35%, #3f2a0a, #1a1005);
+    box-shadow: 0 0 0 3px #ffaa0044, 0 0 20px #ffaa0022, 0 8px 24px rgba(0,0,0,0.6);
+  }
+
+  .hub-label { font-size:13px; font-weight:700; color:#fff; letter-spacing:1px; }
+  .hub-label-soon { font-size:10px; color:#ffaa00; letter-spacing:1px; margin-top:-4px; }
+
+  @keyframes hubFloat {
+    0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)}
+  }
+  .hub-btn-schedule { animation:hubFloat 3s ease-in-out infinite; }
+  .hub-btn-vacation { animation:hubFloat 3s ease-in-out infinite 0.5s; }
+  .hub-btn-loz      { animation:hubFloat 3s ease-in-out infinite 1s; }
+  .hub-btn.disabled { animation:none; }
+
+  /* neon ring animation */
+  .hub-btn::before {
+    content:''; position:absolute; inset:-3px; border-radius:50%;
+    background:conic-gradient(from 0deg, transparent 0%, currentColor 15%, transparent 30%);
+    animation:hubRing 3s linear infinite;
+    opacity:0.5;
+  }
+  .hub-btn-schedule::before { color:#00aaff; }
+  .hub-btn-vacation::before { color:#cc44ff; }
+  .hub-btn-loz::before      { color:#ffaa00; }
+  @keyframes hubRing { to{transform:rotate(360deg)} }
+
+  .hub-bg-grid {
+    position:absolute; inset:0;
+    background-image: linear-gradient(rgba(0,180,255,0.05) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(0,180,255,0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events:none;
+  }
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -530,6 +658,37 @@
 <body>
 
 <!-- AUTH -->
+<!-- SPLASH SCREEN -->
+<div id="splash-screen">
+  <canvas id="splash-canvas"></canvas>
+  <div class="splash-logo">
+    <div class="splash-title">אולפנים</div>
+    <div class="splash-sub">כאן • ON AIR</div>
+    <div class="splash-live"><span class="splash-dot"></span>LIVE</div>
+  </div>
+</div>
+
+<!-- HUB SCREEN -->
+<div id="hub-screen">
+  <div class="hub-bg-grid"></div>
+  <div class="hub-title">🎬 אולפנים</div>
+  <div class="hub-buttons">
+    <button class="hub-btn hub-btn-schedule" onclick="hubGo('schedule')">
+      <span class="hub-icon">📅</span>
+      <span class="hub-label">סידור עבודה</span>
+    </button>
+    <button class="hub-btn hub-btn-vacation" onclick="hubGo('vacation')">
+      <span class="hub-icon">🏖</span>
+      <span class="hub-label">לוח חופשות</span>
+    </button>
+    <button class="hub-btn hub-btn-loz disabled" onclick="">
+      <span class="hub-icon">📋</span>
+      <span class="hub-label">לוז</span>
+      <span class="hub-label-soon">בקרוב</span>
+    </button>
+  </div>
+</div>
+
 <div id="auth-screen">
 
 <style>
@@ -1119,8 +1278,8 @@ function enterMgr(label='מנהל',type='primary'){
   // save manager session
   try{ localStorage.setItem('mgr-session', JSON.stringify({label,type,ts:Date.now()})); } catch(e){}
   document.getElementById('auth-screen').style.display='none';
-  document.getElementById('app').style.display='block';
   playWelcome(label, 'manager');
+  document.getElementById('hub-screen').classList.add('active');
   document.getElementById('hdr-nm').textContent=label;
   document.getElementById('hdr-rl').textContent='מנהל מערכת';
   document.getElementById('nav-stats').style.display='inline-block';
@@ -1151,7 +1310,9 @@ async function logout(){
   try{ localStorage.removeItem('mgr-session'); } catch(e){}
   isMgr=false;currentUser=null;currentEmp=null;weekOffset=0;activeDeptId=null;openDropdown=null;
   document.getElementById('app').style.display='none';
+  document.getElementById('hub-screen').classList.remove('active');
   document.getElementById('auth-screen').style.display='flex';
+  window._vacInitialized=false;
 }
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape') closeDropdown();
@@ -1234,7 +1395,7 @@ async function initApp(user){
   await loadAll();
   currentEmp=employees.find(e=>e.email.toLowerCase()===user.email.toLowerCase())||{id:null,full_name:user.email,email:user.email,role:'employee',department_id:null,position_percent:100};
   document.getElementById('auth-screen').style.display='none';
-  document.getElementById('app').style.display='block';
+  document.getElementById('hub-screen').classList.add('active');
   const _deptTitle=departments.find(d=>d.id===currentEmp?.department_id)?.title||null;
   playWelcome(currentEmp?.full_name||'', currentEmp?.role||'employee', _deptTitle);
   requestNotifPermission().then(setupNotifChannel);
@@ -4425,6 +4586,111 @@ function initVacationApp(){
     VacApp.enterEmployee(currentEmp.full_name, email, deptName);
   }
 }
+
+
+// ===== SPLASH + HUB =====
+function initSplash(){
+  const canvas = document.getElementById('splash-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+
+  function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Particles
+  for(let i=0;i<60;i++){
+    particles.push({
+      x:Math.random()*W, y:Math.random()*H,
+      vx:(Math.random()-0.5)*0.5, vy:(Math.random()-0.5)*0.5,
+      r:Math.random()*2+0.5,
+      color:Math.random()>0.5?'#00d4ff':'#ec4899',
+      alpha:Math.random()*0.8+0.2
+    });
+  }
+
+  let frame=0;
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    // Dark bg
+    ctx.fillStyle='#000';
+    ctx.fillRect(0,0,W,H);
+    // Grid
+    ctx.strokeStyle='rgba(0,180,255,0.07)';
+    ctx.lineWidth=1;
+    for(let x=0;x<W;x+=40){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke(); }
+    for(let y=0;y<H;y+=40){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke(); }
+    // Particles
+    particles.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+      if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=p.color;
+      ctx.globalAlpha=p.alpha*(0.5+0.5*Math.sin(frame*0.05));
+      ctx.fill();
+      ctx.globalAlpha=1;
+    });
+    // Glow rings
+    const cx=W/2, cy=H/2;
+    [120,200,280].forEach((r,i)=>{
+      const pulse = 0.3+0.2*Math.sin(frame*0.04+i*1.2);
+      const grad=ctx.createRadialGradient(cx,cy,r-4,cx,cy,r+4);
+      grad.addColorStop(0,'transparent');
+      grad.addColorStop(0.5,i%2===0?`rgba(0,212,255,${pulse})`:`rgba(236,72,153,${pulse})`);
+      grad.addColorStop(1,'transparent');
+      ctx.beginPath();
+      ctx.arc(cx,cy,r,0,Math.PI*2);
+      ctx.strokeStyle=grad;
+      ctx.lineWidth=3;
+      ctx.stroke();
+    });
+    frame++;
+  }
+
+  const anim = setInterval(draw, 16);
+
+  // After 2.2s fade out and show auth
+  setTimeout(()=>{
+    clearInterval(anim);
+    const splash=document.getElementById('splash-screen');
+    splash.classList.add('fade-out');
+    setTimeout(()=>{
+      splash.style.display='none';
+      showHubOrAuth();
+    }, 600);
+  }, 2200);
+}
+
+function showHubOrAuth(){
+  // If already logged in (session restored), hub will be shown by enterMgr/initApp
+  // Otherwise show auth
+  const authScreen = document.getElementById('auth-screen');
+  if(authScreen && authScreen.style.display !== 'none'){
+    // already showing auth — do nothing
+  }
+  // if app is showing, go to hub
+}
+
+function showHub(){
+  document.getElementById('hub-screen').classList.add('active');
+  document.getElementById('app').style.display='none';
+}
+
+function hubGo(dest){
+  document.getElementById('hub-screen').classList.remove('active');
+  document.getElementById('app').style.display='block';
+  if(dest==='vacation'){
+    showView('vacation');
+  } else {
+    showView('schedule');
+  }
+}
+
+// Start splash on load
+window.addEventListener('DOMContentLoaded', initSplash);
 
 </script>
 </body>
