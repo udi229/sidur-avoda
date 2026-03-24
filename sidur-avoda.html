@@ -197,9 +197,7 @@
   @keyframes cardflicker{0%,89%,91%,96%,100%{box-shadow:0 0 90px rgba(255,230,100,0.4),0 8px 40px rgba(0,0,0,0.4)}90%{box-shadow:0 0 20px rgba(255,230,100,0.1),0 8px 40px rgba(0,0,0,0.4)}97%{box-shadow:0 0 50px rgba(255,230,100,0.25),0 8px 40px rgba(0,0,0,0.4)}}
 
 /* === VACATION APP === */
-#vacation-container { position:relative; width:100%; min-height:600px; }
-#vacation-container .screen { position:absolute; inset:0; display:none; flex-direction:column; opacity:0; transition:opacity 0.4s; }
-#vacation-container .screen.active { display:flex; opacity:1; }
+
 
   @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap');
 
@@ -221,12 +219,12 @@
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
   /* vacation app: html/body overflow only when vacation is active */
-  #vacation-container { font-family: 'Heebo', sans-serif; direction: rtl; }
+  #vacation-container { font-family: 'Heebo', sans-serif; direction: rtl; position: relative; }
 
   /* SCREEN SYSTEM - scoped to vacation container */
-  #vacation-container .screen { position: absolute; inset: 0; display: none; flex-direction: column; opacity: 0; transition: opacity 0.4s ease; z-index: 1; }
-  #vacation-container .screen.active { display: flex; opacity: 1; z-index: 2; }
-  #vacation-container .screen.fade-out { opacity: 0; pointer-events: none; }
+  #vacation-container .screen { display: none; flex-direction: column; }
+  #vacation-container .screen.active { display: flex; flex-direction: column; min-height: 100vh; }
+  #vacation-container .screen.fade-out { display: none; }
 
   /* REGISTER SCREEN */
   #screen-register {
@@ -869,7 +867,7 @@
     </div>
   </div>
 
-  <div id="view-vacation" style="display:none;flex:1;overflow:auto;position:relative;min-height:600px">
+  <div id="view-vacation" style="display:none;flex:1;overflow-y:auto;">
     <div id="vacation-container">
 <div id="screen-register" class="screen" style="display:none">
   <div class="studio-scene">
@@ -4507,71 +4505,68 @@ function initSplash(){
   canvas.width  = window.innerWidth  || 375;
   canvas.height = window.innerHeight || 667;
   const W = canvas.width, H = canvas.height;
-  const cx = W/2, cy = H/2;
 
-  const ORBIT_R = Math.min(W,H)*0.18;
-  const DOT_R   = Math.min(W,H)*0.072;
-  const COLORS  = ['#00aaff','#cc44ff','#ffaa00'];
-  const NAMES   = ['סידור עבודה','לוח חופשות','לוז'];
-
-  let angle = 0;
   let frame = 0;
-  let phase = 'orbit'; // orbit → stop
-  let stopFrame = 0;
-
-  function draw(){
-    ctx.clearRect(0,0,W,H);
-    ctx.fillStyle='#030508'; ctx.fillRect(0,0,W,H);
-
-    COLORS.forEach((color,i)=>{
-      const a = angle + (i * Math.PI*2/3);
-      const x = cx + Math.cos(a)*ORBIT_R;
-      const y = cy + Math.sin(a)*ORBIT_R;
-
-      // faint orbit trail
-      if(phase==='orbit'){
-        ctx.beginPath();
-        ctx.arc(cx,cy,ORBIT_R,0,Math.PI*2);
-        ctx.strokeStyle=color;
-        ctx.lineWidth=0.5;
-        ctx.globalAlpha=0.08;
-        ctx.stroke();
-        ctx.globalAlpha=1;
-      }
-
-      // outer glow
-      const g2=ctx.createRadialGradient(x,y,0,x,y,DOT_R*3.5);
-      g2.addColorStop(0,color); g2.addColorStop(0.4,color); g2.addColorStop(1,'transparent');
-      ctx.beginPath(); ctx.arc(x,y,DOT_R*3.5,0,Math.PI*2);
-      ctx.fillStyle=g2; ctx.globalAlpha=0.25; ctx.fill(); ctx.globalAlpha=1;
-
-      // mid glow
-      const g1=ctx.createRadialGradient(x,y,0,x,y,DOT_R*2);
-      g1.addColorStop(0,'#fff'); g1.addColorStop(0.25,color); g1.addColorStop(1,'transparent');
-      ctx.beginPath(); ctx.arc(x,y,DOT_R*2,0,Math.PI*2);
-      ctx.fillStyle=g1; ctx.globalAlpha=0.6; ctx.fill(); ctx.globalAlpha=1;
-
-      // core
-      ctx.beginPath(); ctx.arc(x,y,DOT_R,0,Math.PI*2);
-      ctx.fillStyle=color; ctx.globalAlpha=1; ctx.fill();
-
-      // neon ring
-      ctx.beginPath(); ctx.arc(x,y,DOT_R+3,0,Math.PI*2);
-      ctx.strokeStyle=color; ctx.lineWidth=3;
-      ctx.globalAlpha=0.9; ctx.stroke(); ctx.globalAlpha=1;
-    });
-
-    frame++;
-    const speed = phase==='orbit' ? 0.035 : 0.035 * Math.max(0, 1-stopFrame/20);
-    angle += speed;
-
-    if(phase==='orbit' && frame>=120){ phase='stop'; stopFrame=0; }
-    if(phase==='stop'){ stopFrame++; }
-  }
+  const DURATION = 120; // ~2s at 60fps
 
   const tid = setInterval(()=>{
-    draw();
-    if(phase==='stop' && stopFrame>25){
+    ctx.fillStyle='#030508'; ctx.fillRect(0,0,W,H);
+
+    // Progress 0→1
+    const t = Math.min(1, frame / DURATION);
+
+    // Light beam sweeping left to right
+    const beamX = -W*0.3 + (W*1.6)*t;
+    const beamW = W*0.35;
+
+    // Dark grid background
+    ctx.strokeStyle='rgba(0,150,255,0.06)'; ctx.lineWidth=1;
+    for(let x=0;x<W;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=0;y<H;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+    // Beam glow — wide soft outer
+    const g2=ctx.createLinearGradient(beamX-beamW,0,beamX+beamW,0);
+    g2.addColorStop(0,'transparent');
+    g2.addColorStop(0.35,'rgba(0,180,255,0.04)');
+    g2.addColorStop(0.5,'rgba(120,220,255,0.18)');
+    g2.addColorStop(0.65,'rgba(0,180,255,0.04)');
+    g2.addColorStop(1,'transparent');
+    ctx.fillStyle=g2; ctx.fillRect(beamX-beamW,0,beamW*2,H);
+
+    // Beam core — bright narrow strip
+    const g1=ctx.createLinearGradient(beamX-18,0,beamX+18,0);
+    g1.addColorStop(0,'transparent');
+    g1.addColorStop(0.4,'rgba(180,240,255,0.55)');
+    g1.addColorStop(0.5,'rgba(255,255,255,0.9)');
+    g1.addColorStop(0.6,'rgba(180,240,255,0.55)');
+    g1.addColorStop(1,'transparent');
+    ctx.fillStyle=g1; ctx.fillRect(beamX-18,0,36,H);
+
+    // Reflection line on floor
+    const ry=H*0.85;
+    const gr=ctx.createLinearGradient(beamX-60,0,beamX+60,0);
+    gr.addColorStop(0,'transparent');
+    gr.addColorStop(0.5,'rgba(0,200,255,0.35)');
+    gr.addColorStop(1,'transparent');
+    ctx.fillStyle=gr; ctx.fillRect(beamX-60,ry,120,3);
+
+    // Logo text fades in after beam passes
+    if(t>0.6){
+      const fade=Math.min(1,(t-0.6)/0.3);
+      ctx.globalAlpha=fade;
+      ctx.fillStyle='#fff';
+      ctx.font=`900 ${Math.round(W*0.12)}px Arial`;
+      ctx.textAlign='center';
+      ctx.textBaseline='middle';
+      ctx.shadowColor='#00d4ff';
+      ctx.shadowBlur=30;
+      ctx.fillText('אולפנים',W/2,H/2);
+      ctx.shadowBlur=0;
+      ctx.globalAlpha=1;
+    }
+
+    frame++;
+    if(frame>DURATION+10){
       clearInterval(tid);
       splash.classList.add('hide');
       showHubOrAuth();
@@ -4579,7 +4574,7 @@ function initSplash(){
         document.querySelectorAll('.hub-btn').forEach((btn,i)=>{
           setTimeout(()=>btn.classList.add('show'), i*220);
         });
-      }, 80);
+      }, 60);
     }
   }, 16);
 }
