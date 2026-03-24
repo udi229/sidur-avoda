@@ -4704,165 +4704,127 @@ function initNeuralBg(){
   const canvas=document.getElementById('neural-bg');
   if(!canvas) return;
   const ctx=canvas.getContext('2d');
-  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
-  const W=canvas.width, H=canvas.height;
+  let W,H,wires=[],pulses=[];
 
-  // PCB grid - closer spacing like the image
-  const G=32;
-  const cols=Math.ceil(W/G)+1, rows=Math.ceil(H/G)+1;
-
-  // Build connected path segments on a grid
-  const segs=[];
-  const used=new Set();
-
-  function key(c,r){return c+','+r;}
-
-  // Generate many L-shaped and straight PCB traces
-  for(let i=0;i<120;i++){
-    const c0=Math.floor(Math.random()*cols);
-    const r0=Math.floor(Math.random()*rows);
-    const horiz=Math.random()<0.5;
-    const len=3+Math.floor(Math.random()*8);
-    const color=['#00aaff','#4488ff','#cc44ff','#ff2266','#00ddaa','#6644ff'][Math.floor(Math.random()*6)];
-    const alpha=0.25+Math.random()*0.2;
-
-    if(horiz){
-      const c1=Math.min(c0+len,cols-1);
-      segs.push({x1:c0*G,y1:r0*G,x2:c1*G,y2:r0*G,color,alpha});
-    } else {
-      const r1=Math.min(r0+len,rows-1);
-      segs.push({x1:c0*G,y1:r0*G,x2:c0*G,y2:r1*G,color,alpha});
-    }
+  function resize(){
+    W=canvas.width=window.innerWidth;
+    H=canvas.height=window.innerHeight;
+    buildWires();
   }
 
-  // Add some L-shaped traces (like in image)
-  for(let i=0;i<60;i++){
-    const c0=Math.floor(Math.random()*cols);
-    const r0=Math.floor(Math.random()*rows);
-    const c1=c0+Math.floor(Math.random()*6)+2;
-    const r1=r0+Math.floor(Math.random()*6)+2;
-    const color=['#00aaff','#4488ff','#cc44ff','#ff2266','#00ddaa'][Math.floor(Math.random()*5)];
-    const alpha=0.2+Math.random()*0.15;
-    // horizontal then vertical (L-shape corner)
-    segs.push({x1:c0*G,y1:r0*G,x2:c1*G,y2:r0*G,color,alpha}); // horiz
-    segs.push({x1:c1*G,y1:r0*G,x2:c1*G,y2:r1*G,color,alpha}); // vert
-  }
+  const COLORS=['#00aaff','#cc44ff','#ff1a6e','#00ffcc','#4466ff','#ff6600','#aa44ff','#00ccff'];
 
-  // Pulses
-  const pulses=[];
-  function spawnPulse(){
-    const s=segs[Math.floor(Math.random()*segs.length)];
-    const forward=Math.random()<0.5;
-    pulses.push({
-      seg:s, p:forward?0:1,
-      speed:(0.008+Math.random()*0.012)*(forward?1:-1),
-      color:s.color
-    });
-  }
-  for(let i=0;i<25;i++) spawnPulse();
-
-  // Via pads — intersection dots
-  const vias=[];
-  for(let i=0;i<80;i++){
-    vias.push({
-      x:Math.floor(Math.random()*cols)*G,
-      y:Math.floor(Math.random()*rows)*G,
-      color:['#00aaff','#cc44ff','#ff2266','#00ddaa'][Math.floor(Math.random()*4)]
-    });
-  }
-
-  function draw(){
-    ctx.fillStyle='#02030e';
-    ctx.fillRect(0,0,W,H);
-
-    // Subtle grid dots
-    for(let r=0;r<=rows;r++){
-      for(let c=0;c<=cols;c++){
-        ctx.beginPath();
-        ctx.arc(c*G,r*G,1,0,Math.PI*2);
-        ctx.fillStyle='#0a1428';
-        ctx.fill();
+  function buildWires(){
+    wires=[];
+    pulses=[];
+    // Divide screen into zones to guarantee full coverage
+    const zones=12;
+    const zoneW=W/4, zoneH=H/3;
+    for(let row=0;row<3;row++){
+      for(let col=0;col<4;col++){
+        const count=4+Math.floor(Math.random()*3);
+        for(let i=0;i<count;i++){
+          // Anchor inside this zone
+          const sx=col*zoneW+Math.random()*zoneW;
+          const sy=row*zoneH+Math.random()*zoneH;
+          const color=COLORS[Math.floor(Math.random()*COLORS.length)];
+          const pts=[{x:sx,y:sy}];
+          let cx=sx,cy=sy;
+          const steps=2+Math.floor(Math.random()*3);
+          for(let s=0;s<steps;s++){
+            if(Math.random()<0.5){
+              cx+=(Math.random()<0.5?-1:1)*(60+Math.random()*100);
+            } else {
+              cy+=(Math.random()<0.5?-1:1)*(60+Math.random()*100);
+            }
+            pts.push({x:cx,y:cy});
+          }
+          wires.push({
+            pts,color,
+            alpha:0.13+Math.random()*0.1,
+            phase:Math.random()*Math.PI*2,
+            speed:0.003+Math.random()*0.004  // slower breathing
+          });
+        }
       }
     }
+  }
 
-    // Draw traces
-    segs.forEach(s=>{
-      // Outer glow
+  let frame=0;
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#030510';
+    ctx.fillRect(0,0,W,H);
+    frame++;
+
+    wires.forEach(w=>{
+      w.phase+=w.speed;
+      const breathe=w.alpha*(0.6+0.4*Math.sin(w.phase));
+      // Glow
       ctx.beginPath();
-      ctx.moveTo(s.x1,s.y1);
-      ctx.lineTo(s.x2,s.y2);
-      ctx.strokeStyle=s.color;
-      ctx.globalAlpha=s.alpha*0.4;
-      ctx.lineWidth=4;
+      ctx.moveTo(w.pts[0].x,w.pts[0].y);
+      w.pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y));
+      ctx.strokeStyle=w.color;
+      ctx.globalAlpha=breathe*0.3;
+      ctx.lineWidth=3;
       ctx.stroke();
-      // Core line
+      // Core
       ctx.beginPath();
-      ctx.moveTo(s.x1,s.y1);
-      ctx.lineTo(s.x2,s.y2);
-      ctx.strokeStyle=s.color;
-      ctx.globalAlpha=s.alpha;
-      ctx.lineWidth=1.5;
+      ctx.moveTo(w.pts[0].x,w.pts[0].y);
+      w.pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y));
+      ctx.strokeStyle=w.color;
+      ctx.globalAlpha=breathe;
+      ctx.lineWidth=0.8;
       ctx.stroke();
       ctx.globalAlpha=1;
+      // Dots
+      w.pts.forEach(p=>{
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,1.5,0,Math.PI*2);
+        ctx.fillStyle=w.color;
+        ctx.globalAlpha=breathe*1.2;
+        ctx.fill();
+        ctx.globalAlpha=1;
+      });
     });
 
-    // Draw vias (round pads at intersections)
-    vias.forEach(v=>{
-      ctx.beginPath();
-      ctx.arc(v.x,v.y,4,0,Math.PI*2);
-      ctx.strokeStyle=v.color;
-      ctx.lineWidth=1.5;
-      ctx.globalAlpha=0.35;
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(v.x,v.y,1.5,0,Math.PI*2);
-      ctx.fillStyle=v.color;
-      ctx.globalAlpha=0.5;
-      ctx.fill();
-      ctx.globalAlpha=1;
-    });
-
-    // Draw pulses
-    pulses.forEach(p=>{
-      p.p+=p.speed;
-      if(p.p>1.05) p.p=0;
-      if(p.p<-0.05) p.p=1;
-      const t=Math.max(0,Math.min(1,p.p));
-      const x=p.seg.x1+(p.seg.x2-p.seg.x1)*t;
-      const y=p.seg.y1+(p.seg.y2-p.seg.y1)*t;
-
-      // Large glow halo
-      const g=ctx.createRadialGradient(x,y,0,x,y,22);
-      g.addColorStop(0,p.color+'bb');
-      g.addColorStop(0.25,p.color+'44');
+    // Pulses - slower
+    pulses=pulses.filter(p=>{
+      p.t+=p.speed;
+      const pts=p.wire.pts;
+      if(pts.length<2) return false;
+      const total=pts.length-1;
+      const si=Math.min(Math.floor(p.t*total),total-1);
+      const frac=(p.t*total)-si;
+      const a=pts[si],b=pts[Math.min(si+1,pts.length-1)];
+      const x=a.x+(b.x-a.x)*frac;
+      const y=a.y+(b.y-a.y)*frac;
+      const fade=Math.sin(p.t*Math.PI);
+      const g=ctx.createRadialGradient(x,y,0,x,y,7);
+      g.addColorStop(0,p.wire.color+'dd');
       g.addColorStop(1,'transparent');
-      ctx.beginPath(); ctx.arc(x,y,22,0,Math.PI*2);
-      ctx.fillStyle=g; ctx.fill();
-
-      // Glowing trail along trace
-      const trailT=Math.max(0,t-0.08);
-      const tx=p.seg.x1+(p.seg.x2-p.seg.x1)*trailT;
-      const ty=p.seg.y1+(p.seg.y2-p.seg.y1)*trailT;
-      const tg=ctx.createLinearGradient(tx,ty,x,y);
-      tg.addColorStop(0,'transparent');
-      tg.addColorStop(0.5,p.color+'66');
-      tg.addColorStop(1,p.color+'cc');
-      ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(x,y);
-      ctx.strokeStyle=tg; ctx.lineWidth=3;
-      ctx.stroke();
-
-      // Bright core
-      ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2);
-      ctx.fillStyle='#fff';
-      ctx.globalAlpha=0.95; ctx.fill();
-      ctx.beginPath(); ctx.arc(x,y,2,0,Math.PI*2);
-      ctx.fillStyle=p.color;
-      ctx.globalAlpha=1; ctx.fill();
+      ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);
+      ctx.fillStyle=g;ctx.globalAlpha=fade*0.6;ctx.fill();
+      ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);
+      ctx.fillStyle='#fff';ctx.globalAlpha=fade;ctx.fill();
+      ctx.globalAlpha=1;
+      return p.t<1;
     });
 
-    if(Math.random()<0.04 && pulses.length<35) spawnPulse();
+    // Spawn pulses less frequently
+    if(frame%18===0 && pulses.length<35){
+      const w=wires[Math.floor(Math.random()*wires.length)];
+      if(w&&w.pts.length>1) pulses.push({
+        wire:w, t:0,
+        speed:0.004+Math.random()*0.005  // slower pulses
+      });
+    }
+
     requestAnimationFrame(draw);
   }
+
+  resize();
+  window.addEventListener('resize',resize);
   draw();
 }
 
