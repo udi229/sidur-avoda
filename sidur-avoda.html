@@ -1078,37 +1078,44 @@
   #view-loz .preview-topbar {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     margin-bottom: 0.75rem;
-    padding: 10px 14px;
-    background: #E8550A;
+    padding: 12px 16px;
+    background: #000;
     border-radius: 8px;
-    color: #ffffff !important;
   }
-  #view-loz .preview-date { color: #ffffff !important; font-weight: 700; font-size: 15px; flex: 1; }
+  #view-loz .preview-date { color: #fff; font-weight: 700; font-size: 15px; flex: 1; }
   #view-loz .pv-btn {
     font-family: 'Heebo', sans-serif;
-    padding: 5px 14px;
+    padding: 7px 18px;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  @keyframes pvPublishBlink {
+    0%,100%{ box-shadow:0 0 8px #E8550A88; opacity:1; }
+    50%{ box-shadow:0 0 20px #E8550Acc; opacity:0.8; }
   }
   #view-loz .pv-publish {
-    background: transparent;
-    border: 1.5px solid #ff8c00;
-    color: #ff8c00;
-    box-shadow: 0 0 8px 1px rgba(255,140,0,0.6), inset 0 0 6px rgba(255,140,0,0.1);
-    text-shadow: 0 0 6px rgba(255,140,0,0.8);
-    transition: all 0.2s;
+    background: #E8550A;
+    color: #fff;
+    border: none;
+    animation: pvPublishBlink 1.4s ease-in-out infinite;
   }
-  .pv-publish:hover {
-    background: rgba(255,140,0,0.12);
-    box-shadow: 0 0 14px 3px rgba(255,140,0,0.8), inset 0 0 8px rgba(255,140,0,0.15);
+  #view-loz .pv-publish.published {
+    background: #1e293b;
+    color: #f87171;
+    border: 1.5px solid #f87171;
+    animation: none;
   }
-  #view-loz .pv-close { background: #2a2a2a; color: #aaa; border: none; }
-  .pv-close:hover { background: #333; color: #fff; }
+  #view-loz .pv-close {
+    background: #E8550A;
+    color: #fff;
+    border: none;
+  }
+  #view-loz .pv-close:hover { background: #d44400; }
 
   /* Print: only show preview content */
   @media print {
@@ -1429,7 +1436,7 @@
 <div id="preview-overlay">
   <div class="preview-topbar">
     <div class="preview-date" id="pv-date"></div>
-    <button class="pv-btn pv-publish" onclick="publishDay()">פרסם</button>
+    <button class="pv-btn pv-publish" id="pv-publish-btn" onclick="lozTogglePublishFromPreview()">פרסם</button>
     <button class="pv-btn pv-close" onclick="closePreview()">סגור</button>
   </div>
   <div id="pv-content"></div>
@@ -5538,6 +5545,7 @@ function printDay(){
   html+=`</tbody></table></div>`;
   document.getElementById('pv-content').innerHTML=html;
   document.getElementById('preview-overlay').classList.add('open');
+  lozUpdatePreviewPubBtn();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -5598,7 +5606,21 @@ async function lozTogglePublish(){
   try{
     await sb.from('loz_daily').upsert({date:key,data:getOrCreate(key),published:window._lozPub[key]},{onConflict:'date'});
     lozUpdatePubBtn();
+    lozUpdatePreviewPubBtn();
   }catch(e){ alert('שגיאה: '+e.message); }
+}
+
+async function lozTogglePublishFromPreview(){
+  await lozTogglePublish();
+  lozUpdatePreviewPubBtn();
+}
+
+function lozUpdatePreviewPubBtn(){
+  const btn=document.getElementById('pv-publish-btn');
+  if(!btn) return;
+  const pub=lozIsPublished();
+  btn.textContent=pub?'אל תפרסם':'פרסם';
+  btn.classList.toggle('published', pub);
 }
 
 function lozUpdatePubBtn(){
