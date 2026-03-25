@@ -89,6 +89,19 @@
 
   /* CELLS */
   .cell-inner { display:flex; flex-direction:column; gap:3px; padding:4px; min-height:36px; position:relative; }
+  /* Grid lines on schedule cells */
+  #sched-wrap td {
+    border-right: 1px solid rgba(148,163,184,0.25);
+    border-bottom: 1px solid rgba(148,163,184,0.25);
+  }
+  #sched-wrap td:first-child { border-right: none; }
+  #sched-wrap tr:last-child td { border-bottom: none; }
+  #sched-wrap th {
+    border-right: 1px solid rgba(148,163,184,0.2);
+  }
+  #sched-wrap th:first-child { border-right: none; }
+  /* Today column highlight */
+  #sched-wrap td.today-col { background: rgba(59,130,246,0.04); }
   .cell-rel { position:relative; }
   .cell-tags { display:flex; flex-wrap:wrap; gap:3px; }
   .emp-tag { display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; cursor:default; white-space:nowrap; }
