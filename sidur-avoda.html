@@ -596,8 +596,8 @@
     background:conic-gradient(from var(--a,0deg), var(--c1), var(--c2), var(--c3,var(--c1)), var(--c1));
     animation:cardSpin 4s linear infinite;
     cursor:pointer;
-    opacity:0; transform:scale(0.3);
-    transition:opacity 0.5s ease, transform 0.6s cubic-bezier(0.34,1.4,0.64,1);
+    opacity:0; transform:scale(0.05);
+    transition:opacity 0.4s ease, transform 0.7s cubic-bezier(0.34,1.5,0.64,1);
   }
   .hub-card.show { opacity:1; transform:scale(1); }
   .hub-card:active { transform:scale(0.93) !important; }
@@ -4701,6 +4701,63 @@ function initSplash(){
     ctx.shadowBlur = 0;
     ctx.restore();
 
+    // Draw hub buttons as circles REVEALED by beam
+    const cardData = [
+      { x: W*0.5,  y: H*0.52, label:'סידור',   c1:'#00aaff', c2:'#0033ff', sub:'LIVE' },
+      { x: W*0.22, y: H*0.70, label:'חופשות',  c1:'#cc44ff', c2:'#ff1a6e', sub:'' },
+      { x: W*0.78, y: H*0.70, label:'לוז',      c1:'#ffaa00', c2:'#ff5500', sub:'בקרוב' },
+    ];
+    const R2 = Math.min(W,H)*0.13;
+
+    cardData.forEach(card=>{
+      if(beamX < card.x - R2 - 10) return; // not yet revealed
+      const revealed = Math.min(1, (beamX - (card.x - R2)) / (R2*2.5));
+      if(revealed <= 0) return;
+
+      ctx.save();
+      ctx.globalAlpha = revealed;
+
+      // Neon border (conic sim with arc stroke)
+      ctx.beginPath(); ctx.arc(card.x, card.y, R2+3, 0, Math.PI*2);
+      ctx.strokeStyle = card.c1; ctx.lineWidth = 3;
+      ctx.shadowColor = card.c1; ctx.shadowBlur = 18*revealed;
+      ctx.stroke(); ctx.shadowBlur = 0;
+
+      // Glass inner fill
+      ctx.beginPath(); ctx.arc(card.x, card.y, R2, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(4,4,20,0.88)'; ctx.fill();
+
+      // Label
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = `900 ${Math.round(R2*0.38)}px Arial,sans-serif`;
+      ctx.fillStyle = card.c1;
+      ctx.shadowColor = card.c1; ctx.shadowBlur = 12*revealed;
+      ctx.fillText(card.label, card.x, card.y + (card.sub?-R2*0.12:0));
+      ctx.shadowBlur = 0;
+
+      if(card.sub==='LIVE'){
+        ctx.font = `700 ${Math.round(R2*0.22)}px Arial,sans-serif`;
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillText('● LIVE', card.x, card.y + R2*0.32);
+      } else if(card.sub){
+        ctx.font = `600 ${Math.round(R2*0.22)}px Arial,sans-serif`;
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.fillText(card.sub, card.x, card.y + R2*0.32);
+      }
+
+      // Shine where beam crosses
+      const dist = Math.abs(card.x - beamX);
+      if(dist < R2*1.5){
+        const shine = Math.max(0, 1 - dist/(R2*1.5));
+        ctx.beginPath(); ctx.arc(card.x, card.y, R2+3, 0, Math.PI*2);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+        ctx.globalAlpha = shine * 0.7 * revealed;
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    });
+
     frame++;
     if(frame>DURATION+10){
       clearInterval(tid);
@@ -4708,12 +4765,10 @@ function initSplash(){
       showHubOrAuth();
       setTimeout(()=>{
         setTimeout(drawTestCard,100);
-  document.querySelectorAll('.hub-card').forEach((card,i)=>{
-          setTimeout(()=>card.classList.add('show'), 80+i*150);
-        });
+        document.querySelectorAll('.hub-card').forEach(c=>c.classList.add('show'));
         const exitBtn=document.getElementById('hub-exit-btn');
         if(exitBtn) exitBtn.classList.add('show');
-      }, 60);
+      }, 30);
     }
   }, 16);
 }
