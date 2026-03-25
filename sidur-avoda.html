@@ -568,66 +568,74 @@
   }
   .hub-subtitle span { color:#00d4ff88; margin:0 8px; }
 
-  /* Card buttons - circular breathing */
+  /* Card buttons - triangle layout */
   @property --a { syntax:'<angle>'; initial-value:0deg; inherits:false; }
-  @keyframes cardSpin { to { --a:360deg; } }
-  @keyframes breathe1 { 0%,100%{transform:scale(1);    box-shadow:0 0 30px var(--c1),0 0 60px var(--c1)44,0 0 100px var(--c1)22} 50%{transform:scale(1.07); box-shadow:0 0 50px var(--c1),0 0 100px var(--c1)66,0 0 160px var(--c1)33} }
-  @keyframes breathe2 { 0%,100%{transform:scale(1);    box-shadow:0 0 30px var(--c1),0 0 60px var(--c1)44,0 0 100px var(--c1)22} 50%{transform:scale(1.07); box-shadow:0 0 50px var(--c1),0 0 100px var(--c1)66,0 0 160px var(--c1)33} }
-  @keyframes breathe3 { 0%,100%{transform:scale(1);    box-shadow:0 0 30px var(--c1),0 0 60px var(--c1)44,0 0 100px var(--c1)22} 50%{transform:scale(1.07); box-shadow:0 0 50px var(--c1),0 0 100px var(--c1)66,0 0 160px var(--c1)33} }
+  @keyframes cardSpin   { to { --a:360deg; } }
+  @keyframes floatA { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-10px)} }
+  @keyframes floatB { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-10px)} }
+  @keyframes floatC { 0%,100%{transform:translateY(-5px)} 50%{transform:translateY(5px)}  }
 
   .hub-cards {
-    display:flex; flex-direction:row; gap:28px;
-    align-items:center; justify-content:center;
     position:relative; z-index:2;
-    flex-wrap:nowrap;
+    width:min(300px,88vw); height:280px;
+    display:flex; align-items:center; justify-content:center;
   }
 
-  .hub-card {
-    width:130px; height:130px; border-radius:50%;
-    padding:3px;
-    border:none;
-    background:conic-gradient(from var(--a,0deg), var(--c1), var(--c2), var(--c3,var(--c1)), var(--c1));
-    animation:cardSpin 4s linear infinite, breathe1 3s ease-in-out infinite;
-    cursor:pointer;
+  /* Wrapper that rotates all 3 cards as a unit */
+  .hub-cards-inner {
     position:relative;
-    opacity:0; transform:scale(0.5);
-    transition:opacity 0.5s ease, transform 0.6s cubic-bezier(0.34,1.56,0.64,1);
-    flex-shrink:0;
+    width:240px; height:240px;
+  }
+
+  /* Each card sits at a fixed position in the triangle */
+  .hub-card {
+    position:absolute;
+    width:110px; height:110px; border-radius:50%;
+    padding:3px; border:none;
+    background:conic-gradient(from var(--a,0deg), var(--c1), var(--c2), var(--c3,var(--c1)), var(--c1));
+    animation:cardSpin 4s linear infinite;
+    cursor:pointer;
+    opacity:0; transform:scale(0.3);
+    transition:opacity 0.5s ease, transform 0.6s cubic-bezier(0.34,1.4,0.64,1);
   }
   .hub-card.show { opacity:1; transform:scale(1); }
-  .hub-card:nth-child(2).show { animation:cardSpin 4s linear infinite, breathe2 3.4s ease-in-out 0.4s infinite; }
-  .hub-card:nth-child(3).show { animation:cardSpin 4s linear infinite, breathe3 3.8s ease-in-out 0.8s infinite; }
   .hub-card:active { transform:scale(0.93) !important; }
   .hub-card.disabled { opacity:0.35 !important; cursor:not-allowed; }
 
-  .hub-card-schedule { --c1:#00aaff; --c2:#0033ff; --c3:#00ffee; }
-  .hub-card-vacation { --c1:#cc44ff; --c2:#ff1a6e; --c3:#ff44aa; }
-  .hub-card-loz      { --c1:#ffaa00; --c2:#ff5500; --c3:#ffee00; }
+  /* Triangle: top-center, bottom-left, bottom-right */
+  .hub-card-schedule {
+    --c1:#00aaff; --c2:#0033ff; --c3:#00ffee;
+    top:0; left:50%; margin-left:-55px;
+    animation:cardSpin 4s linear infinite, floatC 3.2s ease-in-out infinite;
+  }
+  .hub-card-vacation {
+    --c1:#cc44ff; --c2:#ff1a6e; --c3:#ff44aa;
+    bottom:0; left:0;
+    animation:cardSpin 4.5s linear infinite, floatA 3.8s ease-in-out 0.5s infinite;
+  }
+  .hub-card-loz {
+    --c1:#ffaa00; --c2:#ff5500; --c3:#ffee00;
+    bottom:0; right:0;
+    animation:cardSpin 3.8s linear infinite, floatB 4.1s ease-in-out 1s infinite;
+  }
 
-  /* Glass inner circle */
   .hub-card-inner {
     width:100%; height:100%; border-radius:50%;
-    background:rgba(4,4,20,0.88);
+    background:rgba(4,4,20,0.9);
     backdrop-filter:blur(10px);
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    overflow:hidden;
   }
-  .hub-card-icon { font-size:32px; line-height:1; }
-  .hub-card-name { font-size:11px; font-weight:800; letter-spacing:0.5px; text-align:center; padding:0 6px; }
+  .hub-card-icon { font-size:28px; line-height:1; }
+  .hub-card-name { font-size:10px; font-weight:800; letter-spacing:0.5px; text-align:center; padding:0 6px; }
   .hub-card-schedule .hub-card-name { color:#33ccff; }
   .hub-card-vacation .hub-card-name { color:#ee77ff; }
   .hub-card-loz      .hub-card-name { color:#ffcc44; }
-  .hub-card-sub { font-size:9px; color:rgba(255,255,255,0.4); display:flex; align-items:center; gap:3px; }
-  .hub-live-dot { width:5px; height:5px; border-radius:50%; background:#ff3333; box-shadow:0 0 4px #ff3333; animation:dotBlink2 1s infinite; }
-  @keyframes dotBlink2 { 0%,100%{opacity:1}50%{opacity:0.2} }
+  .hub-card-sub { font-size:8px; color:rgba(255,255,255,0.4); display:flex; align-items:center; gap:3px; }
+  .hub-live-dot { width:5px;height:5px;border-radius:50%;background:#ff3333;box-shadow:0 0 4px #ff3333;animation:dotBlink2 1s infinite; }
+  @keyframes dotBlink2{0%,100%{opacity:1}50%{opacity:0.2}}
 
-  /* Vacation button - neon test card icon */
-  .vac-testcard {
-    width:48px; height:36px; border-radius:4px; overflow:hidden;
-    display:grid; grid-template-columns:repeat(8,1fr); grid-template-rows:repeat(3,1fr);
-    gap:0; opacity:0.9;
-  }
-  .vac-testcard-bar { display:block; }
-
+  /* Exit button */
   /* Exit button */
   /* Exit button */
   .hub-btn-exit {
@@ -656,22 +664,7 @@
   .hub-bg-grid {
 
 
-  /* === ZOOM IN TRANSITION === */
-  #zoom-overlay {
-    position:fixed; inset:0; z-index:19999;
-    display:none; pointer-events:none;
-    overflow:hidden;
-  }
-  #zoom-overlay.active { display:block; }
-  #zoom-circle {
-    position:absolute;
-    width:10px; height:10px;
-    border-radius:50%;
-    background:var(--zoom-color,#00aaff);
-    transform:translate(-50%,-50%) scale(1);
-    box-shadow:0 0 40px var(--zoom-color,#00aaff);
-    transition:transform 0.55s cubic-bezier(0.4,0,1,1);
-  }
+
 
   /* === BACK BUTTONS NEON RED === */
   @keyframes neonBlink {
@@ -715,10 +708,10 @@
   </div>
 
   <div class="hub-cards">
+    <div class="hub-cards-inner">
     <button class="hub-card hub-card-schedule" onclick="hubGo('schedule')">
       <div class="hub-card-inner">
-        <div class="hub-card-icon">📹</div>
-        <div class="hub-card-name">סידור</div>
+        <div style="font-size:22px;font-weight:900;color:#33ccff;text-shadow:0 0 14px #00aaffaa;letter-spacing:1px">סידור</div>
         <div class="hub-card-sub"><span class="hub-live-dot"></span> LIVE</div>
       </div>
     </button>
@@ -735,6 +728,7 @@
         <div class="hub-card-sub">בקרוב</div>
       </div>
     </button>
+    </div><!-- /hub-cards-inner -->
   </div>
 
   <button class="hub-btn-exit" id="hub-exit-btn" onclick="hubExit()">
@@ -742,11 +736,6 @@
       <span class="exit-label">יציאה</span>
     </div>
   </button>
-</div>
-
-<!-- ZOOM OVERLAY -->
-<div id="zoom-overlay">
-  <div id="zoom-circle"></div>
 </div>
 
 <div id="auth-screen">
@@ -4676,20 +4665,40 @@ function initSplash(){
     gr.addColorStop(1,'transparent');
     ctx.fillStyle=gr; ctx.fillRect(beamX-60,ry,120,3);
 
-    // Logo text fades in after beam passes
-    if(t>0.6){
-      const fade=Math.min(1,(t-0.6)/0.3);
-      ctx.globalAlpha=fade;
-      ctx.fillStyle='#fff';
-      ctx.font=`900 ${Math.round(W*0.12)}px Arial`;
-      ctx.textAlign='center';
-      ctx.textBaseline='middle';
-      ctx.shadowColor='#00d4ff';
-      ctx.shadowBlur=30;
-      ctx.fillText('אולפנים',W/2,H/2);
-      ctx.shadowBlur=0;
-      ctx.globalAlpha=1;
+    // Logo text REVEALED by beam - clip to area beam has passed
+    ctx.save();
+    // Clip to everything left of beam position (revealed zone)
+    ctx.beginPath();
+    ctx.rect(0, 0, beamX + 18, H);
+    ctx.clip();
+
+    const fontSize = Math.round(W*0.13);
+    ctx.font = `900 ${fontSize}px Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // Glow layers
+    ctx.shadowColor = '#00d4ff';
+    ctx.shadowBlur = 40;
+    ctx.fillStyle = 'rgba(0,200,255,0.3)';
+    ctx.fillText('אולפנים', W/2, H/2);
+
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = '#fff';
+    ctx.fillText('אולפנים', W/2, H/2);
+
+    // Extra shine where beam is RIGHT NOW (beam highlight on text)
+    const distFromBeam = Math.abs(W/2 - beamX);
+    if(distFromBeam < W*0.25){
+      const shine = Math.max(0, 1 - distFromBeam/(W*0.25));
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 60 * shine;
+      ctx.fillStyle = `rgba(255,255,255,${0.4*shine})`;
+      ctx.fillText('אולפנים', W/2, H/2);
     }
+
+    ctx.shadowBlur = 0;
+    ctx.restore();
 
     frame++;
     if(frame>DURATION+10){
@@ -4839,66 +4848,129 @@ function initNeuralBg(){
 function drawTestCard(){
   const canvas = document.getElementById('testcard-canvas');
   if(!canvas) return;
-  // Set canvas size to match display size
+  if(window._testCardRunning) return; // already running
+  window._testCardRunning = true;
+
   const size = canvas.offsetWidth || 130;
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d');
   const W = size, H = size, cx = W/2, cy = H/2, R = W/2;
 
-  // Clip to circle
-  ctx.beginPath();
-  ctx.arc(cx,cy,R,0,Math.PI*2);
-  ctx.clip();
+  function drawFrame(flickerAlpha, noiseAmt){
+    ctx.clearRect(0,0,W,H);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.clip();
 
-  // Background
-  ctx.fillStyle='#050505';
-  ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#050505';
+    ctx.fillRect(0,0,W,H);
 
-  // === TOP COLOR BARS (top 65%) ===
-  const barH = H*0.62;
-  const bars = ['#00ffff','#ffff00','#00ff00','#ff00ff','#ff0000','#0044ff','#ffffff'];
-  const bw = W/bars.length;
-  bars.forEach((c,i)=>{
-    ctx.fillStyle=c;
-    ctx.fillRect(i*bw, 0, bw+1, barH);
-  });
+    // Slight random vertical shift for flicker
+    const shiftY = noiseAmt > 0 ? (Math.random()-0.5)*noiseAmt*4 : 0;
+    ctx.translate(0, shiftY);
 
-  // Neon glow on bars (white top fade)
-  const grad = ctx.createLinearGradient(0,0,0,barH);
-  grad.addColorStop(0,'rgba(255,255,255,0.3)');
-  grad.addColorStop(0.4,'rgba(255,255,255,0)');
-  ctx.fillStyle=grad;
-  ctx.fillRect(0,0,W,barH);
+    const barH = H*0.62;
+    const bars = ['#00ffff','#ffff00','#00ff00','#ff00ff','#ff0000','#0044ff','#ffffff'];
+    bars.forEach((c,i)=>{
+      ctx.fillStyle=c;
+      ctx.globalAlpha = flickerAlpha * (1 - noiseAmt*0.3*Math.random());
+      ctx.fillRect(i*(W/bars.length), 0, W/bars.length+1, barH);
+    });
+    ctx.globalAlpha=1;
 
-  // === MIDDLE REVERSED BARS (65-78%) ===
-  const midY=barH, midH=H*0.13;
-  const mid=['#0044ff','#111','#ff00ff','#111','#00ffff','#111','#ffffff'];
-  mid.forEach((c,i)=>{
-    ctx.fillStyle=c;
-    ctx.fillRect(i*(W/mid.length), midY, W/mid.length+1, midH);
-  });
+    const grad=ctx.createLinearGradient(0,0,0,barH);
+    grad.addColorStop(0,'rgba(255,255,255,0.3)');
+    grad.addColorStop(0.4,'rgba(255,255,255,0)');
+    ctx.globalAlpha=flickerAlpha; ctx.fillStyle=grad; ctx.fillRect(0,0,W,barH); ctx.globalAlpha=1;
 
-  // === BOTTOM STRIPE ZONE (78-100%) ===
-  const botY=midY+midH, botH=H-botY;
-  // Black, cyan, magenta, black, white, black, yellow
-  const bot=['#111','#00ffff','#ff00ff','#111','#ffffff','#111','#ffff00'];
-  bot.forEach((c,i)=>{
-    ctx.fillStyle=c;
-    ctx.fillRect(i*(W/bot.length), botY, W/bot.length+1, botH);
-  });
+    const midY=barH, midH=H*0.13;
+    const mid=['#0044ff','#111','#ff00ff','#111','#00ffff','#111','#ffffff'];
+    mid.forEach((c,i)=>{ ctx.fillStyle=c; ctx.globalAlpha=flickerAlpha; ctx.fillRect(i*(W/mid.length),midY,W/mid.length+1,midH); });
+    ctx.globalAlpha=1;
 
+    const botY=midY+midH, botH=H-botY;
+    const bot=['#111','#00ffff','#ff00ff','#111','#ffffff','#111','#ffff00'];
+    bot.forEach((c,i)=>{ ctx.fillStyle=c; ctx.globalAlpha=flickerAlpha; ctx.fillRect(i*(W/bot.length),botY,W/bot.length+1,botH); });
+    ctx.globalAlpha=1;
 
+    // Scanlines
+    for(let y=0;y<H;y+=2.5){ ctx.fillStyle='rgba(0,0,0,0.18)'; ctx.fillRect(0,y,W,1); }
 
-  // === SCANLINES ===
-  for(let y=0;y<H;y+=2.5){
-    ctx.fillStyle='rgba(0,0,0,0.18)';
-    ctx.fillRect(0,y,W,1);
+    // Noise overlay during flicker
+    if(noiseAmt>0){
+      for(let i=0;i<40*noiseAmt;i++){
+        ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.4})`;
+        ctx.fillRect(Math.random()*W, Math.random()*H, Math.random()*W*0.4+2, 1+Math.random()*2);
+      }
+    }
+    ctx.restore();
   }
 
-  // Subtle neon tint
-  ctx.fillStyle='rgba(255,0,255,0.04)';
-  ctx.fillRect(0,0,W,H);
+  function tvOff(onDone){
+    // Flicker phase (~0.4s)
+    let f=0; const flickFrames=25;
+    const flickTid = setInterval(()=>{
+      const noise = f/flickFrames;
+      const alpha = 1 - noise*0.3 + (Math.random()-0.5)*0.2*noise;
+      drawFrame(Math.max(0,alpha), noise);
+      f++;
+      if(f>flickFrames) clearInterval(flickTid);
+    },16);
+
+    // Collapse to horizontal line then black
+    setTimeout(()=>{
+      let cy2=H/2, lineH=H, step=0;
+      const collTid=setInterval(()=>{
+        ctx.save();
+        ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.clip();
+        ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+        if(lineH>1){
+          lineH = Math.max(1, lineH*0.72);
+          const y = (H-lineH)/2;
+          const lg=ctx.createLinearGradient(0,y,0,y+lineH);
+          lg.addColorStop(0,'rgba(255,255,255,0)');
+          lg.addColorStop(0.5,'rgba(255,255,255,0.9)');
+          lg.addColorStop(1,'rgba(255,255,255,0)');
+          ctx.fillStyle=lg; ctx.fillRect(0,y,W,lineH);
+        }
+        ctx.restore();
+        step++;
+        if(step>18){
+          clearInterval(collTid);
+          ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.clip();
+          ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+          // Show "לוח חופשות" text after tv off
+          const fs = Math.round(W*0.13);
+          ctx.font = `900 ${fs}px Arial, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.shadowColor = '#cc44ff';
+          ctx.shadowBlur = 20;
+          ctx.fillStyle = '#ee77ff';
+          ctx.fillText('לוח', W/2, H/2 - fs*0.55);
+          ctx.fillText('חופשות', W/2, H/2 + fs*0.55);
+          ctx.shadowBlur = 0;
+          ctx.restore();
+          onDone();
+        }
+      },20);
+    },420);
+  }
+
+  function cycle(){
+    // Show test card for 3 seconds
+    drawFrame(1,0);
+    setTimeout(()=>{
+      tvOff(()=>{
+        // Stay black for 0.8s then restart
+        setTimeout(cycle, 800);
+      });
+    }, 3000);
+  }
+
+  cycle();
 }
 
 function showHubOrAuth(){
@@ -4927,6 +4999,7 @@ function goBackToHub(){
   document.getElementById('app').style.display='none';
   // Reset vacation
   window._vacInitialized = false;
+  window._testCardRunning = false;
   // Show hub
   document.getElementById('hub-screen').classList.add('active');
   document.querySelectorAll('.hub-card').forEach(card=>card.classList.add('show'));
@@ -4970,57 +5043,10 @@ function hubGo(dest){
     if(auth) auth.style.display='flex';
     return;
   }
-  // Zoom from button position
-  const colors = {schedule:'#00aaff', vacation:'#cc44ff', loz:'#ffaa00'};
-  const color = colors[dest]||'#00aaff';
-  const overlay = document.getElementById('zoom-overlay');
-  const circle  = document.getElementById('zoom-circle');
-
-  // Find the clicked card
-  const cardClass = dest==='vacation'?'.hub-card-vacation':dest==='schedule'?'.hub-card-schedule':'.hub-card-loz';
-  const card = document.querySelector(cardClass);
-  const rect = card ? card.getBoundingClientRect() : {left:window.innerWidth/2,top:window.innerHeight/2,width:0,height:0};
-  const bx = rect.left + rect.width/2;
-  const by = rect.top  + rect.height/2;
-
-  // Calc scale needed to fill screen from this point
-  const maxDist = Math.sqrt(Math.max(bx,window.innerWidth-bx)**2 + Math.max(by,window.innerHeight-by)**2);
-  const scale = (maxDist*2.2)/10;
-
-  // Position circle at button center
-  overlay.style.setProperty('--zoom-color', color);
-  circle.style.transition = 'none';
-  circle.style.left = bx+'px';
-  circle.style.top  = by+'px';
-  circle.style.background = color;
-  circle.style.boxShadow = '0 0 40px '+color;
-  circle.style.transform = 'translate(-50%,-50%) scale(1)';
-  overlay.classList.add('active');
-  overlay.style.pointerEvents='all';
-
-  // Trigger expand
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    circle.style.transition = 'transform 0.55s cubic-bezier(0.4,0,0.85,1)';
-    circle.style.transform  = 'translate(-50%,-50%) scale('+scale+')';
-  }));
-
-  setTimeout(()=>{
-    document.getElementById('hub-screen').classList.remove('active');
-    document.getElementById('app').style.display='block';
-    if(dest==='vacation') showView('vacation');
-    else showView('schedule');
-    // Quick fade out
-    overlay.style.opacity='0';
-    overlay.style.transition='opacity 0.18s';
-    setTimeout(()=>{
-      overlay.classList.remove('active');
-      overlay.style.opacity='1';
-      overlay.style.transition='';
-      overlay.style.pointerEvents='none';
-      circle.style.transition='none';
-      circle.style.transform='translate(-50%,-50%) scale(1)';
-    }, 200);
-  }, 520);
+  document.getElementById('hub-screen').classList.remove('active');
+  document.getElementById('app').style.display='block';
+  if(dest==='vacation') showView('vacation');
+  else showView('schedule');
 }
 
 // Start splash on load
