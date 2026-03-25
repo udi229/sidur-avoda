@@ -704,8 +704,6 @@
   }
   .btn-back-hub-vac:hover { background:#ff1a1a22; }
 </style>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DSEG7+Classic:ital,wght@0,400;0,700&display=swap" rel="stylesheet">
 </head>
@@ -3002,39 +3000,23 @@ function showNotification(title, body){
 // Keeping IIFE empty - showHubOrAuth handles it
 (async()=>{})();
 
-// Auto-register sidur user into vacation Firebase
+// Auto-register sidur user into vacation Supabase
 function _autoRegisterVacationUser(emp){
-  if(!emp || !emp.full_name || emp.id==='manager-local') return;
-  // Wait for Firebase to load, then register
-  const tryRegister = async () => {
-    if(typeof firebase==='undefined') return;
+  if(!emp||!emp.full_name||emp.id==='manager-local') return;
+  setTimeout(async()=>{
     try{
-      const fs = firebase.firestore();
-      const snap = await fs.collection('shared').doc('data').get();
-      const data = snap.exists ? snap.data() : {};
-      const users = data.users||[];
-      const depts = data.deptReps ? Object.keys(data.deptReps) : [];
-      // Get dept name
-      const allDepts = window.departments||[];
-      const deptObj = allDepts.find(d=>d.id===emp.department_id);
-      const deptName = deptObj?.name||deptObj?.title||'כללי';
-      const email = emp.email||(emp.id+'@sidur.local');
-      // Check if already exists
-      const exists = users.find(u=>u.email===email);
-      if(!exists){
-        users.push({
-          id: Date.now().toString(),
-          name: emp.full_name,
-          email: email,
-          dept: deptName,
-          createdAt: new Date().toISOString()
-        });
-        await fs.collection('shared').doc('data').update({ users });
+      const email=(emp.email||emp.id+'@sidur.local').toLowerCase();
+      const allDepts=window.departments||[];
+      const deptObj=allDepts.find(d=>d.id===emp.department_id);
+      const deptName=deptObj?.name||deptObj?.title||'כללי';
+      const {data:existing}=await sb.from('vac_users').select('id').eq('email',email).maybeSingle();
+      if(!existing){
+        await sb.from('vac_users').insert({id:Date.now().toString(),name:emp.full_name,email,dept:deptName});
       }
-    } catch(e){ /* silent fail */ }
-  };
-  setTimeout(tryRegister, 1000);
+    }catch(e){}
+  },1500);
 }
+
 
 // ===== VACATION APP =====
 // Global showTab for vacation app tabs
@@ -3113,74 +3095,69 @@ function sendDecisionEmail(req, action, ccEmails) {
   window.open(outlookUrl, '_blank');
 }
 // ============ STORAGE — Firebase Firestore ============
-// Firebase loaded via CDN in head
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyBEJUFClOuTRRTfbF9RMvRXd4HanrRr7kc",
-  authDomain: "final-b9ed2.firebaseapp.com",
-  projectId: "final-b9ed2",
-  storageBucket: "final-b9ed2.firebasestorage.app",
-  messagingSenderId: "473280810760",
-  appId: "1:473280810760:web:214813ce4ba4abbba726bd"
-};
-
-let _db = null;
-function getFS() {
-  if (!_db) {
-    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-    _db = firebase.firestore();
-  }
-  return _db;
-}
+// Firebase removed — all data now in Supabase
+function getFS() { return null; } // no-op
 
 async function loadDB() {
   try {
-    const fs = getFS();
-    const doc = await fs.collection('studio').doc('main').get();
-    if (doc.exists) {
-      const d = doc.data();
-      DB.requests      = d.requests      || [];
-      DB.deptReps      = d.deptReps      || {};
-      DB.viewers       = d.viewers       || [];
-      DB.notifications = d.notifications || [];
-      DB.adminPassword = d.adminPassword || DB.adminPassword;
-    }
-  } catch(e) {
-    console.warn('loadDB error', e);
-    if (e.code === 'permission-denied') {
-      showToast('שגיאת הרשאות Firebase — בדוק Rules ב-Firestore', 'error');
-    } else if (e.message && e.message.includes('blocked')) {
-      showToast('הדומיין לא מאושר ב-Firebase — הוסף ב-Authorized Domains', 'error');
-    }
-  }
+    // Load settings (admin password, dept reps, viewers)
+    const {data:sets} = await sb.from('vac_settings').select('*');
+    (sets||[]).forEach(s=>{
+      if(s.key==='admin_password') DB.adminPassword = s.value;
+      else if(s.key==='dept_reps')  DB.deptReps      = s.value || {};
+      else if(s.key==='viewers')    DB.viewers        = s.value || [];
+    });
+    // Load requests
+    const {data:reqs} = await sb.from('vac_requests').select('*').order('created_at',{ascending:false});
+    DB.requests = (reqs||[]).map(r=>({
+      id:r.id, userId:r.user_id, userName:r.user_name, userDept:r.user_dept,
+      startDate:r.start_date, endDate:r.end_date,
+      start:r.start_date, end:r.end_date,
+      name:r.user_name, dept:r.user_dept,
+      reason:r.reason, status:r.status,
+      adminNote:r.admin_note,
+      recommendation:r.recommendation,
+      recommendationReason:r.recommendation_reason,
+      recommendedBy:r.recommended_by,
+      createdAt:r.created_at
+    }));
+    // Load notifications
+    const {data:notifs} = await sb.from('vac_notifications').select('*').order('created_at',{ascending:false});
+    DB.notifications = (notifs||[]).map(n=>({
+      id:n.id, userId:n.user_id, for:[n.user_id],
+      message:n.message, text:n.message,
+      type:n.type, read:n.read ? [n.user_id] : [],
+      createdAt:n.created_at
+    }));
+  } catch(e) { console.warn('loadDB error', e); }
 }
 
 async function saveDB() {
   try {
-    await getFS().collection('studio').doc('main').set({
-      requests:      DB.requests,
-      deptReps:      DB.deptReps,
-      viewers:       DB.viewers,
-      notifications: DB.notifications,
-      adminPassword: DB.adminPassword
-    });
+    await sb.from('vac_settings').upsert([
+      {key:'dept_reps',      value: DB.deptReps},
+      {key:'viewers',        value: DB.viewers},
+      {key:'admin_password', value: DB.adminPassword}
+    ], {onConflict:'key'});
   } catch(e) { console.warn('saveDB error', e); }
 }
 
 async function loadShared() {
-  await loadDB(); // Firestore is always shared
+  await loadDB();
+  await loadUsers();
 }
 
 async function loadUsers() {
   try {
-    const doc = await getFS().collection('studio').doc('users').get();
-    if (doc.exists && doc.data().list) DB.users = doc.data().list;
+    const {data} = await sb.from('vac_users').select('*').order('created_at');
+    DB.users = (data||[]).map(u=>({
+      id:u.id, name:u.name, email:u.email, dept:u.dept, createdAt:u.created_at
+    }));
   } catch(e) { console.warn('loadUsers error', e); }
 }
 
 async function saveUsers() {
-  try {
-    await getFS().collection('studio').doc('users').set({ list: DB.users });
-  } catch(e) { console.warn('saveUsers error', e); }
+  // Users are saved individually — no bulk save needed
 }
 
 // Screen transition
