@@ -612,7 +612,7 @@
     animation:cardSpin 4s linear infinite, floatC 3.2s ease-in-out infinite;
   }
   .hub-card-vacation {
-    --c1:#cc44ff; --c2:#ff1a6e; --c3:#ff44aa;
+    --c1:#00ff88; --c2:#00ffcc; --c3:#00dd55;
     bottom:0; left:0;
     animation:cardSpin 4.5s linear infinite, floatA 3.8s ease-in-out 0.5s infinite;
   }
@@ -632,7 +632,7 @@
   .hub-card-icon { font-size:28px; line-height:1; }
   .hub-card-name { font-size:10px; font-weight:800; letter-spacing:0.5px; text-align:center; padding:0 6px; }
   .hub-card-schedule .hub-card-name { color:#33ccff; }
-  .hub-card-vacation .hub-card-name { color:#ffaa33; }
+  .hub-card-vacation .hub-card-name { color:#00ffaa; text-shadow:0 0 10px #00ff88; }
   .hub-card-loz      .hub-card-name { color:#ffcc44; }
   .hub-card-sub { font-size:8px; color:rgba(255,255,255,0.4); display:flex; align-items:center; gap:3px; }
   .hub-live-dot { width:5px;height:5px;border-radius:50%;background:#ff3333;box-shadow:0 0 4px #ff3333;animation:dotBlink2 1s infinite; }
@@ -991,8 +991,8 @@
     </div>
   </header>
   <div class="app-tabs" id="main-tabs">
-    <button class="app-tab active" data-tab="tab-request" onclick="showTab('tab-request',this)">📋 בקשת חופשה</button>
-    <button class="app-tab" data-tab="tab-calendar" onclick="showTab('tab-calendar',this)">📅 לוח שנה שלי</button>
+    <button class="app-tab" data-tab="tab-request" onclick="showTab('tab-request',this)">📋 בקשת חופשה</button>
+    <button class="app-tab active" data-tab="tab-calendar" onclick="showTab('tab-calendar',this)">📅 לוח שנה שלי</button>
     <button class="app-tab" id="tab-rep-btn" style="display:none" data-tab="tab-rep" onclick="showTab('tab-rep',this)">💼 המלצות נציג</button>
     <button class="app-tab" id="tab-admin-cal-btn" style="display:none" data-tab="tab-admin-cal" onclick="showTab('tab-admin-cal',this)">📅 יומן חופשות</button>
     <button class="app-tab" id="tab-admin-req-btn" style="display:none" data-tab="tab-admin-req" onclick="showTab('tab-admin-req',this)">📋 בקשות</button>
@@ -1002,7 +1002,7 @@
   <div class="tab-panels">
 
     <!-- REQUEST -->
-    <div id="tab-request" class="tab-content active">
+    <div id="tab-request" class="tab-content">
       <div class="request-card">
         <div class="card-title">✈️ בקשת חופשה חדשה</div>
         <div class="form-row">
@@ -1023,7 +1023,7 @@
     </div>
 
     <!-- DEPT CALENDAR -->
-    <div id="tab-calendar" class="tab-content">
+    <div id="tab-calendar" class="tab-content active">
       <div class="calendar-container">
         <div class="calendar-header">
           <div class="calendar-title">📅 לוח שנה — המחלקה שלי</div>
@@ -3257,7 +3257,7 @@ async function enterApp(adminMode=false,viewerMode=false){
     document.getElementById('req-dept').value=currentUser.dept;
     renderMyRequests();checkNotifications();
     
-    showTab('tab-request',document.querySelector('[data-tab="tab-request"]'));
+    showTab('tab-calendar',document.querySelector('[data-tab="tab-calendar"]'));
     renderDeptCalendar();
   }
 }
@@ -4956,11 +4956,10 @@ function drawTestCard(){
           ctx.font = `900 ${fs}px Arial, sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.shadowColor = '#cc44ff';
+          ctx.shadowColor = '#00ff88';
           ctx.shadowBlur = 20;
-          ctx.fillStyle = '#ee77ff';
-          ctx.fillText('לוח', W/2, H/2 - fs*0.55);
-          ctx.fillText('חופשות', W/2, H/2 + fs*0.55);
+          ctx.fillStyle = '#00ffaa';
+          ctx.fillText('חופש', W/2, H/2);
           ctx.shadowBlur = 0;
           ctx.restore();
           onDone();
