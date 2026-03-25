@@ -17,9 +17,11 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   * { box-sizing: border-box; }
-  html,body { background:#030510; }
   body { margin:0; font-family:'Segoe UI',Tahoma,sans-serif; color:#0f172a; direction:rtl; }
 
+  html { background:#030510; }
+  body { background:#030510; }
+  #app { background:#f1f5f9; }
   /* HEADER */
   .hdr, .header { background:#0f172a; padding:10px 20px; position:sticky; top:0; z-index:100; box-shadow:0 2px 10px rgba(0,0,0,0.3); }
   .hdr-in { display:flex; align-items:center; justify-content:space-between; flex-direction:row-reverse; gap:12px; }
@@ -630,7 +632,7 @@
   .hub-card-icon { font-size:28px; line-height:1; }
   .hub-card-name { font-size:10px; font-weight:800; letter-spacing:0.5px; text-align:center; padding:0 6px; }
   .hub-card-schedule .hub-card-name { color:#33ccff; }
-  .hub-card-vacation .hub-card-name { color:#ee77ff; }
+  .hub-card-vacation .hub-card-name { color:#ffaa33; }
   .hub-card-loz      .hub-card-name { color:#ffcc44; }
   .hub-card-sub { font-size:8px; color:rgba(255,255,255,0.4); display:flex; align-items:center; gap:3px; }
   .hub-live-dot { width:5px;height:5px;border-radius:50%;background:#ff3333;box-shadow:0 0 4px #ff3333;animation:dotBlink2 1s infinite; }
@@ -703,10 +705,6 @@
 </div>
 <!-- HUB SCREEN -->
 <div id="hub-screen">
-
-  <div class="hub-title-wrap">
-    <div class="hub-neon-title">אולפנים</div>
-  </div>
 
   <div class="hub-cards">
     <div class="hub-cards-inner">
@@ -812,7 +810,7 @@
 </div>
 
 <!-- APP -->
-<div id="app" style="display:none;background:#f1f5f9;min-height:100vh">
+<div id="app" style="display:none">
   <div class="header">
     <div class="hdr-in">
       <div class="hdr-logo">🎬</div>
@@ -4623,12 +4621,15 @@ function initSplash(){
   const W = canvas.width, H = canvas.height;
 
   let frame = 0;
-  const DURATION = 120; // ~2s at 60fps
+  const DURATION = 120;     // beam sweep ~2s
+  const SNAKE_START = 135;  // snake starts after beam done
+  const SNAKE_FRAMES = 40;  // ~0.65s to erase all chars
+  const TOTAL = SNAKE_START + SNAKE_FRAMES + 15;
+  const WORD = 'אולפנים'; // 7 chars, RTL so erase from index 0 leftward
 
   const tid = setInterval(()=>{
     ctx.fillStyle='#030508'; ctx.fillRect(0,0,W,H);
 
-    // Progress 0→1
     const t = Math.min(1, frame / DURATION);
 
     // Light beam sweeping left to right
@@ -4666,100 +4667,53 @@ function initSplash(){
     gr.addColorStop(1,'transparent');
     ctx.fillStyle=gr; ctx.fillRect(beamX-60,ry,120,3);
 
-    // Logo text REVEALED by beam - clip to area beam has passed
-    ctx.save();
-    // Clip to everything left of beam position (revealed zone)
-    ctx.beginPath();
-    ctx.rect(0, 0, beamX + 18, H);
-    ctx.clip();
-
+    // Logo text
     const fontSize = Math.round(W*0.13);
     ctx.font = `900 ${fontSize}px Arial, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Glow layers
-    ctx.shadowColor = '#00d4ff';
-    ctx.shadowBlur = 40;
-    ctx.fillStyle = 'rgba(0,200,255,0.3)';
-    ctx.fillText('אולפנים', W/2, H/2);
-
-    ctx.shadowBlur = 20;
-    ctx.fillStyle = '#fff';
-    ctx.fillText('אולפנים', W/2, H/2);
-
-    // Extra shine where beam is RIGHT NOW (beam highlight on text)
-    const distFromBeam = Math.abs(W/2 - beamX);
-    if(distFromBeam < W*0.25){
-      const shine = Math.max(0, 1 - distFromBeam/(W*0.25));
-      ctx.shadowColor = '#ffffff';
-      ctx.shadowBlur = 60 * shine;
-      ctx.fillStyle = `rgba(255,255,255,${0.4*shine})`;
-      ctx.fillText('אולפנים', W/2, H/2);
-    }
-
-    ctx.shadowBlur = 0;
-    ctx.restore();
-
-    // Draw hub buttons as circles REVEALED by beam
-    const cardData = [
-      { x: W*0.5,  y: H*0.52, label:'סידור',   c1:'#00aaff', c2:'#0033ff', sub:'LIVE' },
-      { x: W*0.22, y: H*0.70, label:'חופשות',  c1:'#cc44ff', c2:'#ff1a6e', sub:'' },
-      { x: W*0.78, y: H*0.70, label:'לוז',      c1:'#ffaa00', c2:'#ff5500', sub:'בקרוב' },
-    ];
-    const R2 = Math.min(W,H)*0.13;
-
-    cardData.forEach(card=>{
-      if(beamX < card.x - R2 - 10) return; // not yet revealed
-      const revealed = Math.min(1, (beamX - (card.x - R2)) / (R2*2.5));
-      if(revealed <= 0) return;
-
+    if(frame < SNAKE_START){
+      // Beam reveal phase - clip to beam passage
       ctx.save();
-      ctx.globalAlpha = revealed;
+      ctx.beginPath();
+      ctx.rect(0, 0, beamX + 18, H);
+      ctx.clip();
 
-      // Neon border (conic sim with arc stroke)
-      ctx.beginPath(); ctx.arc(card.x, card.y, R2+3, 0, Math.PI*2);
-      ctx.strokeStyle = card.c1; ctx.lineWidth = 3;
-      ctx.shadowColor = card.c1; ctx.shadowBlur = 18*revealed;
-      ctx.stroke(); ctx.shadowBlur = 0;
+      ctx.shadowColor='#00d4ff'; ctx.shadowBlur=40;
+      ctx.fillStyle='rgba(0,200,255,0.3)';
+      ctx.fillText('אולפנים', W/2, H/2);
+      ctx.shadowBlur=20; ctx.fillStyle='#fff';
+      ctx.fillText('אולפנים', W/2, H/2);
 
-      // Glass inner fill
-      ctx.beginPath(); ctx.arc(card.x, card.y, R2, 0, Math.PI*2);
-      ctx.fillStyle = 'rgba(4,4,20,0.88)'; ctx.fill();
-
-      // Label
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.font = `900 ${Math.round(R2*0.38)}px Arial,sans-serif`;
-      ctx.fillStyle = card.c1;
-      ctx.shadowColor = card.c1; ctx.shadowBlur = 12*revealed;
-      ctx.fillText(card.label, card.x, card.y + (card.sub?-R2*0.12:0));
-      ctx.shadowBlur = 0;
-
-      if(card.sub==='LIVE'){
-        ctx.font = `700 ${Math.round(R2*0.22)}px Arial,sans-serif`;
-        ctx.fillStyle = 'rgba(255,255,255,0.5)';
-        ctx.fillText('● LIVE', card.x, card.y + R2*0.32);
-      } else if(card.sub){
-        ctx.font = `600 ${Math.round(R2*0.22)}px Arial,sans-serif`;
-        ctx.fillStyle = 'rgba(255,255,255,0.35)';
-        ctx.fillText(card.sub, card.x, card.y + R2*0.32);
+      const distFromBeam=Math.abs(W/2-beamX);
+      if(distFromBeam<W*0.25){
+        const shine=Math.max(0,1-distFromBeam/(W*0.25));
+        ctx.shadowColor='#fff'; ctx.shadowBlur=60*shine;
+        ctx.fillStyle=`rgba(255,255,255,${0.4*shine})`;
+        ctx.fillText('אולפנים', W/2, H/2);
       }
+      ctx.shadowBlur=0; ctx.restore();
 
-      // Shine where beam crosses
-      const dist = Math.abs(card.x - beamX);
-      if(dist < R2*1.5){
-        const shine = Math.max(0, 1 - dist/(R2*1.5));
-        ctx.beginPath(); ctx.arc(card.x, card.y, R2+3, 0, Math.PI*2);
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-        ctx.globalAlpha = shine * 0.7 * revealed;
-        ctx.stroke();
+    } else if(frame < SNAKE_START + SNAKE_FRAMES){
+      // Snake-out phase: erase letters one by one (RTL: right-to-left visually = index 0,1,2...)
+      const snakeT = (frame - SNAKE_START) / SNAKE_FRAMES;
+      const charsGone = Math.floor(snakeT * (WORD.length + 1));
+      const remaining = WORD.slice(charsGone); // remove from start (RTL = visual right)
+
+      if(remaining.length > 0){
+        ctx.shadowColor='#00d4ff'; ctx.shadowBlur=20;
+        ctx.fillStyle='#fff';
+        ctx.fillText(remaining, W/2, H/2);
+        ctx.shadowBlur=0;
       }
+    }
+    // else: text fully gone, show nothing
 
-      ctx.restore();
-    });
+
 
     frame++;
-    if(frame>DURATION+10){
+    if(frame>TOTAL){
       clearInterval(tid);
       splash.classList.add('hide');
       showHubOrAuth();
