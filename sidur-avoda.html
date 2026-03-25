@@ -3436,7 +3436,8 @@ function showView(v,e){
   activeView=v;openDropdown=null;
   ['schedule','stats','settings','vacation','loz'].forEach(x=>{const el=document.getElementById('view-'+x);if(el)el.style.display=x===v?(x==='vacation'?'flex':'block'):'none';});
   if(v==='vacation') setTimeout(initVacationApp,100);
-  document.getElementById('wk-nav').style.display=(v==='settings'||v==='vacation')?'none':'block';
+  if(v==='loz') setTimeout(()=>{if(typeof lozInit==='function')lozInit();},100);
+  document.getElementById('wk-nav').style.display=(v==='settings'||v==='vacation'||v==='loz')?'none':'block';
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   if(e) e.target.classList.add('active');
   if(v==='stats') renderStats();
@@ -5244,11 +5245,9 @@ function hubGo(dest){
   }
   document.getElementById('hub-screen').classList.remove('active');
   document.getElementById('app').style.display='block';
-  if(dest==='vacation'){
-    showView('vacation');
-  } else {
-    showView('schedule');
-  }
+  if(dest==='vacation') showView('vacation');
+  else if(dest==='loz') showView('loz');
+  else showView('schedule');
 }
 
 // LOZ SCHEDULE JS
