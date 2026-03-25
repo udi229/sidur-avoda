@@ -568,65 +568,67 @@
   }
   .hub-subtitle span { color:#00d4ff88; margin:0 8px; }
 
-  /* Card buttons */
-  .hub-cards {
-    display:flex; flex-direction:column; gap:22px;
-    width:min(340px,88vw); position:relative; z-index:2;
-  }
+  /* Card buttons - circular breathing */
   @property --a { syntax:'<angle>'; initial-value:0deg; inherits:false; }
   @keyframes cardSpin { to { --a:360deg; } }
-  @keyframes dotBlink2 { 0%,100%{opacity:1}50%{opacity:0.2} }
+  @keyframes breathe1 { 0%,100%{transform:scale(1);    box-shadow:0 0 30px var(--c1),0 0 60px var(--c1)44,0 0 100px var(--c1)22} 50%{transform:scale(1.07); box-shadow:0 0 50px var(--c1),0 0 100px var(--c1)66,0 0 160px var(--c1)33} }
+  @keyframes breathe2 { 0%,100%{transform:scale(1);    box-shadow:0 0 30px var(--c1),0 0 60px var(--c1)44,0 0 100px var(--c1)22} 50%{transform:scale(1.07); box-shadow:0 0 50px var(--c1),0 0 100px var(--c1)66,0 0 160px var(--c1)33} }
+  @keyframes breathe3 { 0%,100%{transform:scale(1);    box-shadow:0 0 30px var(--c1),0 0 60px var(--c1)44,0 0 100px var(--c1)22} 50%{transform:scale(1.07); box-shadow:0 0 50px var(--c1),0 0 100px var(--c1)66,0 0 160px var(--c1)33} }
+
+  .hub-cards {
+    display:flex; flex-direction:row; gap:28px;
+    align-items:center; justify-content:center;
+    position:relative; z-index:2;
+    flex-wrap:nowrap;
+  }
 
   .hub-card {
-    display:flex; align-items:center; gap:16px;
-    padding:2px;
-    border-radius:16px;
+    width:130px; height:130px; border-radius:50%;
+    padding:3px;
     border:none;
-    background:conic-gradient(from var(--a,0deg), var(--c1), #ff1a6e, var(--c2), #cc44ff, var(--c1));
-    animation:cardSpin 3s linear infinite;
+    background:conic-gradient(from var(--a,0deg), var(--c1), var(--c2), var(--c3,var(--c1)), var(--c1));
+    animation:cardSpin 4s linear infinite, breathe1 3s ease-in-out infinite;
     cursor:pointer;
     position:relative;
-    opacity:0; transform:translateX(40px);
-    transition:transform 0.15s;
-    filter:drop-shadow(0 0 4px var(--c1)) drop-shadow(0 0 10px var(--c2));
+    opacity:0; transform:scale(0.5);
+    transition:opacity 0.5s ease, transform 0.6s cubic-bezier(0.34,1.56,0.64,1);
+    flex-shrink:0;
   }
-  .hub-card.show {
-    opacity:1; transform:translateX(0);
-    transition:opacity 0.5s ease, transform 0.6s cubic-bezier(0.34,1.3,0.64,1);
-  }
-  .hub-card:active { transform:scale(0.97) !important; }
-  .hub-card.disabled { opacity:0.35 !important; cursor:not-allowed; animation:none; }
+  .hub-card.show { opacity:1; transform:scale(1); }
+  .hub-card:nth-child(2).show { animation:cardSpin 4s linear infinite, breathe2 3.4s ease-in-out 0.4s infinite; }
+  .hub-card:nth-child(3).show { animation:cardSpin 4s linear infinite, breathe3 3.8s ease-in-out 0.8s infinite; }
+  .hub-card:active { transform:scale(0.93) !important; }
+  .hub-card.disabled { opacity:0.35 !important; cursor:not-allowed; }
 
-  /* Glass inner */
+  .hub-card-schedule { --c1:#00aaff; --c2:#0033ff; --c3:#00ffee; }
+  .hub-card-vacation { --c1:#cc44ff; --c2:#ff1a6e; --c3:#ff44aa; }
+  .hub-card-loz      { --c1:#ffaa00; --c2:#ff5500; --c3:#ffee00; }
+
+  /* Glass inner circle */
   .hub-card-inner {
-    display:flex; align-items:center; gap:16px;
-    padding:14px 18px;
-    border-radius:14px;
-    background:rgba(5,5,20,0.88);
-    backdrop-filter:blur(12px);
-    -webkit-backdrop-filter:blur(12px);
-    width:100%;
+    width:100%; height:100%; border-radius:50%;
+    background:rgba(4,4,20,0.88);
+    backdrop-filter:blur(10px);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
   }
+  .hub-card-icon { font-size:32px; line-height:1; }
+  .hub-card-name { font-size:11px; font-weight:800; letter-spacing:0.5px; text-align:center; padding:0 6px; }
+  .hub-card-schedule .hub-card-name { color:#33ccff; }
+  .hub-card-vacation .hub-card-name { color:#ee77ff; }
+  .hub-card-loz      .hub-card-name { color:#ffcc44; }
+  .hub-card-sub { font-size:9px; color:rgba(255,255,255,0.4); display:flex; align-items:center; gap:3px; }
+  .hub-live-dot { width:5px; height:5px; border-radius:50%; background:#ff3333; box-shadow:0 0 4px #ff3333; animation:dotBlink2 1s infinite; }
+  @keyframes dotBlink2 { 0%,100%{opacity:1}50%{opacity:0.2} }
 
-  .hub-card-schedule { --c1:#00aaff; --c2:#0033cc; }
-  .hub-card-vacation { --c1:#cc44ff; --c2:#ff1a6e; }
-  .hub-card-loz      { --c1:#ffaa00; --c2:#ff5500; }
-
-  .hub-card-icon {
-    width:46px; height:46px; border-radius:12px;
-    display:flex; align-items:center; justify-content:center;
-    font-size:24px; flex-shrink:0;
-    background:rgba(255,255,255,0.05);
-    border:1px solid rgba(255,255,255,0.08);
+  /* Vacation button - neon test card icon */
+  .vac-testcard {
+    width:48px; height:36px; border-radius:4px; overflow:hidden;
+    display:grid; grid-template-columns:repeat(8,1fr); grid-template-rows:repeat(3,1fr);
+    gap:0; opacity:0.9;
   }
-  .hub-card-text { text-align:right; flex:1; }
-  .hub-card-name { font-size:18px; font-weight:700; }
-  .hub-card-schedule .hub-card-name { color:#33ccff; text-shadow:0 0 12px #00aaffaa; }
-  .hub-card-vacation .hub-card-name { color:#dd66ff; text-shadow:0 0 12px #cc44ffaa; }
-  .hub-card-loz      .hub-card-name { color:#ffcc44; text-shadow:0 0 12px #ffaa0088; }
-  .hub-card-sub { font-size:12px; color:rgba(255,255,255,0.35); margin-top:3px; display:flex; align-items:center; gap:5px; }
-  .hub-live-dot { width:7px; height:7px; border-radius:50%; background:#ff3333; box-shadow:0 0 6px #ff3333; display:inline-block; animation:dotBlink2 1s infinite; }
+  .vac-testcard-bar { display:block; }
 
+  /* Exit button */
   /* Exit button */
   .hub-btn-exit {
     position:fixed; bottom:28px; right:28px;
@@ -653,6 +655,23 @@
 
   .hub-bg-grid {
 
+
+  /* === ZOOM IN TRANSITION === */
+  #zoom-overlay {
+    position:fixed; inset:0; z-index:19999;
+    display:none; pointer-events:none;
+    overflow:hidden;
+  }
+  #zoom-overlay.active { display:block; }
+  #zoom-circle {
+    position:absolute;
+    width:10px; height:10px;
+    border-radius:50%;
+    background:var(--zoom-color,#00aaff);
+    transform:translate(-50%,-50%) scale(1);
+    box-shadow:0 0 40px var(--zoom-color,#00aaff);
+    transition:transform 0.55s cubic-bezier(0.4,0,1,1);
+  }
 
   /* === BACK BUTTONS NEON RED === */
   @keyframes neonBlink {
@@ -699,30 +718,21 @@
     <button class="hub-card hub-card-schedule" onclick="hubGo('schedule')">
       <div class="hub-card-inner">
         <div class="hub-card-icon">📹</div>
-        <div class="hub-card-text">
-          <div class="hub-card-name">כניסה לסידור</div>
-          <div class="hub-card-sub"><span class="hub-live-dot"></span> LIVE</div>
-        </div>
+        <div class="hub-card-name">סידור</div>
+        <div class="hub-card-sub"><span class="hub-live-dot"></span> LIVE</div>
       </div>
     </button>
 
     <button class="hub-card hub-card-vacation" onclick="hubGo('vacation')">
-      <div class="hub-card-inner">
-        <div class="hub-card-icon">🏖</div>
-        <div class="hub-card-text">
-          <div class="hub-card-name">לוח חופשות</div>
-          <div class="hub-card-sub">ניהול ובקשות</div>
-        </div>
+      <div class="hub-card-inner" style="padding:0;overflow:hidden;border-radius:50%">
+        <canvas id="testcard-canvas" style="width:100%;height:100%;display:block;border-radius:50%"></canvas>
       </div>
     </button>
-
     <button class="hub-card hub-card-loz disabled" onclick="">
       <div class="hub-card-inner">
         <div class="hub-card-icon">📋</div>
-        <div class="hub-card-text">
-          <div class="hub-card-name">לוז</div>
-          <div class="hub-card-sub">בקרוב</div>
-        </div>
+        <div class="hub-card-name">לוז</div>
+        <div class="hub-card-sub">בקרוב</div>
       </div>
     </button>
   </div>
@@ -732,6 +742,11 @@
       <span class="exit-label">יציאה</span>
     </div>
   </button>
+</div>
+
+<!-- ZOOM OVERLAY -->
+<div id="zoom-overlay">
+  <div id="zoom-circle"></div>
 </div>
 
 <div id="auth-screen">
@@ -4682,7 +4697,8 @@ function initSplash(){
       splash.classList.add('hide');
       showHubOrAuth();
       setTimeout(()=>{
-        document.querySelectorAll('.hub-card').forEach((card,i)=>{
+        setTimeout(drawTestCard,100);
+  document.querySelectorAll('.hub-card').forEach((card,i)=>{
           setTimeout(()=>card.classList.add('show'), 80+i*150);
         });
         const exitBtn=document.getElementById('hub-exit-btn');
@@ -4820,6 +4836,71 @@ function initNeuralBg(){
 }
 
 
+function drawTestCard(){
+  const canvas = document.getElementById('testcard-canvas');
+  if(!canvas) return;
+  // Set canvas size to match display size
+  const size = canvas.offsetWidth || 130;
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const W = size, H = size, cx = W/2, cy = H/2, R = W/2;
+
+  // Clip to circle
+  ctx.beginPath();
+  ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.clip();
+
+  // Background
+  ctx.fillStyle='#050505';
+  ctx.fillRect(0,0,W,H);
+
+  // === TOP COLOR BARS (top 65%) ===
+  const barH = H*0.62;
+  const bars = ['#00ffff','#ffff00','#00ff00','#ff00ff','#ff0000','#0044ff','#ffffff'];
+  const bw = W/bars.length;
+  bars.forEach((c,i)=>{
+    ctx.fillStyle=c;
+    ctx.fillRect(i*bw, 0, bw+1, barH);
+  });
+
+  // Neon glow on bars (white top fade)
+  const grad = ctx.createLinearGradient(0,0,0,barH);
+  grad.addColorStop(0,'rgba(255,255,255,0.3)');
+  grad.addColorStop(0.4,'rgba(255,255,255,0)');
+  ctx.fillStyle=grad;
+  ctx.fillRect(0,0,W,barH);
+
+  // === MIDDLE REVERSED BARS (65-78%) ===
+  const midY=barH, midH=H*0.13;
+  const mid=['#0044ff','#111','#ff00ff','#111','#00ffff','#111','#ffffff'];
+  mid.forEach((c,i)=>{
+    ctx.fillStyle=c;
+    ctx.fillRect(i*(W/mid.length), midY, W/mid.length+1, midH);
+  });
+
+  // === BOTTOM STRIPE ZONE (78-100%) ===
+  const botY=midY+midH, botH=H-botY;
+  // Black, cyan, magenta, black, white, black, yellow
+  const bot=['#111','#00ffff','#ff00ff','#111','#ffffff','#111','#ffff00'];
+  bot.forEach((c,i)=>{
+    ctx.fillStyle=c;
+    ctx.fillRect(i*(W/bot.length), botY, W/bot.length+1, botH);
+  });
+
+
+
+  // === SCANLINES ===
+  for(let y=0;y<H;y+=2.5){
+    ctx.fillStyle='rgba(0,0,0,0.18)';
+    ctx.fillRect(0,y,W,1);
+  }
+
+  // Subtle neon tint
+  ctx.fillStyle='rgba(255,0,255,0.04)';
+  ctx.fillRect(0,0,W,H);
+}
+
 function showHubOrAuth(){
   // Check manager session (30 days)
   try{
@@ -4889,13 +4970,57 @@ function hubGo(dest){
     if(auth) auth.style.display='flex';
     return;
   }
-  document.getElementById('hub-screen').classList.remove('active');
-  document.getElementById('app').style.display='block';
-  if(dest==='vacation'){
-    showView('vacation');
-  } else {
-    showView('schedule');
-  }
+  // Zoom from button position
+  const colors = {schedule:'#00aaff', vacation:'#cc44ff', loz:'#ffaa00'};
+  const color = colors[dest]||'#00aaff';
+  const overlay = document.getElementById('zoom-overlay');
+  const circle  = document.getElementById('zoom-circle');
+
+  // Find the clicked card
+  const cardClass = dest==='vacation'?'.hub-card-vacation':dest==='schedule'?'.hub-card-schedule':'.hub-card-loz';
+  const card = document.querySelector(cardClass);
+  const rect = card ? card.getBoundingClientRect() : {left:window.innerWidth/2,top:window.innerHeight/2,width:0,height:0};
+  const bx = rect.left + rect.width/2;
+  const by = rect.top  + rect.height/2;
+
+  // Calc scale needed to fill screen from this point
+  const maxDist = Math.sqrt(Math.max(bx,window.innerWidth-bx)**2 + Math.max(by,window.innerHeight-by)**2);
+  const scale = (maxDist*2.2)/10;
+
+  // Position circle at button center
+  overlay.style.setProperty('--zoom-color', color);
+  circle.style.transition = 'none';
+  circle.style.left = bx+'px';
+  circle.style.top  = by+'px';
+  circle.style.background = color;
+  circle.style.boxShadow = '0 0 40px '+color;
+  circle.style.transform = 'translate(-50%,-50%) scale(1)';
+  overlay.classList.add('active');
+  overlay.style.pointerEvents='all';
+
+  // Trigger expand
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    circle.style.transition = 'transform 0.55s cubic-bezier(0.4,0,0.85,1)';
+    circle.style.transform  = 'translate(-50%,-50%) scale('+scale+')';
+  }));
+
+  setTimeout(()=>{
+    document.getElementById('hub-screen').classList.remove('active');
+    document.getElementById('app').style.display='block';
+    if(dest==='vacation') showView('vacation');
+    else showView('schedule');
+    // Quick fade out
+    overlay.style.opacity='0';
+    overlay.style.transition='opacity 0.18s';
+    setTimeout(()=>{
+      overlay.classList.remove('active');
+      overlay.style.opacity='1';
+      overlay.style.transition='';
+      overlay.style.pointerEvents='none';
+      circle.style.transition='none';
+      circle.style.transform='translate(-50%,-50%) scale(1)';
+    }, 200);
+  }, 520);
 }
 
 // Start splash on load
