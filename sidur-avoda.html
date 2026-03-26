@@ -1722,11 +1722,22 @@ function toggleMode(){
   const r=authMode==='register';
   document.getElementById('auth-sub').textContent=r?'הרשמה':'כניסה';
   document.getElementById('reg-f').style.display=r?'block':'none';
-  document.getElementById('a-btn').textContent=r?'הרשמה':'כניסה';
+  // כפתור תמיד ON AIR
   document.getElementById('tog-txt').textContent=r?'יש לך חשבון?':'אין לך חשבון?';
   document.querySelector('.auth-tog a').textContent=r?' כניסה':' הרשמה';
   document.getElementById('a-msg').textContent='';
   if(r) loadDeptSel();
+}
+
+function initAuthScreen(){
+  // תמיד נפתח במצב הרשמה
+  authMode='register';
+  document.getElementById('auth-sub').textContent='הרשמה';
+  document.getElementById('reg-f').style.display='block';
+  document.getElementById('tog-txt').textContent='יש לך חשבון?';
+  document.querySelector('.auth-tog a').textContent=' כניסה';
+  document.getElementById('a-msg').textContent='';
+  loadDeptSel();
 }
 function setMsg(t,ok=false){const e=document.getElementById('a-msg');e.textContent=t;e.className=ok?'auth-ok':'auth-err';}
 async function handleAuth(){
@@ -1744,8 +1755,16 @@ async function handleAuth(){
     if(!dept){setMsg('נא לבחור מחלקה');return;}
     const {data,error}=await sb.auth.signUp({email,password:pass});
     if(error){setMsg('שגיאה: '+error.message);return;}
+    // שמור ב-employees
     await sb.from('employees').insert({full_name:name,email,role:'employee',department_id:dept||null,position_percent:100});
-    // Log in automatically after registration
+    // שמור ב-vac_users מיד — בלי לחכות ל-_autoRegisterVacationUser
+    try{
+      const {data:depts}=await sb.from('departments').select('name').eq('id',dept).single();
+      await sb.from('vac_users').insert({
+        id: Date.now().toString()+Math.random().toString(36).slice(2,5),
+        name, email: email.toLowerCase(), dept: depts?.name||'כללי'
+      });
+    }catch(e){}
     await initApp(data.user);
   }
 }
@@ -4383,10 +4402,18 @@ function renderUsersList(){
   const allDepts=window.departments||[];
   const allEmps=(window.employees||[]).map(e=>({
     id:e.email||e.id, name:e.full_name,
-    dept:allDepts.find(d=>d.id===e.department_id)?.name||'כללי'
+    dept:allDepts.find(d=>d.id===e.department_id)?.name||'כללי',
+    email:e.email
   }));
   if(!allEmps.length){list.innerHTML='<p style="color:var(--text-light)">אין משתמשים</p>';return;}
-  list.innerHTML=allEmps.map(u=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9"><span style="font-size:14px">${u.name} <span style="color:#94a3b8;font-size:12px">(${u.dept})</span></span></div>`).join('');
+  list.innerHTML=allEmps.map(u=>
+    `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #f1f5f9;border-radius:8px">
+      <span style="font-size:14px;font-weight:600">${u.name}
+        <span style="color:#94a3b8;font-size:12px;font-weight:400"> · ${u.dept}</span>
+        <span style="color:#cbd5e1;font-size:11px;margin-right:4px">${u.email}</span>
+      </span>
+    </div>`
+  ).join('');
 }
 
 async function adminDeleteUser(userId){
@@ -5339,7 +5366,7 @@ function hubGo(dest){
     window._hubDestAfterLogin = dest;
     document.getElementById('hub-screen').classList.remove('active');
     const auth = document.getElementById('auth-screen');
-    if(auth) auth.style.display='flex';
+    if(auth){ auth.style.display='flex'; setTimeout(initAuthScreen,50); }
     return;
   }
   document.getElementById('hub-screen').classList.remove('active');
