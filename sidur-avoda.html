@@ -3570,7 +3570,7 @@ function showTab(tabId,btn){
   if(tabId==='tab-calendar')renderDeptCalendar();
   if(tabId==='tab-admin-cal')renderAdminCalendar();
   if(tabId==='tab-admin-req')renderReqTable();
-  if(tabId==='tab-admin-settings'){renderDeptGrid();renderViewerSection();renderUsersList();}
+  if(tabId==='tab-admin-settings'){loadUsers().then(()=>{renderDeptGrid();renderViewerSection();renderUsersList();});}
   if(tabId==='tab-admin')renderAdminTab();
   if(tabId==='tab-viewer-cal')renderViewerCalendar();
   if(tabId==='tab-rep')renderRepTab();
@@ -4326,15 +4326,18 @@ function renderDeptGrid(){
   const grid=document.getElementById('dept-assign-grid');
   if(!grid) return;
 
-  // Use employees list (Supabase) as source of truth
-  // Map each employee to {id: email, name, dept}
-  const allDepts=window.departments||[];
-  const allEmps=(window.employees||[]).map(e=>({
-    id: e.email||e.id,
-    name: e.full_name,
-    dept: allDepts.find(d=>d.id===e.department_id)?.name||'כללי',
-    email: e.email
-  }));
+  // DB.users is loaded by loadUsers() from employees table
+  // If empty, fallback to window.employees
+  let allEmps = DB.users||[];
+  if(!allEmps.length){
+    const allDepts=window.departments||[];
+    allEmps=(window.employees||[]).map(e=>({
+      id: e.email||e.id,
+      name: e.full_name,
+      dept: allDepts.find(d=>d.id===e.department_id)?.name||'כללי',
+      email: e.email
+    }));
+  }
 
   grid.innerHTML=DEPTS.map((dept, idx)=>{
     // Show employees of this dept + "כללי" employees
@@ -4360,11 +4363,14 @@ async function saveDeptReps(){
 function renderViewerSection(){
   const sel=document.getElementById('viewer-select');
   if(!sel) return;
-  const allDepts=window.departments||[];
-  const allEmps=(window.employees||[]).map(e=>({
-    id:e.email||e.id, name:e.full_name,
-    dept:allDepts.find(d=>d.id===e.department_id)?.name||'כללי', email:e.email
-  }));
+  let allEmps=DB.users||[];
+  if(!allEmps.length){
+    const allDepts=window.departments||[];
+    allEmps=(window.employees||[]).map(e=>({
+      id:e.email||e.id, name:e.full_name,
+      dept:allDepts.find(d=>d.id===e.department_id)?.name||'כללי', email:e.email
+    }));
+  }
   sel.innerHTML='<option value="">בחר...</option>'+allEmps.map(u=>`<option value="${u.id}">${u.name} (${u.dept})</option>`).join('');
   const list=document.getElementById('viewer-list');
   const viewers=DB.users.filter(u=>DB.viewers.includes(u.id));
