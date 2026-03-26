@@ -1745,8 +1745,8 @@ async function handleAuth(){
     const {data,error}=await sb.auth.signUp({email,password:pass});
     if(error){setMsg('שגיאה: '+error.message);return;}
     await sb.from('employees').insert({full_name:name,email,role:'employee',department_id:dept||null,position_percent:100});
-    setMsg('✅ נרשמת! כעת התחבר.',true);
-    authMode='login'; setTimeout(toggleMode,1500);
+    // Log in automatically after registration
+    await initApp(data.user);
   }
 }
 function showPin(){showPinFor('primary');}
@@ -3541,18 +3541,17 @@ async function _autoRegisterVacationUser(emp){
     const allDepts=window.departments||[];
     const deptObj=allDepts.find(d=>d.id===emp.department_id);
     const deptName=deptObj?.name||deptObj?.title||'כללי';
-    // Check if already exists in vac_users
+    // upsert — creates if missing, updates if exists (handles re-registration after deletion)
     const {data:existing}=await sb.from('vac_users').select('id').eq('email',email).maybeSingle();
-    if(!existing){
+    if(existing){
+      await sb.from('vac_users').update({name:emp.full_name,dept:deptName}).eq('email',email);
+    } else {
       await sb.from('vac_users').insert({
-        id: Date.now().toString(),
+        id: Date.now().toString()+Math.random().toString(36).slice(2,6),
         name: emp.full_name,
         email: email,
         dept: deptName
       });
-    } else {
-      // Update dept in case it changed
-      await sb.from('vac_users').update({name:emp.full_name, dept:deptName}).eq('email',email);
     }
   }catch(e){ console.warn('vac register error',e); }
 }
