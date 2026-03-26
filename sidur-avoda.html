@@ -1753,10 +1753,25 @@ async function handleAuth(){
     const dept=document.getElementById('a-dept').value;
     if(!name){setMsg('נא למלא שם מלא');return;}
     if(!dept){setMsg('נא לבחור מחלקה');return;}
-    const {data,error}=await sb.auth.signUp({email,password:pass});
-    if(error){setMsg('שגיאה: '+error.message);return;}
+    let authData, authError;
+    // Try sign up
+    const signUpRes = await sb.auth.signUp({email,password:pass});
+    if(signUpRes.error){
+      // If already exists in auth but deleted from employees — allow re-register
+      if(signUpRes.error.message.includes('already registered')){
+        const signInRes = await sb.auth.signInWithPassword({email,password:pass});
+        if(signInRes.error){setMsg('מייל זה כבר קיים — נסה להתחבר עם הסיסמה שלך');return;}
+        authData = signInRes.data;
+      } else {
+        setMsg('שגיאה: '+signUpRes.error.message); return;
+      }
+    } else {
+      authData = signUpRes.data;
+    }
+    // Delete any old employee record and re-insert fresh
+    await sb.from('employees').delete().eq('email',email);
     await sb.from('employees').insert({full_name:name,email,role:'employee',department_id:dept||null,position_percent:100});
-    await initApp(data.user);
+    await initApp(authData.user);
   }
 }
 function showPin(){showPinFor('primary');}
@@ -3697,7 +3712,8 @@ async function saveDB() {
 }
 
 async function loadShared() {
-  await loadDB(); // Firestore is always shared
+  await loadDB();
+  await loadUsers();
 }
 
 async function loadUsers() {
@@ -5149,12 +5165,11 @@ async function _vacationInit(){
   return {
     enterEmployee: async function(name, email, dept){
       await _vacationInit();
-      await loadShared();
-      let user = DB.users.find(u=>u.email===email);
+      await loadShared(); // loads DB.users from employees table
+      const emailLower = email.toLowerCase();
+      let user = DB.users.find(u=>(u.email||'').toLowerCase()===emailLower);
       if(!user){
-        user = {id:Date.now().toString(), name, email, dept, createdAt:new Date().toISOString()};
-        DB.users.push(user);
-        await saveUsers();
+        user = {id:emailLower, name, email:emailLower, dept};
       }
       currentUser = user;
       await enterApp(false, false);
