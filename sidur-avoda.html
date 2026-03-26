@@ -3572,7 +3572,7 @@ function showTab(tabId,btn){
   if(tabId==='tab-calendar')renderDeptCalendar();
   if(tabId==='tab-admin-cal')renderAdminCalendar();
   if(tabId==='tab-admin-req')renderReqTable();
-  if(tabId==='tab-admin-settings'){lozSyncTeamLeads().then(()=>{loadUsers().then(()=>{renderDeptGrid();renderViewerSection();renderUsersList();});});}
+  if(tabId==='tab-admin-settings'){loadUsers().then(()=>{renderDeptGrid();renderViewerSection();renderUsersList();});}
   if(tabId==='tab-admin')renderAdminTab();
   if(tabId==='tab-viewer-cal')renderViewerCalendar();
   if(tabId==='tab-rep')renderRepTab();
@@ -3657,15 +3657,30 @@ function getFS() {
   return _db;
 }
 
+// ── נציגי מחלקות = ראשי צוות בסידור ──
+async function syncDeptRepsFromTeamLeads(){
+  try{
+    const {data:emps} = await sb.from('employees').select('id,full_name,email,role,department_id');
+    const {data:depts} = await sb.from('departments').select('id,name');
+    if(!emps||!depts) return;
+    DB.deptReps = {};
+    emps.filter(e=>e.role==='team_lead'&&e.email).forEach(e=>{
+      const dept=depts.find(d=>d.id===e.department_id);
+      if(dept) DB.deptReps[dept.name] = e.email;
+    });
+  }catch(e){ console.warn('syncDeptReps error',e); }
+}
+
 async function loadDB() {
   try {
-    // Load settings
+    // Load settings (only password and viewers — deptReps computed from team_leads)
     const {data:sets} = await sb.from('vac_settings').select('*');
     (sets||[]).forEach(s=>{
       if(s.key==='admin_password') DB.adminPassword=s.value;
-      else if(s.key==='dept_reps')  DB.deptReps=s.value||{};
       else if(s.key==='viewers')    DB.viewers=s.value||[];
     });
+    // Compute deptReps from team_leads in employees
+    await syncDeptRepsFromTeamLeads();
     // Load requests
     const {data:reqs} = await sb.from('vac_requests').select('*').order('created_at',{ascending:false});
     DB.requests=(reqs||[]).map(r=>({
@@ -3685,8 +3700,6 @@ async function loadDB() {
       type:n.type, read:n.read?[n.user_id]:[],
       createdAt:n.created_at
     }));
-    // Auto-assign team_leads as dept reps
-    await lozSyncTeamLeads();
   } catch(e) { console.warn('loadDB error',e); }
 }
 
@@ -3700,29 +3713,7 @@ async function saveDB() {
   } catch(e) { console.warn('saveDB error',e); }
 }
 
-async function lozSyncTeamLeads(){
-  try{
-    // Load fresh from Supabase directly — don't rely on window.employees
-    const {data:emps} = await sb.from('employees').select('*');
-    const {data:depts} = await sb.from('departments').select('*');
-    if(!emps||!depts) return;
 
-    // Map dept names — handle aliases
-    const DEPT_ALIAS = {'מנהלי במה':'מנהל אולפן'};
-
-    emps.filter(e=>e.role==='team_lead').forEach(e=>{
-      const dept = depts.find(d=>d.id===e.department_id);
-      if(!dept||!e.email) return;
-      const deptName = DEPT_ALIAS[dept.name]||dept.name;
-      DB.deptReps[deptName] = e.email;
-      // also map original name
-      DB.deptReps[dept.name] = e.email;
-    });
-
-    // Persist
-    await sb.from('vac_settings').upsert({key:'dept_reps',value:DB.deptReps},{onConflict:'key'});
-  }catch(e){ console.warn('lozSyncTeamLeads error',e); }
-}
 
 async function loadShared() {
   await loadUsers(); // load DB.users first
@@ -4050,7 +4041,8 @@ async function cancelRequest(reqId){
 // Rep tab
 function renderRepTab(){
   if(!currentUser)return;
-  const myDepts=Object.entries(DB.deptReps).filter(([d,uid])=>uid===currentUser.id).map(([d])=>d);
+  const myEmail=(currentUser.email||currentUser.id||'').toLowerCase();
+  const myDepts=Object.entries(DB.deptReps).filter(([d,email])=>email.toLowerCase()===myEmail).map(([d])=>d);
   const list=document.getElementById('rep-requests-list');
   if(!myDepts.length){list.innerHTML='<div class="empty-state"><span class="icon">💼</span><p>אינך מוגדר כנציג מחלקה</p></div>';return;}
   
@@ -4360,29 +4352,18 @@ async function adminAction(reqId,action){
 function renderDeptGrid(){
   const grid=document.getElementById('dept-assign-grid');
   if(!grid) return;
-
-  // DB.users is loaded by loadUsers() from employees table
-  // If empty, fallback to window.employees
-  let allEmps = DB.users||[];
-  if(!allEmps.length){
-    const allDepts=window.departments||[];
-    allEmps=(window.employees||[]).map(e=>({
-      id: e.email||e.id,
-      name: e.full_name,
-      dept: allDepts.find(d=>d.id===e.department_id)?.name||'כללי',
-      email: e.email
-    }));
-  }
-
-  grid.innerHTML=DEPTS.map((dept, idx)=>{
-    // Show employees of this dept + "כללי" employees
-    const deptUsers=allEmps.filter(u=>u.dept===dept);
-    const generalUsers=allEmps.filter(u=>u.dept==='כללי'&&dept!=='כללי');
-    const uniqueUsers=[...deptUsers,...generalUsers].filter((u,i,arr)=>arr.findIndex(x=>x.id===u.id)===i);
-    const curr=DB.deptReps[dept]||'';
-    const deptId=`drep-${idx}`;
-    return`<div class="dept-card"><h4>${DI[dept]||'🏢'} ${dept}</h4><select class="dept-rep-select" id="${deptId}" data-dept="${dept}"><option value="">ללא נציג</option>${uniqueUsers.map(u=>`<option value="${u.id}" ${curr===u.id?'selected':''}>${u.name}${u.dept!==dept?' (כללי)':''}</option>`).join('')}${!uniqueUsers.length?'<option disabled>אין עובדים</option>':''}</select></div>`;
-  }).join('');
+  // deptReps are computed from team_leads — display only
+  syncDeptRepsFromTeamLeads().then(()=>{
+    const entries=Object.entries(DB.deptReps);
+    if(!entries.length){
+      grid.innerHTML='<p style="color:#94a3b8;font-size:13px">אין ראשי צוות מוגדרים בסידור</p>';
+      return;
+    }
+    grid.innerHTML=entries.map(([dept,email])=>{
+      const emp=(DB.users||[]).find(u=>(u.email||'').toLowerCase()===email.toLowerCase());
+      return `<div class="dept-card"><h4>${dept}</h4><div style="color:#6366f1;font-size:13px;font-weight:600">👤 ${emp?emp.name:email}</div></div>`;
+    }).join('');
+  });
 }
 async function saveDeptReps(){
   await loadShared();
@@ -4392,7 +4373,8 @@ async function saveDeptReps(){
     if(dept) DB.deptReps[dept] = el.value;
   });
   await saveDB();showToast('נציגי המחלקות עודכנו ✅','success');
-  if(currentUser){const isRep=Object.values(DB.deptReps).includes(currentUser.id);document.getElementById('tab-rep-btn').style.display=isRep?'flex':'none';}
+  if(currentUser){const myEmail2=(currentUser.email||currentUser.id||'').toLowerCase();
+  const isRep=Object.values(DB.deptReps).some(e=>e.toLowerCase()===myEmail2);document.getElementById('tab-rep-btn').style.display=isRep?'flex':'none';}
 }
 
 function renderViewerSection(){
