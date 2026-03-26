@@ -3887,7 +3887,7 @@ async function submitRequest(){
   const start=document.getElementById('req-start').value;
   const end=document.getElementById('req-end').value;
   const reason=document.getElementById('req-reason').value.trim();
-  if(!start||!end||!reason){showToast('אנא מלא את כל השדות','error');return;}
+  if(!start||!end){showToast('בחר תאריכים','error');return;}
   if(end<start){showToast('תאריך הסיום חייב להיות אחרי ההתחלה','error');return;}
   
   await loadShared();
@@ -3936,7 +3936,7 @@ async function submitRequest(){
     await sb.from('vac_requests').insert({
       id, user_id:currentUser.id, user_name:currentUser.name,
       user_dept:currentUser.dept, start_date:start, end_date:end,
-      reason, status:'pending'
+      reason:reason||'', status:'pending'
     });
     // התראה למנהל
     await sb.from('vac_notifications').insert({
