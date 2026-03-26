@@ -1755,16 +1755,7 @@ async function handleAuth(){
     if(!dept){setMsg('נא לבחור מחלקה');return;}
     const {data,error}=await sb.auth.signUp({email,password:pass});
     if(error){setMsg('שגיאה: '+error.message);return;}
-    // שמור ב-employees
     await sb.from('employees').insert({full_name:name,email,role:'employee',department_id:dept||null,position_percent:100});
-    // שמור ב-vac_users מיד — בלי לחכות ל-_autoRegisterVacationUser
-    try{
-      const {data:depts}=await sb.from('departments').select('name').eq('id',dept).single();
-      await sb.from('vac_users').insert({
-        id: Date.now().toString()+Math.random().toString(36).slice(2,5),
-        name, email: email.toLowerCase(), dept: depts?.name||'כללי'
-      });
-    }catch(e){}
     await initApp(data.user);
   }
 }
@@ -3711,14 +3702,19 @@ async function loadShared() {
 
 async function loadUsers() {
   try {
-    const doc = await getFS().collection('studio').doc('users').get();
-    if (doc.exists && doc.data().list) DB.users = doc.data().list;
+    const {data:emps} = await sb.from('employees').select('*');
+    const {data:depts} = await sb.from('departments').select('*');
+    DB.users = (emps||[]).map(e=>{
+      const dept=(depts||[]).find(d=>d.id===e.department_id);
+      return {id:e.email, name:e.full_name, email:e.email, dept:dept?.name||'כללי', createdAt:e.created_at};
+    });
   } catch(e) { console.warn('loadUsers error', e); }
 }
 
 async function saveUsers() {
-  try {
-    await getFS().collection('studio').doc('users').set({ list: DB.users });
+  // users are managed via employees table — no save needed
+  try { return; // no-op
+    /* placeholder */ const _x=null;
   } catch(e) { console.warn('saveUsers error', e); }
 }
 
@@ -3736,30 +3732,18 @@ function switchRegisterTab(t){
   document.getElementById('form-login').style.display=t==='login'?'block':'none';
 }
 async function registerUser(){
-  const name=document.getElementById('reg-name').value.trim();
-  const email=document.getElementById('reg-email').value.trim();
-  const dept=document.getElementById('reg-dept').value;
-  if(!name||!email||!dept){showToast('אנא מלא את כל השדות','error');return;}
-  await loadUsers();
-  if(DB.users.find(u=>u.email===email)){showToast('מייל זה כבר רשום','error');return;}
-  const user={id:Date.now().toString(),name,email,dept,createdAt:new Date().toISOString()};
-  DB.users.push(user);await saveUsers();
-  currentUser=user;
-  // Save to localStorage for auto-login
-  localStorage.setItem('rememberedUser', JSON.stringify(user));
-  await enterApp(false, false);
-  showToast(`ברוך הבא, ${name}! 🎬`,'success');
+  // הרישום מתבצע דרך מסך הכניסה הראשי בלבד
+  showToast('הרישום מתבצע דרך מסך הכניסה הראשי','error');
 }
 async function loginUser(){
-  const email=document.getElementById('login-email').value.trim();
+  const email=document.getElementById('login-email').value.trim().toLowerCase();
   if(!email){showToast('הכנס מייל','error');return;}
   await loadUsers();
   const user=DB.users.find(u=>u.email===email);
-  if(!user){showToast('משתמש לא נמצא. אנא הירשם','error');return;}
+  if(!user){showToast('משתמש לא נמצא','error');return;}
   currentUser=user;
-  // Save to localStorage for auto-login
-  localStorage.setItem('rememberedUser', JSON.stringify(user));
-  await enterApp(false, false);
+  localStorage.setItem('rememberedUser',JSON.stringify(user));
+  await enterApp(false,false);
   showToast(`ברוך הבא, ${user.name}! 🎬`,'success');
 }
 function logout(){
@@ -4417,15 +4401,21 @@ function renderUsersList(){
 }
 
 async function adminDeleteUser(userId){
-  if(!confirm('למחוק את המשתמש לגמרי? כל הבקשות שלו יימחקו גם כן.'))return;
-  await loadShared();
-  DB.users=DB.users.filter(u=>u.id!==userId);
-  DB.requests=DB.requests.filter(r=>r.userId!==userId);
-  DB.viewers=DB.viewers.filter(v=>v!==userId);
-  Object.keys(DB.deptReps).forEach(d=>{if(DB.deptReps[d]===userId)DB.deptReps[d]='';});
-  await saveDB();await saveUsers();
-  showToast('המשתמש נמחק','success');
-  renderUsersList();renderAdminTab();
+  // userId = email
+  if(!confirm('למחוק את המשתמש לגמרי?'))return;
+  try{
+    await sb.from('vac_requests').delete().eq('user_id',userId);
+    await sb.from('vac_notifications').delete().eq('user_id',userId);
+    await sb.from('vac_users').delete().eq('email',userId);
+    await sb.from('employees').delete().eq('email',userId);
+    DB.users=DB.users.filter(u=>u.id!==userId);
+    DB.requests=DB.requests.filter(r=>r.userId!==userId);
+    DB.viewers=DB.viewers.filter(v=>v!==userId);
+    Object.keys(DB.deptReps).forEach(d=>{if(DB.deptReps[d]===userId)delete DB.deptReps[d];});
+    await saveDB();
+    showToast('משתמש נמחק','success');
+    renderUsersList();renderAdminTab();
+  }catch(e){showToast('שגיאה: '+e.message,'error');}
 }
 
 // Notifications
