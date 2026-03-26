@@ -3930,21 +3930,38 @@ async function submitRequest(){
     }
   }
   
-  // Continue with submission
-  const req={id:Date.now().toString(),userId:currentUser.id,name:currentUser.name,dept:currentUser.dept,email:currentUser.email,start,end,reason,status:'pending',recommendation:null,createdAt:new Date().toISOString()};
-  DB.requests.push(req);
-  const repId=DB.deptReps[currentUser.dept];
-  const forList=['admin'];
-  if(repId&&repId!==currentUser.id) forList.push(repId);
-  DB.notifications.push({id:Date.now().toString()+'n',requestId:req.id,type:'new_request',text:`🎬 בקשת חופשה חדשה מ-${req.name} (${req.dept}) — ${fmt(start)} עד ${fmt(end)}`,for:forList,read:[],createdAt:new Date().toISOString()});
-  await saveDB();
-  showToast('הבקשה נשלחה! 🎬','success');
-  document.getElementById('req-start').value='';document.getElementById('req-end').value='';document.getElementById('req-reason').value='';
-  renderMyRequests();checkNotifications();
-  // Admin notification badge
-  showAdminAlert(req.name, req.start, req.end);
-  // Send email notification
-  sendEmailNotification(req);
+  // שמור ב-Supabase
+  const id=Date.now().toString();
+  try{
+    await sb.from('vac_requests').insert({
+      id, user_id:currentUser.id, user_name:currentUser.name,
+      user_dept:currentUser.dept, start_date:start, end_date:end,
+      reason, status:'pending'
+    });
+    // התראה למנהל
+    await sb.from('vac_notifications').insert({
+      id:id+'_admin', user_id:'admin',
+      message:`🎬 בקשת חופשה חדשה מ-${currentUser.name} (${currentUser.dept}) — ${fmt(start)} עד ${fmt(end)}`,
+      type:'new_request', read:false
+    });
+    // התראה לנציג המחלקה
+    const repEmail=DB.deptReps[currentUser.dept];
+    if(repEmail && repEmail!==currentUser.id){
+      await sb.from('vac_notifications').insert({
+        id:id+'_rep', user_id:repEmail,
+        message:`🎬 בקשת חופשה חדשה מ-${currentUser.name} — ${fmt(start)} עד ${fmt(end)}`,
+        type:'new_request', read:false
+      });
+    }
+    await loadDB();
+    showToast('הבקשה נשלחה! 🎬','success');
+    document.getElementById('req-start').value='';
+    document.getElementById('req-end').value='';
+    document.getElementById('req-reason').value='';
+    renderMyRequests(); checkNotifications();
+    showAdminAlert(currentUser.name, start, end);
+    sendEmailNotification({name:currentUser.name,dept:currentUser.dept,start,end,reason});
+  }catch(e){ showToast('שגיאה: '+e.message,'error'); }
 }
 
 function sendEmailNotification(req){
@@ -4028,14 +4045,12 @@ function renderMyRequests(){
 
 async function cancelRequest(reqId){
   if(!confirm('לבטל את הבקשה?'))return;
-  await loadShared();
-  DB.requests=DB.requests.filter(r=>r.id!==reqId);
-  DB.notifications=DB.notifications.filter(n=>n.requestId!==reqId);
-  await saveDB();
-  showToast('הבקשה בוטלה','success');
-  renderMyRequests();
-  renderDeptCalendar(); // Refresh calendar to remove deleted request
-  checkNotifications();
+  try{
+    await sb.from('vac_requests').delete().eq('id',reqId);
+    await loadDB();
+    showToast('הבקשה בוטלה','success');
+    renderMyRequests(); renderDeptCalendar(); checkNotifications();
+  }catch(e){showToast('שגיאה: '+e.message,'error');}
 }
 
 // Rep tab
@@ -4121,22 +4136,27 @@ async function submitRepAction(reqId, action){
 }
 
 async function repAction(reqId,action,reason=''){
-  await loadShared();
   const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
-  req.recommendation=action;
-  req.recommendationReason=reason;
-  req.recommendedBy=currentUser.name.split(' ')[0]; // Save first name only
-  const reasonText = reason ? ` (${reason})` : '';
-  DB.notifications.push({id:Date.now().toString()+'r',requestId:reqId,type:'recommendation',text:`💼 נציג ${currentUser.name} ${action==='recommended'?'ממליץ לאשר':'לא ממליץ'} את בקשת ${req.name} (${req.dept})${reasonText}`,for:['admin'],read:[],createdAt:new Date().toISOString()});
-  await saveDB();
-  showToast(action==='recommended'?'👍 המלצת אישור נשמרה':'👎 המלצת דחייה נשמרה',action==='recommended'?'success':'');
-  checkNotifications();
-  // Close modal and then render - use setTimeout to ensure modal is found and removed
-  setTimeout(()=>{
-    const modal = document.querySelector('[style*="position:fixed"]');
-    if(modal) modal.remove();
-    renderRepTab();
-  }, 100);
+  try{
+    await sb.from('vac_requests').update({
+      recommendation:action, recommendation_reason:reason,
+      recommended_by:currentUser.name.split(' ')[0]
+    }).eq('id',reqId);
+    const reasonText=reason?` (${reason})`:'';
+    await sb.from('vac_notifications').insert({
+      id:Date.now().toString()+'r', user_id:'admin',
+      message:`💼 נציג ${currentUser.name} ${action==='recommended'?'ממליץ לאשר':'לא ממליץ'} את בקשת ${req.name} (${req.dept})${reasonText}`,
+      type:'recommendation', read:false
+    });
+    await loadDB();
+    showToast(action==='recommended'?'👍 המלצת אישור נשמרה':'👎 המלצת דחייה נשמרה',action==='recommended'?'success':'');
+    checkNotifications();
+    setTimeout(()=>{
+      const modal=document.querySelector('[style*="position:fixed"]');
+      if(modal) modal.remove();
+      renderRepTab();
+    },100);
+  }catch(e){showToast('שגיאה: '+e.message,'error');}
 }
 
 // Calendar
@@ -4301,52 +4321,23 @@ async function adminDeleteRequest(reqId){
 }
 
 async function adminAction(reqId,action){
-  await loadShared();
   const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
-  
-  console.log('🔍 Request details:', {
-    name: req.name,
-    dept: req.dept,
-    email: req.email
-  });
-  console.log('🔍 DB.deptReps:', DB.deptReps);
-  console.log('🔍 All users:', DB.users ? DB.users.map(u => ({name: u.name, email: u.email, dept: u.dept})) : 'NO USERS');
-  
-  req.status=action;
-  DB.notifications.push({id:Date.now().toString()+'a',requestId:reqId,type:action==='approved'?'request_approved':'request_rejected',text:`${action==='approved'?'✅ בקשתך אושרה':'❌ בקשתך נדחתה'} — ${fmt(req.start)} עד ${fmt(req.end)}`,for:[req.userId],read:[],createdAt:new Date().toISOString()});
-  await saveDB();
-  showToast(action==='approved'?'✅ הבקשה אושרה!':'❌ הבקשה נדחתה!',action==='approved'?'success':'error');
-  
-  // Collect ALL CC emails NOW (before setTimeout)
-  let allCCEmails = [];
-  
-  // 1. Department rep email - find the user by repId
-  const repId = DB.deptReps ? DB.deptReps[req.dept] : null;
-  console.log('🔍 Looking for rep of dept:', req.dept, '=> repId:', repId);
-  
-  if(repId && DB.users) {
-    const repUser = DB.users.find(u => u.id === repId);
-    console.log('🔍 Found rep user:', repUser);
-    if(repUser && repUser.email) {
-      allCCEmails.push(repUser.email);
-      console.log('✅ נציג מחלקה:', repUser.name, repUser.email);
-    } else {
-      console.log('❌ לא נמצא נציג למחלקה:', req.dept);
-    }
-  } else {
-    console.log('❌ אין repId או users');
-  }
-  
-  // 2. Efrat's email - always
-  allCCEmails.push('efratn@kan.org.il');
-  
-  // Remove duplicates and filter out empty
-  allCCEmails = [...new Set(allCCEmails)].filter(e => e);
-  
-  console.log('📧 כל המיילים ב-CC:', allCCEmails);
-  
-  setTimeout(()=>sendDecisionEmail(req, action, allCCEmails), 350);
-  renderAdminTab();
+  const note=document.getElementById('admin-note-'+reqId)?.value||'';
+  try{
+    await sb.from('vac_requests').update({status:action,admin_note:note}).eq('id',reqId);
+    const msg=action==='approved'?'✅ בקשתך אושרה':'❌ בקשתך נדחתה';
+    await sb.from('vac_notifications').insert({
+      id:Date.now().toString()+'a', user_id:req.userId,
+      message:`${msg} — ${fmt(req.start)} עד ${fmt(req.end)}`,
+      type:action, read:false
+    });
+    await loadDB();
+    showToast(action==='approved'?'✅ הבקשה אושרה!':'❌ הבקשה נדחתה!',action==='approved'?'success':'error');
+    const repEmail=DB.deptReps[req.dept];
+    const ccEmails=[...(repEmail?[repEmail]:[]),'efratn@kan.org.il'].filter(Boolean);
+    setTimeout(()=>sendDecisionEmail(req,action,ccEmails),350);
+    renderAdminTab();
+  }catch(e){showToast('שגיאה: '+e.message,'error');}
 }
 
 function renderDeptGrid(){
