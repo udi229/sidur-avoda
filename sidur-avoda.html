@@ -4340,22 +4340,21 @@ function renderDeptGrid(){
   const grid=document.getElementById('dept-assign-grid');
   if(!grid) return;
 
-  // Merge vac_users + employees into one list
-  const empList=(window.employees||[]).map(e=>({
-    id: e.email||e.id,  // use email as ID to match vac_users
+  // Use employees list (Supabase) as source of truth
+  // Map each employee to {id: email, name, dept}
+  const allDepts=window.departments||[];
+  const allEmps=(window.employees||[]).map(e=>({
+    id: e.email||e.id,
     name: e.full_name,
-    dept: (window.departments||[]).find(d=>d.id===e.department_id)?.name||'כללי',
+    dept: allDepts.find(d=>d.id===e.department_id)?.name||'כללי',
     email: e.email
   }));
-  // vac_users (may overlap - prefer employees list)
-  const vacEmails=new Set(empList.map(e=>e.email?.toLowerCase()));
-  const vacOnly=(DB.users||[]).filter(u=>!vacEmails.has(u.email?.toLowerCase()));
-  const allUsers=[...empList, ...vacOnly];
 
   grid.innerHTML=DEPTS.map((dept, idx)=>{
-    const deptUsers = allUsers.filter(u=>u.dept===dept);
-    const generalUsers = allUsers.filter(u=>u.dept==='כללי');
-    const uniqueUsers = [...deptUsers, ...generalUsers].filter((u,i,arr)=>arr.findIndex(x=>x.id===u.id)===i);
+    // Show employees of this dept + "כללי" employees
+    const deptUsers=allEmps.filter(u=>u.dept===dept);
+    const generalUsers=allEmps.filter(u=>u.dept==='כללי'&&dept!=='כללי');
+    const uniqueUsers=[...deptUsers,...generalUsers].filter((u,i,arr)=>arr.findIndex(x=>x.id===u.id)===i);
     const curr=DB.deptReps[dept]||'';
     const deptId=`drep-${idx}`;
     return`<div class="dept-card"><h4>${DI[dept]||'🏢'} ${dept}</h4><select class="dept-rep-select" id="${deptId}" data-dept="${dept}"><option value="">ללא נציג</option>${uniqueUsers.map(u=>`<option value="${u.id}" ${curr===u.id?'selected':''}>${u.name}${u.dept!==dept?' (כללי)':''}</option>`).join('')}${!uniqueUsers.length?'<option disabled>אין עובדים</option>':''}</select></div>`;
@@ -4375,10 +4374,12 @@ async function saveDeptReps(){
 function renderViewerSection(){
   const sel=document.getElementById('viewer-select');
   if(!sel) return;
-  const empList=(window.employees||[]).map(e=>({id:e.email||e.id,name:e.full_name,dept:(window.departments||[]).find(d=>d.id===e.department_id)?.name||'כללי',email:e.email}));
-  const vacEmails=new Set(empList.map(e=>e.email?.toLowerCase()));
-  const allUsers=[...empList,...(DB.users||[]).filter(u=>!vacEmails.has(u.email?.toLowerCase()))];
-  sel.innerHTML='<option value="">בחר...</option>'+allUsers.map(u=>`<option value="${u.id}">${u.name} (${u.dept})</option>`).join('');
+  const allDepts=window.departments||[];
+  const allEmps=(window.employees||[]).map(e=>({
+    id:e.email||e.id, name:e.full_name,
+    dept:allDepts.find(d=>d.id===e.department_id)?.name||'כללי', email:e.email
+  }));
+  sel.innerHTML='<option value="">בחר...</option>'+allEmps.map(u=>`<option value="${u.id}">${u.name} (${u.dept})</option>`).join('');
   const list=document.getElementById('viewer-list');
   const viewers=DB.users.filter(u=>DB.viewers.includes(u.id));
   if(!viewers.length){list.innerHTML='<span style="color:var(--text-light);font-size:13px">אין צופים</span>';return;}
@@ -4389,10 +4390,16 @@ async function removeViewer(id){await loadShared();DB.viewers=DB.viewers.filter(
 
 function renderUsersList(){
   const list=document.getElementById('users-manage-list');
-  if(!list)return;
-  if(!DB.users.length){list.innerHTML='<span style="color:var(--text-light);font-size:14px">אין משתמשים רשומים</span>';return;}
-  list.innerHTML=DB.users.map(u=>`<div class="viewer-tag" style="background:#fff;border:1px solid #eee;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:8px"><span>👤 <strong>${u.name}</strong> — ${u.dept}<br><small style="color:#888">${u.email}</small></span><button class="viewer-remove" style="background:#fee;color:#c00;border:1px solid #fcc;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px" onclick="adminDeleteUser('${u.id}')">🗑️ מחק</button></div>`).join('');
+  if(!list) return;
+  const allDepts=window.departments||[];
+  const allEmps=(window.employees||[]).map(e=>({
+    id:e.email||e.id, name:e.full_name,
+    dept:allDepts.find(d=>d.id===e.department_id)?.name||'כללי'
+  }));
+  if(!allEmps.length){list.innerHTML='<p style="color:var(--text-light)">אין משתמשים</p>';return;}
+  list.innerHTML=allEmps.map(u=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9"><span style="font-size:14px">${u.name} <span style="color:#94a3b8;font-size:12px">(${u.dept})</span></span></div>`).join('');
 }
+
 async function adminDeleteUser(userId){
   if(!confirm('למחוק את המשתמש לגמרי? כל הבקשות שלו יימחקו גם כן.'))return;
   await loadShared();
