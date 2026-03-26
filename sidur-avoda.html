@@ -4338,15 +4338,26 @@ async function adminAction(reqId,action){
 
 function renderDeptGrid(){
   const grid=document.getElementById('dept-assign-grid');
+  if(!grid) return;
+
+  // Merge vac_users + employees into one list
+  const empList=(window.employees||[]).map(e=>({
+    id: e.email||e.id,  // use email as ID to match vac_users
+    name: e.full_name,
+    dept: (window.departments||[]).find(d=>d.id===e.department_id)?.name||'כללי',
+    email: e.email
+  }));
+  // vac_users (may overlap - prefer employees list)
+  const vacEmails=new Set(empList.map(e=>e.email?.toLowerCase()));
+  const vacOnly=(DB.users||[]).filter(u=>!vacEmails.has(u.email?.toLowerCase()));
+  const allUsers=[...empList, ...vacOnly];
+
   grid.innerHTML=DEPTS.map((dept, idx)=>{
-    // For each department, show users from same dept + all users from "כללי"
-    const deptUsers = DB.users.filter(u=>u.dept===dept);
-    const generalUsers = DB.users.filter(u=>u.dept==='כללי');
-    const availableUsers = [...deptUsers, ...generalUsers];
-    // Remove duplicates if any
-    const uniqueUsers = availableUsers.filter((u, i, arr) => arr.findIndex(x=>x.id===u.id) === i);
+    const deptUsers = allUsers.filter(u=>u.dept===dept);
+    const generalUsers = allUsers.filter(u=>u.dept==='כללי');
+    const uniqueUsers = [...deptUsers, ...generalUsers].filter((u,i,arr)=>arr.findIndex(x=>x.id===u.id)===i);
     const curr=DB.deptReps[dept]||'';
-    const deptId = `drep-${idx}`;
+    const deptId=`drep-${idx}`;
     return`<div class="dept-card"><h4>${DI[dept]||'🏢'} ${dept}</h4><select class="dept-rep-select" id="${deptId}" data-dept="${dept}"><option value="">ללא נציג</option>${uniqueUsers.map(u=>`<option value="${u.id}" ${curr===u.id?'selected':''}>${u.name}${u.dept!==dept?' (כללי)':''}</option>`).join('')}${!uniqueUsers.length?'<option disabled>אין עובדים</option>':''}</select></div>`;
   }).join('');
 }
@@ -4363,7 +4374,11 @@ async function saveDeptReps(){
 
 function renderViewerSection(){
   const sel=document.getElementById('viewer-select');
-  sel.innerHTML='<option value="">בחר...</option>'+DB.users.map(u=>`<option value="${u.id}">${u.name} (${u.dept})</option>`).join('');
+  if(!sel) return;
+  const empList=(window.employees||[]).map(e=>({id:e.email||e.id,name:e.full_name,dept:(window.departments||[]).find(d=>d.id===e.department_id)?.name||'כללי',email:e.email}));
+  const vacEmails=new Set(empList.map(e=>e.email?.toLowerCase()));
+  const allUsers=[...empList,...(DB.users||[]).filter(u=>!vacEmails.has(u.email?.toLowerCase()))];
+  sel.innerHTML='<option value="">בחר...</option>'+allUsers.map(u=>`<option value="${u.id}">${u.name} (${u.dept})</option>`).join('');
   const list=document.getElementById('viewer-list');
   const viewers=DB.users.filter(u=>DB.viewers.includes(u.id));
   if(!viewers.length){list.innerHTML='<span style="color:var(--text-light);font-size:13px">אין צופים</span>';return;}
