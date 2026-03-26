@@ -1439,9 +1439,9 @@
 <div style="position:relative">
 <div id="preview-overlay">
   <div class="preview-topbar">
-    <div class="preview-date" id="pv-date"></div>
+    <button class="pv-btn pv-close" onclick="closePreview()" style="margin-left:auto">→ חזרה</button>
+    <div class="preview-date" id="pv-date" style="flex:1;text-align:center"></div>
     <button class="pv-btn pv-publish" id="pv-publish-btn" onclick="lozTogglePublishFromPreview()">פרסם</button>
-    <button class="pv-btn pv-close" onclick="closePreview()">סגור</button>
   </div>
   <div id="pv-content"></div>
 </div>
@@ -5250,14 +5250,15 @@ function initSplash(){
     if(frame>TOTAL){
       clearInterval(tid);
       splash.classList.add('hide');
+      // Show hub buttons immediately — no waiting
+      document.getElementById('hub-screen').classList.add('active');
+      document.querySelectorAll('.hub-btn').forEach((btn,i)=>{
+        setTimeout(()=>btn.classList.add('show'), i*150);
+      });
+      const exitBtn=document.getElementById('hub-exit-btn');
+      if(exitBtn) exitBtn.classList.add('show');
+      // Check session in background
       showHubOrAuth();
-      setTimeout(()=>{
-        document.querySelectorAll('.hub-btn').forEach((btn,i)=>{
-          setTimeout(()=>btn.classList.add('show'), i*220);
-        });
-        const exitBtn=document.getElementById('hub-exit-btn');
-        if(exitBtn) exitBtn.classList.add('show');
-      }, 60);
     }
   }, 16);
 }
