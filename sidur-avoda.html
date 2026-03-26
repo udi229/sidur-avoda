@@ -1889,7 +1889,6 @@ async function initApp(user){
   await loadAll();
   currentEmp=employees.find(e=>e.email.toLowerCase()===user.email.toLowerCase())||{id:null,full_name:user.email,email:user.email,role:'employee',department_id:null,position_percent:100};
   // Auto-register in vacation app Firebase
-  await _autoRegisterVacationUser(currentEmp); // register in vac_users
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('hub-screen').classList.add('active');
   document.querySelectorAll('.hub-btn').forEach(btn=>btn.classList.add('show'));
@@ -3558,28 +3557,7 @@ function showNotification(title, body){
 // Keeping IIFE empty - showHubOrAuth handles it
 (async()=>{})();
 
-// Auto-register sidur user into vacation Firebase
-async function _autoRegisterVacationUser(emp){
-  if(!emp||!emp.full_name||emp.id==='manager-local') return;
-  try{
-    const email=(emp.email||emp.id+'@sidur.local').toLowerCase();
-    const allDepts=window.departments||[];
-    const deptObj=allDepts.find(d=>d.id===emp.department_id);
-    const deptName=deptObj?.name||deptObj?.title||'כללי';
-    // upsert — creates if missing, updates if exists (handles re-registration after deletion)
-    const {data:existing}=await sb.from('vac_users').select('id').eq('email',email).maybeSingle();
-    if(existing){
-      await sb.from('vac_users').update({name:emp.full_name,dept:deptName}).eq('email',email);
-    } else {
-      await sb.from('vac_users').insert({
-        id: Date.now().toString()+Math.random().toString(36).slice(2,6),
-        name: emp.full_name,
-        email: email,
-        dept: deptName
-      });
-    }
-  }catch(e){ console.warn('vac register error',e); }
-}
+// _autoRegisterVacationUser removed — employees is single source of truth
 
 // ===== VACATION APP =====
 // Global showTab for vacation app tabs
@@ -4418,19 +4396,18 @@ function renderUsersList(){
 
 async function adminDeleteUser(userId){
   // userId = email
-  if(!confirm('למחוק את המשתמש לגמרי?'))return;
+  if(!confirm('למחוק את המשתמש?'))return;
   try{
     await sb.from('vac_requests').delete().eq('user_id',userId);
     await sb.from('vac_notifications').delete().eq('user_id',userId);
-    await sb.from('vac_users').delete().eq('email',userId);
     await sb.from('employees').delete().eq('email',userId);
     DB.users=DB.users.filter(u=>u.id!==userId);
     DB.requests=DB.requests.filter(r=>r.userId!==userId);
-    DB.viewers=DB.viewers.filter(v=>v!==userId);
     Object.keys(DB.deptReps).forEach(d=>{if(DB.deptReps[d]===userId)delete DB.deptReps[d];});
     await saveDB();
+    await loadUsers();
+    renderUsersList(); renderDeptGrid(); renderViewerSection();
     showToast('משתמש נמחק','success');
-    renderUsersList();renderAdminTab();
   }catch(e){showToast('שגיאה: '+e.message,'error');}
 }
 
