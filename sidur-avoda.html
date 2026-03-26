@@ -1864,7 +1864,7 @@ async function initApp(user){
   await loadAll();
   currentEmp=employees.find(e=>e.email.toLowerCase()===user.email.toLowerCase())||{id:null,full_name:user.email,email:user.email,role:'employee',department_id:null,position_percent:100};
   // Auto-register in vacation app Firebase
-  _autoRegisterVacationUser(currentEmp);
+  await _autoRegisterVacationUser(currentEmp); // register in vac_users
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('hub-screen').classList.add('active');
   document.querySelectorAll('.hub-btn').forEach(btn=>btn.classList.add('show'));
@@ -3534,37 +3534,27 @@ function showNotification(title, body){
 (async()=>{})();
 
 // Auto-register sidur user into vacation Firebase
-function _autoRegisterVacationUser(emp){
-  if(!emp || !emp.full_name || emp.id==='manager-local') return;
-  // Wait for Firebase to load, then register
-  const tryRegister = async () => {
-    if(typeof firebase==='undefined') return;
-    try{
-      const fs = firebase.firestore();
-      const snap = await fs.collection('shared').doc('data').get();
-      const data = snap.exists ? snap.data() : {};
-      const users = data.users||[];
-      const depts = data.deptReps ? Object.keys(data.deptReps) : [];
-      // Get dept name
-      const allDepts = window.departments||[];
-      const deptObj = allDepts.find(d=>d.id===emp.department_id);
-      const deptName = deptObj?.name||deptObj?.title||'כללי';
-      const email = emp.email||(emp.id+'@sidur.local');
-      // Check if already exists
-      const exists = users.find(u=>u.email===email);
-      if(!exists){
-        users.push({
-          id: Date.now().toString(),
-          name: emp.full_name,
-          email: email,
-          dept: deptName,
-          createdAt: new Date().toISOString()
-        });
-        await fs.collection('shared').doc('data').update({ users });
-      }
-    } catch(e){ /* silent fail */ }
-  };
-  setTimeout(tryRegister, 1000);
+async function _autoRegisterVacationUser(emp){
+  if(!emp||!emp.full_name||emp.id==='manager-local') return;
+  try{
+    const email=(emp.email||emp.id+'@sidur.local').toLowerCase();
+    const allDepts=window.departments||[];
+    const deptObj=allDepts.find(d=>d.id===emp.department_id);
+    const deptName=deptObj?.name||deptObj?.title||'כללי';
+    // Check if already exists in vac_users
+    const {data:existing}=await sb.from('vac_users').select('id').eq('email',email).maybeSingle();
+    if(!existing){
+      await sb.from('vac_users').insert({
+        id: Date.now().toString(),
+        name: emp.full_name,
+        email: email,
+        dept: deptName
+      });
+    } else {
+      // Update dept in case it changed
+      await sb.from('vac_users').update({name:emp.full_name, dept:deptName}).eq('email',email);
+    }
+  }catch(e){ console.warn('vac register error',e); }
 }
 
 // ===== VACATION APP =====
