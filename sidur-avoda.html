@@ -1689,6 +1689,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
 
 let currentUser=null, currentEmp=null, isMgr=false;
 let weekOffset=0, departments=[], employees=[], freelancers=[], schedules={}, cellData={};
+window.departments=[]; window.employees=[];
 let activeView='schedule', activeDeptId=null;
 let openDropdown=null;
 let editMode=false;
@@ -1979,7 +1980,8 @@ async function loadAll(){
     sb.from('shift_types').select('*').order('sort_order'),
   ]);
   departments=d.data||[];
-  employees=e.data||[];
+  window.departments=departments;
+  employees=e.data||[]; window.employees=employees;
   freelancers=f.data||[];
   combinedViews=(cv.data||[]).map(v=>({...v, dept_ids: v.dept_ids.split(','), published: v.published||false}));
   if(st.data&&st.data.length>0){
@@ -3657,36 +3659,58 @@ function getFS() {
 
 async function loadDB() {
   try {
-    const fs = getFS();
-    const doc = await fs.collection('studio').doc('main').get();
-    if (doc.exists) {
-      const d = doc.data();
-      DB.requests      = d.requests      || [];
-      DB.deptReps      = d.deptReps      || {};
-      DB.viewers       = d.viewers       || [];
-      DB.notifications = d.notifications || [];
-      DB.adminPassword = d.adminPassword || DB.adminPassword;
-    }
-  } catch(e) {
-    console.warn('loadDB error', e);
-    if (e.code === 'permission-denied') {
-      showToast('שגיאת הרשאות Firebase — בדוק Rules ב-Firestore', 'error');
-    } else if (e.message && e.message.includes('blocked')) {
-      showToast('הדומיין לא מאושר ב-Firebase — הוסף ב-Authorized Domains', 'error');
-    }
-  }
+    // Load settings
+    const {data:sets} = await sb.from('vac_settings').select('*');
+    (sets||[]).forEach(s=>{
+      if(s.key==='admin_password') DB.adminPassword=s.value;
+      else if(s.key==='dept_reps')  DB.deptReps=s.value||{};
+      else if(s.key==='viewers')    DB.viewers=s.value||[];
+    });
+    // Load requests
+    const {data:reqs} = await sb.from('vac_requests').select('*').order('created_at',{ascending:false});
+    DB.requests=(reqs||[]).map(r=>({
+      id:r.id, userId:r.user_id, userName:r.user_name, userDept:r.user_dept,
+      startDate:r.start_date, endDate:r.end_date,
+      start:r.start_date, end:r.end_date,
+      name:r.user_name, dept:r.user_dept,
+      reason:r.reason, status:r.status, adminNote:r.admin_note,
+      recommendation:r.recommendation, recommendationReason:r.recommendation_reason,
+      recommendedBy:r.recommended_by, createdAt:r.created_at
+    }));
+    // Load notifications
+    const {data:notifs} = await sb.from('vac_notifications').select('*').order('created_at',{ascending:false});
+    DB.notifications=(notifs||[]).map(n=>({
+      id:n.id, userId:n.user_id, for:[n.user_id],
+      message:n.message, text:n.message,
+      type:n.type, read:n.read?[n.user_id]:[],
+      createdAt:n.created_at
+    }));
+    // Auto-assign team_leads as dept reps
+    await lozSyncTeamLeads();
+  } catch(e) { console.warn('loadDB error',e); }
 }
 
 async function saveDB() {
   try {
-    await getFS().collection('studio').doc('main').set({
-      requests:      DB.requests,
-      deptReps:      DB.deptReps,
-      viewers:       DB.viewers,
-      notifications: DB.notifications,
-      adminPassword: DB.adminPassword
+    await sb.from('vac_settings').upsert([
+      {key:'dept_reps',      value:DB.deptReps},
+      {key:'viewers',        value:DB.viewers},
+      {key:'admin_password', value:DB.adminPassword}
+    ],{onConflict:'key'});
+  } catch(e) { console.warn('saveDB error',e); }
+}
+
+async function lozSyncTeamLeads(){
+  // Auto-assign team_leads as dept reps
+  try{
+    const emps = window.employees || [];
+    const depts = window.departments || [];
+    if(!emps.length) return;
+    emps.filter(e=>e.role==='team_lead').forEach(e=>{
+      const dept = depts.find(d=>d.id===e.department_id);
+      if(dept && e.email) DB.deptReps[dept.name] = e.email;
     });
-  } catch(e) { console.warn('saveDB error', e); }
+  }catch(e){}
 }
 
 async function loadShared() {
