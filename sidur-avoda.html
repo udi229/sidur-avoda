@@ -3572,7 +3572,7 @@ function showTab(tabId,btn){
   if(tabId==='tab-calendar')renderDeptCalendar();
   if(tabId==='tab-admin-cal')renderAdminCalendar();
   if(tabId==='tab-admin-req')renderReqTable();
-  if(tabId==='tab-admin-settings'){loadUsers().then(()=>{renderDeptGrid();renderViewerSection();renderUsersList();});}
+  if(tabId==='tab-admin-settings'){lozSyncTeamLeads().then(()=>{loadUsers().then(()=>{renderDeptGrid();renderViewerSection();renderUsersList();});});}
   if(tabId==='tab-admin')renderAdminTab();
   if(tabId==='tab-viewer-cal')renderViewerCalendar();
   if(tabId==='tab-rep')renderRepTab();
@@ -3701,21 +3701,32 @@ async function saveDB() {
 }
 
 async function lozSyncTeamLeads(){
-  // Auto-assign team_leads as dept reps
   try{
-    const emps = window.employees || [];
-    const depts = window.departments || [];
-    if(!emps.length) return;
+    // Load fresh from Supabase directly — don't rely on window.employees
+    const {data:emps} = await sb.from('employees').select('*');
+    const {data:depts} = await sb.from('departments').select('*');
+    if(!emps||!depts) return;
+
+    // Map dept names — handle aliases
+    const DEPT_ALIAS = {'מנהלי במה':'מנהל אולפן'};
+
     emps.filter(e=>e.role==='team_lead').forEach(e=>{
       const dept = depts.find(d=>d.id===e.department_id);
-      if(dept && e.email) DB.deptReps[dept.name] = e.email;
+      if(!dept||!e.email) return;
+      const deptName = DEPT_ALIAS[dept.name]||dept.name;
+      DB.deptReps[deptName] = e.email;
+      // also map original name
+      DB.deptReps[dept.name] = e.email;
     });
-  }catch(e){}
+
+    // Persist
+    await sb.from('vac_settings').upsert({key:'dept_reps',value:DB.deptReps},{onConflict:'key'});
+  }catch(e){ console.warn('lozSyncTeamLeads error',e); }
 }
 
 async function loadShared() {
-  await loadDB();
-  await loadUsers();
+  await loadUsers(); // load DB.users first
+  await loadDB();    // then load requests/settings + sync team_leads
 }
 
 async function loadUsers() {
