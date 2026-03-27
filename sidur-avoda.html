@@ -3571,11 +3571,11 @@ function showTab(tabId,btn){
   if(btn)btn.classList.add('active');
   if(tabId==='tab-calendar')renderDeptCalendar();
   if(tabId==='tab-admin-cal')renderAdminCalendar();
-  if(tabId==='tab-admin-req')renderReqTable();
+  if(tabId==='tab-admin-req'){loadDB().then(()=>renderReqTable());}
   if(tabId==='tab-admin-settings'){loadUsers().then(()=>{renderDeptGrid();renderViewerSection();renderUsersList();});}
-  if(tabId==='tab-admin')renderAdminTab();
+  if(tabId==='tab-admin'){loadDB().then(()=>renderAdminTab());}
   if(tabId==='tab-viewer-cal')renderViewerCalendar();
-  if(tabId==='tab-rep')renderRepTab();
+  if(tabId==='tab-rep'){loadDB().then(()=>renderRepTab());}
 }
 
 const VacApp = (() => {
@@ -5079,11 +5079,6 @@ function initCanvas() {
 }
 
 async function _vacationInit(){
-  let attempts = 0;
-  while (typeof firebase === 'undefined' && attempts < 50) {
-    await new Promise(r => setTimeout(r, 100));
-    attempts++;
-  }
   await loadDB();
   await loadUsers();
   await loadShared();
