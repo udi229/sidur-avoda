@@ -102,7 +102,8 @@
   #sched-wrap td:first-child, #sched-wrap th:first-child { border-right:none; }
   .cell-rel { position:relative; }
   .cell-tags { display:flex; flex-wrap:wrap; gap:3px; }
-  .emp-tag { display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; cursor:default; white-space:nowrap; }
+  .emp-tag { display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; cursor:default; white-space:nowrap; transition: all 0.15s; }
+  .emp-tag.neon-highlight { background:#1a0000 !important; color:#ff2200 !important; border-color:#ff2200 !important; box-shadow:0 0 8px #ff2200, 0 0 16px #ff220066 !important; text-shadow:0 0 6px #ff2200; }
   .remove-tag { cursor:pointer; opacity:0.6; font-size:13px; }
   .remove-tag:hover { opacity:1; }
   .add-emp-btn { width:22px; height:22px; border-radius:50%; background:white; border:1.5px solid #00d4ff; color:#00d4ff; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; margin:2px; transition:all 0.2s; box-shadow:0 0 6px #00d4ff44; }
@@ -2689,6 +2690,21 @@ async function saveNote(dId,shiftId,dayIdx,note){
 }
 
 // ── RENDER SCHEDULE ──
+async function saveTeamNote(dId){
+  const ta=document.getElementById('team-note-ta');
+  if(!ta) return;
+  const note=ta.value;
+  const btn=ta.closest('div').parentElement.querySelector('button');
+  const sched=await ensureSched(dId);
+  try{
+    await sb.from('schedules').update({team_note:note}).eq('id',sched.id);
+    // Update local
+    if(schedules[dId]) schedules[dId].team_note=note;
+    // Show ✓ on button
+    if(btn){ const orig=btn.textContent; btn.textContent='✓ נשמר'; btn.style.background='#16a34a'; setTimeout(()=>{ btn.textContent=orig; btn.style.background='#0f172a'; },2000); }
+  }catch(e){ if(btn){ btn.textContent='שגיאה'; btn.style.background='#dc2626'; setTimeout(()=>{ btn.textContent='שמור'; btn.style.background='#0f172a'; },2000); } }
+}
+
 function canEdit(dId){
   // manager (PIN): requires editMode
   if(isMgr) return editMode;
@@ -2957,7 +2973,7 @@ function renderSchedule(){
         else if(showFreelancers&&isFreelance){tagBg='#fef9c3';tagColor='#854d0e';tagBorder='#fcd34d';}
         else{tagBg='#eff6ff';tagColor='#1e40af';tagBorder='#bfdbfe';}
         const firstName=name.split(' ')[0];
-        html+=`<span class="emp-tag" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder}">
+        html+=`<span class="emp-tag" data-emp="${firstName}" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder}">
           ${firstName}
           ${ed?`<span class="remove-tag" onclick="removeName('${dept.id}','${shift.id}',${d},'${escapedName}')">×</span>`:''}
         </span>`;
@@ -3188,6 +3204,12 @@ function renderOnlineList(){
 }
 
 // ── STATS ──
+function highlightEmp(firstName, on){
+  document.querySelectorAll(`.emp-tag[data-emp="${firstName}"]`).forEach(el=>{
+    el.classList.toggle('neon-highlight', on);
+  });
+}
+
 function renderStats(){
   const wrap=document.getElementById('stats-wrap');
   if(!wrap) return;
@@ -3249,9 +3271,12 @@ function renderStats(){
       else if(count<expected){bg='#fef2f2';color='#dc2626';border='#fca5a5';}
       else if(count>expected+1){bg='#eff6ff';color='#1d4ed8';border='#bfdbfe';}
       else{bg='#f0fdf4';color='#15803d';border='#86efac';}
+      const firstName3=emp.full_name.split(' ')[0];
       html+=`<div style="background:${bg};border:1.5px solid ${border};border-radius:10px;
-        padding:8px 12px;min-width:100px;text-align:center">
-        <div style="font-size:14px;font-weight:800;color:#0f172a">${emp.full_name.split(' ')[0]}</div>
+        padding:8px 12px;min-width:100px;text-align:center;cursor:default"
+        onmouseenter="highlightEmp('${firstName3}',true)"
+        onmouseleave="highlightEmp('${firstName3}',false)">
+        <div style="font-size:14px;font-weight:800;color:#0f172a">${firstName3}</div>
         <div style="font-size:22px;font-weight:900;color:${color};line-height:1.2">${count}</div>
         <div style="font-size:10px;color:#94a3b8">${pct}% · תקן ${expected}</div>
       </div>`;
