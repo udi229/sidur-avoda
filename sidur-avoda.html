@@ -1207,22 +1207,20 @@
 <div class="auth-box" style="position:relative;z-index:3;background:rgba(255,255,255,0.97);border:1px solid #d0dcf0;border-radius:20px;padding:36px;animation:cardflicker 3.5s ease-in-out infinite">
   <div class="auth-logo" style="font-size:38px">🎬</div>
   <div class="auth-title" style="color:#1a2030">אולפנים</div>
-  <div class="auth-sub" id="auth-sub" style="color:#6a7890">כניסה למערכת</div>
+  <div class="auth-sub" id="auth-sub" style="color:#6a7890">הרשמה</div>
   <div class="fg"><label style="color:#5a6880">אימייל</label><input type="email" id="a-email" placeholder="your@email.com" style="background:white;border-color:#c0cce0;color:#1a2030" /></div>
   <div class="fg"><label style="color:#5a6880">סיסמה</label><input type="password" id="a-pass" placeholder="••••••••" style="background:white;border-color:#c0cce0;color:#1a2030" /></div>
-  <div id="reg-f" style="display:none">
+  <div id="reg-f">
     <div class="fg"><label style="color:#5a6880">שם מלא</label><input type="text" id="a-name" placeholder="ישראל ישראלי" style="background:white;border-color:#c0cce0;color:#1a2030" /></div>
     <div class="fg"><label style="color:#5a6880">מחלקה</label><select id="a-dept" style="background:white;border-color:#c0cce0;color:#1a2030"><option value="">-- בחר מחלקה --</option></select></div>
   </div>
   <button class="btn-p" id="a-btn" onclick="primeAudio();handleAuth()" style="animation:onair 1.2s ease-in-out infinite;font-size:20px;font-weight:900;letter-spacing:6px;border:2px solid #ff2200">ON AIR</button>
   <div id="a-msg" class="auth-err"></div>
-  <div class="auth-tog" style="color:#8090a8"><span id="tog-txt">אין לך חשבון?</span><a onclick="toggleMode()" style="color:#6366f1"> הרשמה</a></div>
-  <div style="margin-top:16px;border-top:1px solid #e8eef8;padding-top:14px">
-    <div style="text-align:center;font-size:12px;font-weight:700;color:#8090a8;letter-spacing:1px;margin-bottom:10px">כניסת מנהל</div>
-    <div style="display:flex;gap:16px;justify-content:center">
-      <button onclick="showPinFor('primary')" title="מנהל ראשי" style="width:52px;height:52px;border-radius:50%;background:#f0f4ff;border:2px solid #6366f1;cursor:pointer;font-size:26px;display:flex;align-items:center;justify-content:center">👨‍💼</button>
-      <button onclick="showPinFor('secondary')" title="מנהלת משנית" style="width:52px;height:52px;border-radius:50%;background:#fff0f8;border:2px solid #ec4899;cursor:pointer;font-size:26px;display:flex;align-items:center;justify-content:center">👩‍💼</button>
-    </div>
+  <div class="auth-tog" style="color:#8090a8"><span id="tog-txt">יש לך חשבון?</span><a onclick="toggleMode()" style="color:#6366f1"> כניסה</a></div>
+  <!-- כניסת מנהל — קטן, בצדדים -->
+  <div style="margin-top:14px;border-top:1px solid #f0f4fa;padding-top:10px;display:flex;justify-content:space-between;align-items:center">
+    <button onclick="showPinFor('primary')" title="מנהל ראשי" style="width:32px;height:32px;border-radius:50%;background:#f0f4ff;border:1.5px solid #6366f1;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;opacity:0.6">👨‍💼</button>
+    <button onclick="showPinFor('secondary')" title="מנהלת משנית" style="width:32px;height:32px;border-radius:50%;background:#fff0f8;border:1.5px solid #ec4899;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;opacity:0.6">👩‍💼</button>
   </div>
 </div>
 </div>
@@ -1519,8 +1517,8 @@
           <div class="form-field"><label>מחלקה</label><input type="text" id="req-dept" class="read-only" readonly></div>
         </div>
         <div class="form-row">
-          <div class="form-field"><label>תאריך התחלה</label><input type="date" id="req-start" onchange="onStartDateChange()"></div>
-          <div class="form-field"><label>תאריך סיום</label><input type="date" id="req-end"></div>
+          <div class="form-field"><label>תאריך התחלה</label><input type="date" id="req-start" lang="he" onchange="onStartDateChange()"></div>
+          <div class="form-field"><label>תאריך סיום</label><input type="date" id="req-end" lang="he"></div>
         </div>
         <div class="form-field"><label>סיבת החופשה</label><textarea id="req-reason" placeholder="פרט את סיבת החופשה..."></textarea></div>
         <button class="btn-submit" onclick="submitRequest()">🎬 שלח בקשה</button>
@@ -1717,7 +1715,7 @@ const DAYS_DISPLAY=['ראשון','שני','שלישי','רביעי','חמישי'
 const ROLE_HEB={employee:'עובד',team_lead:'ראש צוות',manager:'מנהל'};
 
 // ── AUTH ──
-let authMode='login';
+let authMode='register';
 async function loadDeptSel(){
   const {data}=await sb.from('departments').select('*').order('name');
   document.getElementById('a-dept').innerHTML='<option value="">-- בחר מחלקה --</option>'+(data||[]).map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
@@ -1727,7 +1725,6 @@ function toggleMode(){
   const r=authMode==='register';
   document.getElementById('auth-sub').textContent=r?'הרשמה':'כניסה';
   document.getElementById('reg-f').style.display=r?'block':'none';
-  // כפתור תמיד ON AIR
   document.getElementById('tog-txt').textContent=r?'יש לך חשבון?':'אין לך חשבון?';
   document.querySelector('.auth-tog a').textContent=r?' כניסה':' הרשמה';
   document.getElementById('a-msg').textContent='';
