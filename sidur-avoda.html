@@ -2115,6 +2115,13 @@ async function loadWeekData(){
     });
   }
   updateWeekUI();
+  // Re-apply neon highlight if active
+  if(typeof _highlightedEmp!=='undefined' && _highlightedEmp){
+    setTimeout(()=>{
+      document.querySelectorAll('.emp-tag.neon-highlight').forEach(el=>el.classList.remove('neon-highlight'));
+      document.querySelectorAll('.emp-tag[data-emp="'+_highlightedEmp+'"]').forEach(el=>el.classList.add('neon-highlight'));
+    },80);
+  }
 }
 
 function updateWeekUI(){
@@ -3160,11 +3167,15 @@ function renderSchedule(){
     deptEmpsForStats.forEach(emp=>{
       const cnt=countEmpShifts(emp.full_name,activeDeptId);
       const req=Math.round((emp.position_percent/100)*5);
-      const color=cnt<req?'#ef4444':cnt>req?'#3b82f6':'#10b981';
-      const bg=cnt<req?'#fef2f2':cnt>req?'#eff6ff':'#f0fdf4';
-      statsHtml+=`<div style="background:${bg};border-radius:8px;padding:5px 10px;border-right:3px solid ${color};font-size:12px">
-        <span style="font-weight:600;color:#0f172a">${emp.full_name}</span>
-        <span style="color:${color};font-weight:800;margin-right:4px"> ${cnt}/${req}</span>
+      const color=cnt<req?'#dc2626':cnt>req?'#1d4ed8':'#15803d';
+      const bg=cnt<req?'#fff5f5':cnt>req?'#eff6ff':'#f0fdf4';
+      const firstName4=emp.full_name.split(' ')[0];
+      statsHtml+=`<div class="stat-tile" data-emp="${firstName4}"
+        onclick="highlightEmp('${firstName4}')"
+        style="background:${bg};border-radius:10px;padding:6px 12px;border:3px solid ${color};font-size:12px;cursor:pointer;transition:all 0.15s;text-align:center;min-width:80px">
+        <div style="font-weight:700;color:#0f172a;font-size:13px">${firstName4}</div>
+        <div style="color:${color};font-weight:900;font-size:18px;line-height:1.2">${cnt}</div>
+        <div style="font-size:10px;color:#94a3b8">תקן ${req}</div>
       </div>`;
     });
     statsHtml+='</div>';
@@ -3207,14 +3218,21 @@ function renderOnlineList(){
 // ── STATS ──
 let _highlightedEmp = null;
 function highlightEmp(firstName){
-  // Toggle: click same emp to deselect
   const on = _highlightedEmp !== firstName;
-  // Clear previous
+  // Clear previous highlight
   document.querySelectorAll('.emp-tag.neon-highlight').forEach(el=>el.classList.remove('neon-highlight'));
   document.querySelectorAll('.stat-tile.selected').forEach(el=>el.classList.remove('selected'));
   if(on){
     _highlightedEmp = firstName;
-    document.querySelectorAll(`.emp-tag[data-emp="${firstName}"]`).forEach(el=>el.classList.add('neon-highlight'));
+    // Switch to schedule view to see the highlights
+    if(activeView !== 'schedule'){
+      showView('schedule');
+    }
+    // Wait for render then highlight
+    setTimeout(()=>{
+      document.querySelectorAll(`.emp-tag[data-emp="${firstName}"]`).forEach(el=>el.classList.add('neon-highlight'));
+    }, 100);
+    // Also highlight stat tile if still visible
     document.querySelectorAll(`.stat-tile[data-emp="${firstName}"]`).forEach(el=>el.classList.add('selected'));
   } else {
     _highlightedEmp = null;
