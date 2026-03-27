@@ -413,14 +413,20 @@
   .cal-day.today { border-color:var(--orange); border-width:2px; background:var(--orange-pale); }
   .cal-day-num { font-size:11px; font-weight:700; color:var(--text-light); margin-bottom:1px; }
   @media (max-width:480px){
-    .tab-content { padding:6px !important; }
+    .tab-content { padding:4px !important; }
     .cal-grid { gap:1px; }
-    .cal-day { min-height:36px; padding:1px; border-radius:2px; }
+    .cal-day { min-height:34px; padding:1px; border-radius:2px; }
     .cal-day-num { font-size:9px; margin-bottom:0; }
     .cal-day-name { font-size:9px; padding:2px 0; letter-spacing:0; }
-    .cal-month-name { font-size:14px; min-width:100px; }
+    .cal-month-name { font-size:13px; min-width:80px; }
     .calendar-legend { display:none; }
     .legend-item { font-size:9px; }
+    .admin-grid { grid-template-columns:repeat(2,1fr) !important; gap:6px !important; }
+    .stat-card { padding:8px !important; }
+    .calendar-filter { flex-wrap:wrap; gap:4px; }
+    .filter-select { font-size:11px; padding:3px 6px; }
+    #vacation-container { overflow-x:hidden; }
+    .cal-month-nav { gap:4px; }
   }
   .cal-day.today .cal-day-num { color:var(--orange); }
   .cal-event { font-size:12px; font-weight:700; padding:2px 4px; border-radius:3px; margin-bottom:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; line-height:1.3; display:inline-block; max-width:100%; }
@@ -3716,9 +3722,11 @@ function getFS() {
 // ── נציגי מחלקות = ראשי צוות בסידור ──
 async function syncDeptRepsFromTeamLeads(){
   try{
-    const {data:emps} = await sb.from('employees').select('id,full_name,email,role,department_id');
-    const {data:depts} = await sb.from('departments').select('id,name');
-    if(!emps||!depts) return;
+    // Use cached data if available
+    const emps = (window.employees&&window.employees.length) ? window.employees :
+      (await sb.from('employees').select('id,full_name,email,role,department_id')).data || [];
+    const depts = (window.departments&&window.departments.length) ? window.departments :
+      (await sb.from('departments').select('id,name')).data || [];
     DB.deptReps = {};
     emps.filter(e=>e.role==='team_lead'&&e.email).forEach(e=>{
       const dept=depts.find(d=>d.id===e.department_id);
@@ -5142,9 +5150,7 @@ function initCanvas() {
 }
 
 async function _vacationInit(){
-  await loadDB();
-  await loadUsers();
-  await loadShared();
+  await loadShared(); // loads both DB and users
 }
 
   // Expose functions globally
