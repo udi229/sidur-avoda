@@ -3931,23 +3931,32 @@ async function submitRequest(){
   }
   
   // שמור ב-Supabase
-  const id=Date.now().toString();
+  const id=crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString()+Math.random().toString(36).slice(2));
   try{
-    await sb.from('vac_requests').insert({
+    console.log('submitRequest: currentUser=', currentUser);
+    console.log('submitRequest: start=',start,'end=',end,'reason=',reason);
+    
+    const {error:reqErr} = await sb.from('vac_requests').upsert({
       id, user_id:currentUser.id, user_name:currentUser.name,
       user_dept:currentUser.dept, start_date:start, end_date:end,
       reason:reason||'', status:'pending'
-    });
+    },{onConflict:'id'});
+    if(reqErr){ console.error('vac_requests insert error:', reqErr); showToast('שגיאה בשמירה: '+reqErr.message,'error'); return; }
+    console.log('vac_requests inserted OK');
+    
     // התראה למנהל
-    await sb.from('vac_notifications').insert({
+    const {error:notifErr} = await sb.from('vac_notifications').upsert({
       id:id+'_admin', user_id:'admin',
       message:`🎬 בקשת חופשה חדשה מ-${currentUser.name} (${currentUser.dept}) — ${fmt(start)} עד ${fmt(end)}`,
       type:'new_request', read:false
     });
+    if(notifErr) console.error('admin notif error:', notifErr);
+    
     // התראה לנציג המחלקה
     const repEmail=DB.deptReps[currentUser.dept];
+    console.log('repEmail for dept', currentUser.dept, '=', repEmail, 'DB.deptReps=', DB.deptReps);
     if(repEmail && repEmail!==currentUser.id){
-      await sb.from('vac_notifications').insert({
+      await sb.from('vac_notifications').upsert({
         id:id+'_rep', user_id:repEmail,
         message:`🎬 בקשת חופשה חדשה מ-${currentUser.name} — ${fmt(start)} עד ${fmt(end)}`,
         type:'new_request', read:false
@@ -3957,11 +3966,11 @@ async function submitRequest(){
     showToast('הבקשה נשלחה! 🎬','success');
     document.getElementById('req-start').value='';
     document.getElementById('req-end').value='';
-    document.getElementById('req-reason').value='';
+    if(document.getElementById('req-reason')) document.getElementById('req-reason').value='';
     renderMyRequests(); checkNotifications();
     showAdminAlert(currentUser.name, start, end);
     sendEmailNotification({name:currentUser.name,dept:currentUser.dept,start,end,reason});
-  }catch(e){ showToast('שגיאה: '+e.message,'error'); }
+  }catch(e){ console.error('submitRequest error:',e); showToast('שגיאה: '+e.message,'error'); }
 }
 
 function sendEmailNotification(req){
