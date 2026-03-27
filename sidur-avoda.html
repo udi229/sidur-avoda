@@ -1717,8 +1717,22 @@ const ROLE_HEB={employee:'עובד',team_lead:'ראש צוות',manager:'מנה�
 // ── AUTH ──
 let authMode='register';
 async function loadDeptSel(){
-  const {data}=await sb.from('departments').select('*').order('name');
-  document.getElementById('a-dept').innerHTML='<option value="">-- בחר מחלקה --</option>'+(data||[]).map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+  const sel=document.getElementById('a-dept');
+  if(!sel) return;
+  try{
+    // Try Supabase first
+    const {data,error}=await sb.from('departments').select('id,name').order('name');
+    if(!error && data && data.length){
+      window.departments=data;
+      sel.innerHTML='<option value="">-- בחר מחלקה --</option>'+
+        data.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+      return;
+    }
+  }catch(e){}
+  // Fallback: use DEPTS constant with fake IDs
+  const fallback=typeof DEPTS!=='undefined'?DEPTS:['סאונד','ניתוב','במאים','ע.במאי',"סיג'י/פרומפטר",'צלמים','מנהלי במה','כללי'];
+  sel.innerHTML='<option value="">-- בחר מחלקה --</option>'+
+    fallback.map(d=>`<option value="${d}">${d}</option>`).join('');
 }
 function toggleMode(){
   authMode=authMode==='login'?'register':'login';
@@ -1771,8 +1785,26 @@ async function handleAuth(){
       authData = signUpRes.data;
     }
     // Delete any old employee record and re-insert fresh
+    // dept can be UUID or dept name (fallback)
+    let deptId=dept, deptName=dept;
+    // If it looks like a UUID, it's from Supabase
+    if(dept && dept.includes('-')){
+      // UUID — look up name
+      try{
+        const {data:deptData}=await sb.from('departments').select('name').eq('id',dept).single();
+        deptName=deptData?.name||dept;
+      }catch(e){}
+    } else {
+      // Name string — look up or create UUID
+      deptId=null;
+      try{
+        const {data:deptData}=await sb.from('departments').select('id').eq('name',dept).single();
+        deptId=deptData?.id||null;
+        deptName=dept;
+      }catch(e){}
+    }
     await sb.from('employees').delete().eq('email',email);
-    await sb.from('employees').insert({full_name:name,email,role:'employee',department_id:dept||null,position_percent:100});
+    await sb.from('employees').insert({full_name:name,email,role:'employee',department_id:deptId||null,position_percent:100});
     await initApp(authData.user);
   }
 }
@@ -1838,6 +1870,7 @@ async function logout(){
   document.getElementById('app').style.display='none';
   document.getElementById('hub-screen').classList.remove('active');
   document.getElementById('auth-screen').style.display='flex';
+  setTimeout(initAuthScreen, 50);
   window._vacInitialized=false;
 }
 document.addEventListener('keydown',e=>{
@@ -5315,7 +5348,7 @@ function showHubOrAuth(){
     }
   } catch(e){}
   const auth = document.getElementById('auth-screen');
-  if(auth) auth.style.display='flex';
+  if(auth){ auth.style.display='flex'; setTimeout(initAuthScreen,200); }
   sb.auth.getSession().then(({data:{session}})=>{
     if(session){ if(auth) auth.style.display='none'; initApp(session.user); }
   }).catch(()=>{});
@@ -5366,7 +5399,7 @@ function hubGo(dest){
     window._hubDestAfterLogin = dest;
     document.getElementById('hub-screen').classList.remove('active');
     const auth = document.getElementById('auth-screen');
-    if(auth){ auth.style.display='flex'; setTimeout(initAuthScreen,50); }
+    if(auth){ auth.style.display='flex'; setTimeout(initAuthScreen,200); }
     return;
   }
   document.getElementById('hub-screen').classList.remove('active');
@@ -5909,7 +5942,11 @@ function lozInjectSaveButtons(){
 // ===== END LOZ APP =====
 
 // Start splash on load
-window.addEventListener('DOMContentLoaded', initSplash);
+window.addEventListener('DOMContentLoaded', ()=>{
+  initSplash();
+  // טעון מחלקות ברקע מיד
+  setTimeout(loadDeptSel, 300);
+});
 
 </script>
 </body>
