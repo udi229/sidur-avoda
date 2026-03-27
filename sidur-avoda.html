@@ -1344,14 +1344,10 @@
           oninput="searchQuery=this.value;renderSchedule()"
           style="display:none;flex:1;min-width:160px;padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;font-family:inherit;background:white" />
         <button id="my-shifts-btn" onclick="toggleMyShifts()"
-          style="padding:8px 16px;border:1.5px solid #00ff88;border-radius:20px;font-size:13px;
-          font-weight:700;cursor:pointer;font-family:inherit;background:#f0fdf4;color:#15803d;
-          white-space:nowrap;border:2px solid #22c55e;box-shadow:0 0 8px #22c55e66;transition:all 0.2s">המשמרות שלי</button>
-
-        <button id="my-shifts-btn-tl" onclick="toggleMyShifts()"
           style="display:none;padding:8px 16px;border:1.5px solid #00ff88;border-radius:20px;font-size:13px;
-          font-weight:700;cursor:pointer;font-family:inherit;background:#f0fdf4;color:#15803d;
-          white-space:nowrap;border:2px solid #22c55e;box-shadow:0 0 8px #22c55e66;transition:all 0.2s">המשמרות שלי</button>
+          font-weight:700;cursor:pointer;font-family:inherit;background:white;color:#047857;
+          white-space:nowrap;box-shadow:0 0 10px #00ff8866;transition:all 0.2s">המשמרות שלי</button>
+
         <button id="freelance-toggle" onclick="toggleFreelanceHighlight()"
           style="display:none;padding:8px 16px;border:1.5px solid #f59e0b;border-radius:20px;
           font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:white;
@@ -2008,19 +2004,17 @@ async function initApp(user){
     if(ftBtn) ftBtn.style.display='inline-block';
     const srchBtn=document.getElementById('sched-search');
     if(srchBtn) srchBtn.style.display='block';
-    // show my-shifts near freelancer for team leads, hide main one
-    if(currentEmp.role==='team_lead'){
-      const myShiftsMain=document.getElementById('my-shifts-btn');
-      if(myShiftsMain) myShiftsMain.style.display='none';
-      const myShiftsTL=document.getElementById('my-shifts-btn-tl');
-      if(myShiftsTL) myShiftsTL.style.display='inline-block';
-    }
+    const myShiftsBtn2=document.getElementById('my-shifts-btn');
+    if(myShiftsBtn2) myShiftsBtn2.style.display='inline-block';
+
   } else {
-    // regular employee - hide search and freelancer, show only my-shifts-btn
+    // regular employee - show my-shifts-btn only
     const srchBtn=document.getElementById('sched-search');
     if(srchBtn) srchBtn.style.display='none';
     const ftBtn2=document.getElementById('freelance-toggle');
     if(ftBtn2) ftBtn2.style.display='none';
+    const myShiftsBtnEmp=document.getElementById('my-shifts-btn');
+    if(myShiftsBtnEmp) myShiftsBtnEmp.style.display='inline-block';
   }
   document.getElementById('nav-vacation').style.display='inline-block';
   const _navloz=document.getElementById('nav-loz');if(_navloz)_navloz.style.display='inline-block';
@@ -2198,18 +2192,23 @@ let showMyShifts=false;
 function toggleMyShifts(){
   showMyShifts=!showMyShifts;
   const btn=document.getElementById('my-shifts-btn');
-  const btnTL=document.getElementById('my-shifts-btn-tl');
-  [btn,btnTL].filter(Boolean).forEach(b=>{
+  if(btn){
     if(showMyShifts){
-      b.classList.add('my-shifts-active');
-      b.style.cssText='';
-      b.textContent='✓ המשמרות שלי';
+      btn.style.background='white';
+      btn.style.color='#15803d';
+      btn.style.border='2.5px solid #00ff88';
+      btn.style.boxShadow='0 0 14px #00ff88, 0 0 28px #00ff8866';
+      btn.style.animation='neonPulseGreen 1.2s ease-in-out infinite';
+      btn.textContent='✓ המשמרות שלי';
     } else {
-      b.classList.remove('my-shifts-active');
-      b.style.cssText='';
-      b.textContent='המשמרות שלי';
+      btn.style.background='white';
+      btn.style.color='#047857';
+      btn.style.border='1.5px solid #00ff88';
+      btn.style.boxShadow='0 0 8px #00ff8844';
+      btn.style.animation='none';
+      btn.textContent='המשמרות שלי';
     }
-  });
+  }
   renderSchedule();
 }
 
