@@ -744,6 +744,11 @@
     overflow: hidden;
   }
 
+  #view-loz .tabs { flex-wrap:wrap; }
+  @media (max-width:600px){
+    #view-loz .top-bar { flex-wrap:wrap; gap:6px; }
+    #view-loz .tabs { display:flex !important; }
+  }
   #view-loz .tab {
     padding: 7px 18px;
     font-size: 13px;
@@ -4222,17 +4227,11 @@ function renderCal(cid,year,month,reqs){
     de.className='cal-day'+(isT?' today':'')+(hol?' holiday':'');
     if(hol){
       de.style.border='2px solid #0038b8';
-      de.style.position='relative';
-      de.style.overflow='visible';
-      // Add waving Star of David in background - less transparent
-      const star=document.createElement('div');
-      star.innerHTML='✡';
-      star.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:78px;color:rgba(0,56,184,0.25);pointer-events:none;z-index:0;animation:star-wave 3s ease-in-out infinite;';
-      de.appendChild(star);
+
     }
     const ne=document.createElement('div');ne.className='cal-day-num';ne.textContent=d;ne.style.position='relative';ne.style.zIndex='3';de.appendChild(ne);
     // Holiday label - centered at top, same line as date
-    if(hol){const hl=document.createElement('div');hl.style.cssText='font-size:9px;color:#0038b8;font-weight:800;padding:2px 4px;text-align:center;position:absolute;top:3px;left:50%;transform:translateX(-50%);z-index:3;background:rgba(255,255,255,0.95);border-radius:4px;white-space:nowrap;';hl.textContent='✡ '+hol;de.appendChild(hl);}
+    if(hol){const hl=document.createElement('div');hl.style.cssText='font-size:9px;color:#0038b8;font-weight:800;padding:2px 4px;text-align:center;position:absolute;top:3px;left:50%;transform:translateX(-50%);z-index:3;background:rgba(255,255,255,0.95);border-radius:4px;white-space:nowrap;';hl.textContent='✡ '+hol; hl.style.fontSize='8px';de.appendChild(hl);}
     const dr=reqs.filter(r=>ds>=r.start&&ds<=r.end&&r.status!=='rejected');
     // Create a container for events in 2 columns
     const evContainer = document.createElement('div');
@@ -5501,10 +5500,10 @@ function buildTable(secs, onChange, onDel, onAdd, onTitleChange, onReset, onDelS
       const timeTd=document.createElement('td');timeTd.className='col-time';
       const tw=document.createElement('div');tw.className='time-wrap';
       const fromI=document.createElement('input');fromI.className='ei ei-time';fromI.value=r.from;fromI.placeholder='09:00';
-      fromI.onchange=e=>onChange(si,ri,'from',e.target.value);
+      fromI.onchange=e=>onChange(si,ri,'from',e.target.value); lozAutoSave();
       const sep=document.createElement('span');sep.className='sep';sep.textContent='—';
       const toI=document.createElement('input');toI.className='ei ei-time';toI.value=r.to;toI.placeholder='10:00';
-      toI.onchange=e=>onChange(si,ri,'to',e.target.value);
+      toI.onchange=e=>onChange(si,ri,'to',e.target.value); lozAutoSave();
       tw.appendChild(fromI);tw.appendChild(sep);tw.appendChild(toI);timeTd.appendChild(tw);
 
       const nameTd=document.createElement('td');nameTd.className='col-name';
@@ -5512,7 +5511,7 @@ function buildTable(secs, onChange, onDel, onAdd, onTitleChange, onReset, onDelS
       const nameI=document.createElement('input');
       nameI.className='ei ei-name'+(r.color==='red'?' clr-red':r.color==='green'?' clr-green':'');
       nameI.value=r.name;nameI.placeholder='שם הקלטה / תוכנית...';
-      nameI.onchange=e=>onChange(si,ri,'name',e.target.value);
+      nameI.onchange=e=>onChange(si,ri,'name',e.target.value); lozAutoSave();
       const curClr=r.color||'none';
       const trigger=document.createElement('button');
       trigger.type='button';
@@ -5636,7 +5635,7 @@ function printDay(){
       if(!r.name && !r.from) return; // skip empty rows
       const nameClr=r.color==='red'?'#1177ff':r.color==='green'?'#39ff14':'#fff';
       const timeStr=r.from?(r.from+(r.to?' — '+r.to:'')):'';
-      html+=`<tr style="border-bottom:1px solid #2a2a2a"><td style="padding:4px 10px 4px 14px;color:#aaa;font-size:12px;white-space:nowrap;text-align:center">${timeStr}</td><td style="padding:4px 14px 4px 10px;font-size:12px;color:${nameClr};word-break:break-word;max-width:240px">${r.name||''}</td></tr>`;
+      html+=`<tr style="border-bottom:1px solid #2a2a2a"><td style="padding:4px 10px 4px 14px;color:#fff;font-size:12px;white-space:nowrap;text-align:center">${timeStr}</td><td style="padding:4px 14px 4px 10px;font-size:12px;color:${nameClr};word-break:break-word;max-width:240px">${r.name||''}</td></tr>`;
     });
   });
   html+=`</tbody></table></div>`;
@@ -5685,6 +5684,17 @@ async function lozLoadDay(key){
 async function lozSaveDefault(){
   try{ await sb.from('loz_default').upsert({id:1,data:defSections},{onConflict:'id'}); alert('ברירת מחדל נשמרה ✅'); }
   catch(e){ alert('שגיאה: '+e.message); }
+}
+
+let _lozAutoSaveTimer=null;
+function lozAutoSave(){
+  clearTimeout(_lozAutoSaveTimer);
+  _lozAutoSaveTimer=setTimeout(async()=>{
+    await lozSaveDay();
+    // if in default tab, also save default
+    const defPanel=document.getElementById('panel-default');
+    if(defPanel&&defPanel.classList.contains('active')) await lozSaveDefault();
+  }, 1200);
 }
 
 async function lozSaveDay(){
@@ -5947,21 +5957,7 @@ function lozInjectSaveButtons(){
   pubBtn.onclick=lozTogglePublish;
   topBar.appendChild(pubBtn);
 
-  if(lozCanEdit()){
-    const saveDay=document.createElement('button');
-    saveDay.className='loz-save-btn';
-    saveDay.style.cssText='background:#0f172a;color:white;border:1px solid #334155;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-right:8px';
-    saveDay.textContent='💾 שמור יומי';
-    saveDay.onclick=lozSaveDay;
-    topBar.appendChild(saveDay);
 
-    const saveDef=document.createElement('button');
-    saveDef.className='loz-save-btn';
-    saveDef.style.cssText='background:#475569;color:white;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-right:8px';
-    saveDef.textContent='💾 שמור ברירת מחדל';
-    saveDef.onclick=lozSaveDefault;
-    topBar.appendChild(saveDef);
-  }
 
 
 }
