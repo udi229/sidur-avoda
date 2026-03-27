@@ -1294,10 +1294,7 @@
           style="padding:8px 16px;border:1.5px solid #00ff88;border-radius:20px;font-size:13px;
           font-weight:700;cursor:pointer;font-family:inherit;background:white;color:#047857;
           white-space:nowrap;box-shadow:0 0 8px #00ff8844;transition:all 0.2s">המשמרות שלי</button>
-        <button id="toolbar-submit-btn" onclick="toolbarSubmit()" style="display:none;padding:8px 16px;
-          border:1.5px solid #ff003c;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;
-          font-family:inherit;background:white;color:#be123c;white-space:nowrap;
-          box-shadow:0 0 8px #ff003c44;transition:all 0.3s">סיימתי סידור</button>
+
         <button id="my-shifts-btn-tl" onclick="toggleMyShifts()"
           style="display:none;padding:8px 16px;border:1.5px solid #00ff88;border-radius:20px;font-size:13px;
           font-weight:700;cursor:pointer;font-family:inherit;background:white;color:#047857;
@@ -2045,7 +2042,7 @@ async function loadAll(){
 // ── WEEK ──
 function weekStart(o=weekOffset){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay()+o*7);return d;}
 function weekStartStr(o=weekOffset){return weekStart(o).toISOString().split('T')[0];}
-function weekDates(o=weekOffset){const s=weekStart(o);return DAYS_DISPLAY.map((_,i)=>{const d=new Date(s);d.setDate(s.getDate()+i);return `${d.getDate()}/${d.getMonth()+1}`;});}
+function weekDates(o=weekOffset){const s=weekStart(o);return DAYS_DISPLAY.map((_,i)=>{const d=new Date(s);d.setDate(s.getDate()+i);return `${d.getDate()}.${d.getMonth()+1}`;});}
 
 async function loadWeekData(){
   const ws=weekStartStr();
@@ -2072,7 +2069,7 @@ function updateWeekUI(){
   const wkLbl=document.getElementById('wk-lbl');
   const wkDt=document.getElementById('wk-dt');
   if(wkLbl) wkLbl.textContent=lbl;
-  if(wkDt) wkDt.textContent=`${dates[0]} - ${dates[6]}`;
+  if(wkDt) wkDt.textContent=`${dates[6]} - ${dates[0]}`;
   const allApp=departments.length>0&&departments.every(d=>schedules[d.id]?.status==='approved');
   const anySubmitted2=Object.values(schedules).some(s=>s.team_submitted&&s.status!=='approved');
   const sb2=document.getElementById('wk-st');
@@ -2087,7 +2084,7 @@ function updateWeekUI(){
 
   // team_lead submit button (toolbar + notes panel)
   const submitBtn=document.getElementById('submit-btn');
-  const tbSubBtn=document.getElementById('toolbar-submit-btn');
+  const tbSubBtn=null; // removed
   const role2=currentEmp?.role||'employee';
   if(role2==='team_lead'&&!isMgr&&activeDeptId){
     const deptSched=schedules[activeDeptId];
@@ -2256,7 +2253,7 @@ function toolbarSubmit(){
   if(realBtn) realBtn.click();
 }
 function updateToolbarSubmitBtn(){
-  const btn=document.getElementById('toolbar-submit-btn');
+  const btn=null; // removed
   if(!btn) return;
   const role=currentEmp?.role||'employee';
   if(role==='team_lead'&&!isMgr&&activeDeptId){
@@ -3041,7 +3038,7 @@ function renderSchedule(){
         `<textarea id="team-note-ta" rows="3" placeholder="הערה לסידור..." style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:13px;outline:none;resize:vertical">${tNote}</textarea>
          <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
            <button onclick="saveTeamNote('${activeDeptId}')" style="background:#0f172a;color:white;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">שמור</button>
-           <button onclick="teamSubmit()" style="background:${submitted3?'#059669':'white'};color:${submitted3?'white':'#047857'};border:1.5px solid #00ff88;border-radius:20px;padding:6px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 0 8px #00ff8844">${submitted3?'✓ סיימתי סידור':'סיימתי סידור'}</button>
+           <button onclick="teamSubmit()" style="background:${submitted3?'#be123c':'white'};color:${submitted3?'white':'#be123c'};border:2px solid #ff003c;border-radius:20px;padding:6px 18px;font-size:12px;font-weight:900;cursor:pointer;font-family:inherit;box-shadow:0 0 12px #ff003c88,0 0 4px #ff003c44;letter-spacing:1px;animation:${submitted3?'none':'onair 1.4s ease-in-out infinite'}">${submitted3?'✓ סיימתי סידור':'סיימתי סידור'}</button>
          </div>` :
         `<div style="background:#f8fafc;border-radius:8px;padding:10px;font-size:13px;color:${tNote?'#0f172a':'#94a3b8'};min-height:40px">${tNote||'אין הערה'}</div>`
       }
