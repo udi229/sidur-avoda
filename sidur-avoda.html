@@ -2353,7 +2353,7 @@ function setCombined(id){
   searchQuery='';
   const si=document.getElementById('sched-search');
   if(si) si.value='';
-  renderDeptTabs();renderSchedule();
+  renderDeptTabs();renderSchedule(); setTimeout(applySchedZoom,50);
 }
 
 // ── CELL DATA ──
@@ -5400,12 +5400,20 @@ function showHubOrAuth(){
   }).catch(()=>{});
 }
 
-let _schedZoom = 100;
+let _schedZoom = window.innerWidth < 600 ? 78 : 100;
 function schedZoom(dir){
-  if(dir===0){ _schedZoom=100; }
-  else { _schedZoom = Math.min(150, Math.max(50, _schedZoom + dir*10)); }
+  if(dir===0){ _schedZoom = window.innerWidth < 600 ? 78 : 100; }
+  else { _schedZoom = Math.min(150, Math.max(40, _schedZoom + dir*10)); }
+  applySchedZoom();
+}
+function applySchedZoom(){
   const wrap = document.getElementById('sched-zoom-wrap');
-  if(wrap) wrap.style.transform = `scale(${_schedZoom/100})`;
+  if(wrap){
+    wrap.style.transform = `scale(${_schedZoom/100})`;
+    wrap.style.transformOrigin = 'top right';
+    // Adjust container height so scroll works correctly
+    wrap.style.marginBottom = _schedZoom < 100 ? `-${(100-_schedZoom)*2}px` : '0';
+  }
   const pct = document.getElementById('zoom-pct');
   if(pct) pct.textContent = _schedZoom+'%';
 }
