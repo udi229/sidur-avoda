@@ -1369,6 +1369,7 @@
       <div class="sec-title">סטטיסטיקות עובדים</div>
       <div id="stats-wrap" class="stats-grid"></div>
     </div>
+      </div><!-- end vac-zoom-wrap -->
 
     <div id="view-settings" style="display:none">
       <div class="sec-title">הגדרות מערכת</div>
@@ -1540,6 +1541,13 @@
   </div>
 
   <div id="view-vacation" style="display:none;flex:1;overflow-y:auto;">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding:2px 0">
+        <button class="zoom-btn" onclick="vacZoom(1)">+</button>
+        <span class="zoom-pct" id="vac-zoom-pct">58%</span>
+        <button class="zoom-btn" onclick="vacZoom(-1)">−</button>
+        <button class="zoom-btn" onclick="vacZoom(0)" style="font-size:12px">↺</button>
+      </div>
+      <div id="vac-zoom-wrap" style="zoom:0.58">
     <div id="vacation-container">
 <!-- MAIN APP -->
 <div id="screen-app" class="screen active">
@@ -4010,7 +4018,7 @@ async function enterApp(adminMode=false,viewerMode=false){
   } else {
     document.getElementById('header-name').textContent=currentUser.name;
     document.getElementById('header-dept').textContent=currentUser.dept;
-    document.getElementById('admin-btn-app').style.display='flex';
+    // admin-btn-app hidden permanently
     if(Object.values(DB.deptReps).includes(currentUser.id)) document.getElementById('tab-rep-btn').style.display='flex';
     if(DB.viewers.includes(currentUser.id)) document.getElementById('tab-viewer-btn').style.display='flex';
     document.getElementById('req-name').value=currentUser.name;
@@ -5536,6 +5544,16 @@ function applySchedZoom(){
   }
   const pct = document.getElementById('zoom-pct');
   if(pct) pct.textContent = _schedZoom+'%';
+}
+
+let _vacZoom = window.innerWidth < 600 ? 58 : 100;
+function vacZoom(dir){
+  if(dir===0){ _vacZoom = window.innerWidth < 600 ? 58 : 100; }
+  else { _vacZoom = Math.min(150, Math.max(40, _vacZoom + dir*10)); }
+  const wrap = document.getElementById('vac-zoom-wrap');
+  if(wrap) wrap.style.zoom = (_vacZoom/100).toString();
+  const pct = document.getElementById('vac-zoom-pct');
+  if(pct) pct.textContent = _vacZoom+'%';
 }
 
 async function refreshApp(btn){
