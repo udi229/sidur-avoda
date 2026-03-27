@@ -103,6 +103,13 @@
   .cell-rel { position:relative; }
   .cell-tags { display:flex; flex-wrap:wrap; gap:3px; }
   .emp-tag { display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; cursor:default; white-space:nowrap; transition: all 0.15s; }
+  .my-shifts-active {
+    background: white !important;
+    color: #15803d !important;
+    border: 2.5px solid #00ff88 !important;
+    box-shadow: 0 0 14px #00ff88, 0 0 28px #00ff8877, 0 0 4px #00ff88 !important;
+    animation: neonPulseGreen 1.2s ease-in-out infinite !important;
+  }
   .emp-tag.neon-highlight { background:#fff0f0 !important; color:#ff2200 !important; border:2px solid #ff2200 !important; box-shadow:0 0 8px #ff220088, 0 0 14px #ff220044 !important; text-shadow:0 0 6px #ff220088; font-weight:900 !important; }
   .stat-tile.selected { box-shadow:0 0 0 3px #ff2200, 0 0 12px #ff220066 !important; transform:scale(1.05); }
   .remove-tag { cursor:pointer; opacity:0.6; font-size:13px; }
@@ -2194,18 +2201,12 @@ function toggleMyShifts(){
   const btnTL=document.getElementById('my-shifts-btn-tl');
   [btn,btnTL].filter(Boolean).forEach(b=>{
     if(showMyShifts){
-      b.style.background='white';
-      b.style.color='#15803d';
-      b.style.border='2.5px solid #00ff88';
-      b.style.boxShadow='0 0 16px #00ff88, 0 0 32px #00ff8866, inset 0 0 8px #00ff8822';
-      b.style.animation='neonPulseGreen 1.2s ease-in-out infinite';
+      b.classList.add('my-shifts-active');
+      b.style.cssText='';
       b.textContent='✓ המשמרות שלי';
     } else {
-      b.style.background='white';
-      b.style.color='#15803d';
-      b.style.border='2px solid #22c55e';
-      b.style.boxShadow='0 0 8px #22c55e66';
-      b.style.animation='none';
+      b.classList.remove('my-shifts-active');
+      b.style.cssText='';
       b.textContent='המשמרות שלי';
     }
   });
