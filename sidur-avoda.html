@@ -97,8 +97,8 @@
   .zoom-btn { width:28px; height:28px; border:1.5px solid #cbd5e1; border-radius:6px; background:white; cursor:pointer; font-size:16px; font-weight:700; color:#475569; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
   .zoom-btn:hover { border-color:#6366f1; color:#6366f1; }
   .zoom-pct { font-size:12px; color:#64748b; min-width:36px; text-align:center; font-weight:600; }
-  #sched-wrap td { border-right:1px solid rgba(148,163,184,0.2); border-bottom:1px solid rgba(148,163,184,0.2); }
-  #sched-wrap th { border-right:1px solid rgba(148,163,184,0.15); border-bottom:2px solid rgba(148,163,184,0.25); }
+  #sched-wrap td { border-right:1px solid rgba(15,23,42,0.35); border-bottom:1px solid rgba(15,23,42,0.35); }
+  #sched-wrap th { border-right:1px solid rgba(15,23,42,0.3); border-bottom:2px solid rgba(15,23,42,0.5); }
   #sched-wrap td:first-child, #sched-wrap th:first-child { border-right:none; }
   .cell-rel { position:relative; }
   .cell-tags { display:flex; flex-wrap:wrap; gap:3px; }
@@ -2796,14 +2796,14 @@ function renderCombinedView(){
       // role/dept name cell
       html+=`<td style="${B};padding:5px 8px;text-align:right;vertical-align:middle;
         font-size:11px;font-weight:700;color:${row.dept.color};background:${isFirst?'#fafafa':'white'};
-        border-bottom:${isLast?'2px solid #e2e8f0':'1px solid #f1f5f9'}">${row.label}</td>`;
+        border-bottom:${isLast?'2px solid #334155':'1px solid #334155'}">${row.label}</td>`;
 
       // day cells
       for(let d=0;d<7;d++){
         const sched=schedules[row.dept.id];
         const names=sched?getCellNames(sched.id,row.key,d):[];
         html+=`<td style="${B};padding:3px 2px;text-align:center;vertical-align:middle;
-          background:${rowBg};border-bottom:${isLast?'2px solid #e2e8f0':'1px solid #f1f5f9'}">`;
+          background:${rowBg};border-bottom:${isLast?'2px solid #334155':'1px solid #334155'}">`;
         if(names.length){
           names.forEach(name=>{
             const isMe=currentEmp&&currentEmp.full_name===name&&!isMgr;
@@ -3001,7 +3001,7 @@ function renderSchedule(){
         const noteKey2=sched2?`note_${sched2.id}_${roleKey}_${d}`:'';
         const noteVal2=noteKey2&&cellData[noteKey2]?.content||'';
         const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===roleKey&&openDropdown.dayIdx===d;
-        html+=`<td style="position:relative;border-bottom:${ri===roles.length-1?'2px solid #e2e8f0':'1px dashed #f1f5f9'}"><div class="cell-inner cell-rel" style="position:relative">
+        html+=`<td style="position:relative;border-bottom:${ri===roles.length-1?'2px solid #334155':'1px solid #e2e8f0'}"><div class="cell-inner cell-rel" style="position:relative">
           <div class="cell-tags">`;
         const uniqueRoleNames=[...new Set(roleNames)];
         uniqueRoleNames.forEach(name=>{
