@@ -1254,7 +1254,7 @@
       <div class="hdr-usr">
         <div><div class="usr-nm" id="hdr-nm"></div><div class="usr-rl" id="hdr-rl"></div></div>
         <button class="btn-back-hub" onclick="goBackToHub()" style="font-size:11px;padding:5px 10px">→ חזרה</button>
-        <button onclick="refreshApp()" style="background:none;border:1px solid #cbd5e1;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:11px;font-family:inherit;font-weight:700;color:#64748b;transition:all 0.2s;display:flex;align-items:center;gap:4px" onmouseover="this.style.borderColor='#6366f1';this.style.color='#6366f1'" onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#64748b'">↻ רענן</button>
+        <button onclick="refreshApp(this)" style="background:none;border:1px solid #cbd5e1;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:11px;font-family:inherit;font-weight:700;color:#64748b;transition:all 0.2s;display:flex;align-items:center;gap:4px" onmouseover="this.style.borderColor='#6366f1';this.style.color='#6366f1'" onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#64748b'">↻ רענן</button>
       </div>
     </div>
   </div>
@@ -5352,13 +5352,16 @@ function showHubOrAuth(){
   }).catch(()=>{});
 }
 
-async function refreshApp(){
-  const btn=event?.currentTarget;
+async function refreshApp(btn){
+  // אנימציה
   if(btn){ btn.style.transform='rotate(360deg)'; btn.style.transition='transform 0.5s'; setTimeout(()=>{ btn.style.transform=''; btn.style.transition=''; },500); }
+  // טעינה מחדש מ-Supabase
   await loadAll();
-  if(activeView==='schedule') { renderDeptTabs(); renderSchedule(); }
+  await loadWeekData();
+  if(activeView==='schedule'){ renderDeptTabs(); renderSchedule(); }
   else if(activeView==='stats') renderStats();
   else if(activeView==='settings') renderSettings();
+  else if(activeView==='vacation'){ if(typeof loadDB==='function') await loadDB(); if(typeof renderAdminTab==='function') renderAdminTab(); }
 }
 
 function goBackToHub(){
