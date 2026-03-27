@@ -193,9 +193,12 @@
 
   /* MOBILE */
   @media(max-width:600px){
-    .main{padding:12px}
-    .hdr{padding:8px 12px}
-    .hdr-nav .nav-btn{padding:6px 10px;font-size:11px}
+    .main{padding:4px 3px}
+    .hdr{padding:6px 8px}
+    .hdr-nav .nav-btn{padding:5px 8px;font-size:11px}
+    #view-schedule,#view-stats,#view-settings{padding:4px 3px}
+    #sched-zoom-wrap{transform-origin:top right}
+    .zoom-controls{padding:3px 0 4px}
   }
 
   /* ANIMATIONS */
@@ -5411,8 +5414,16 @@ function applySchedZoom(){
   if(wrap){
     wrap.style.transform = `scale(${_schedZoom/100})`;
     wrap.style.transformOrigin = 'top right';
-    // Adjust container height so scroll works correctly
-    wrap.style.marginBottom = _schedZoom < 100 ? `-${(100-_schedZoom)*2}px` : '0';
+    // shrink wrapper so content below is not pushed down
+    const isMobile = window.innerWidth < 600;
+    const factor = _schedZoom/100;
+    if(factor < 1){
+      wrap.style.height = (wrap.scrollHeight * factor) + 'px';
+      wrap.style.overflow = 'hidden';
+    } else {
+      wrap.style.height = '';
+      wrap.style.overflow = '';
+    }
   }
   const pct = document.getElementById('zoom-pct');
   if(pct) pct.textContent = _schedZoom+'%';
