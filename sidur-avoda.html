@@ -3188,10 +3188,28 @@ function renderSchedule(){
       const firstName4=emp.full_name.split(' ')[0];
       statsHtml+=`<div class="stat-tile" data-emp="${firstName4}"
         onclick="highlightEmp('${firstName4}')"
-        style="background:${bg};border-radius:10px;padding:6px 12px;border:3px solid ${color};font-size:12px;cursor:pointer;transition:all 0.15s;text-align:center;min-width:80px">
-        <div style="font-weight:700;color:#0f172a;font-size:13px">${firstName4}</div>
-        <div style="color:${color};font-weight:900;font-size:18px;line-height:1.2">${cnt}</div>
-        <div style="font-size:10px;color:#94a3b8">תקן ${req}</div>
+        style="background:${bg};border-radius:10px;padding:5px 10px;border:3px solid ${color};cursor:pointer;transition:all 0.15s;text-align:center;min-width:60px">
+        <div style="font-weight:700;color:#0f172a;font-size:11px">${firstName4}</div>
+        <div style="color:${color};font-weight:900;font-size:15px;line-height:1.2">${cnt}/${req}</div>
+      </div>`;
+    });
+    // Freelancers - yellow neon on click
+    const deptFreeForStats=freelancers.filter(f=>f.department_id===activeDeptId);
+    const freeCnts={};
+    shiftTypes.forEach(shift=>{
+      if(!schedules[activeDeptId]) return;
+      for(let d=0;d<7;d++){
+        const names=getCellNames(schedules[activeDeptId].id,shift.id,d);
+        names.forEach(n=>{ if(deptFreeForStats.find(f=>f.name===n)) freeCnts[n]=(freeCnts[n]||0)+1; });
+      }
+    });
+    Object.entries(freeCnts).forEach(([name,cnt])=>{
+      const firstName5=name.split(' ')[0];
+      statsHtml+=`<div class="stat-tile" data-emp="${firstName5}"
+        onclick="highlightFreelancer('${firstName5}')"
+        style="background:#fefce8;border-radius:10px;padding:5px 10px;border:3px solid #fbbf24;cursor:pointer;transition:all 0.15s;text-align:center;min-width:60px">
+        <div style="font-weight:700;color:#854d0e;font-size:11px">${firstName5}</div>
+        <div style="color:#d97706;font-weight:900;font-size:15px;line-height:1.2">${cnt}</div>
       </div>`;
     });
     statsHtml+='</div>';
@@ -3233,6 +3251,34 @@ function renderOnlineList(){
 
 // ── STATS ──
 let _highlightedEmp = null;
+let _highlightedFree = null;
+function highlightFreelancer(firstName){
+  // Clear regular highlight
+  document.querySelectorAll('.emp-tag.neon-highlight').forEach(el=>el.classList.remove('neon-highlight'));
+  document.querySelectorAll('.stat-tile.selected').forEach(el=>el.classList.remove('selected'));
+  const on = _highlightedFree !== firstName;
+  _highlightedFree = on ? firstName : null;
+  _highlightedEmp = null;
+  if(on){
+    // Activate freelancer highlight mode temporarily
+    const prevFreelancers = showFreelancers;
+    showFreelancers = true;
+    renderSchedule();
+    showFreelancers = prevFreelancers;
+    setTimeout(()=>{
+      document.querySelectorAll('.emp-tag[data-emp="'+firstName+'"]').forEach(el=>{
+        el.style.background='white';
+        el.style.color='#d97706';
+        el.style.border='2px solid #fbbf24';
+        el.style.boxShadow='0 0 10px #fbbf24,0 0 20px #fbbf2466';
+        el.style.animation='neonPulseYellow 1.2s ease-in-out infinite';
+        el.style.fontWeight='900';
+      });
+    },80);
+  } else {
+    renderSchedule();
+  }
+}
 function highlightEmp(firstName){
   const on = _highlightedEmp !== firstName;
   // Clear previous highlight
