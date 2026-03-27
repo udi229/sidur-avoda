@@ -1369,7 +1369,6 @@
       <div class="sec-title">סטטיסטיקות עובדים</div>
       <div id="stats-wrap" class="stats-grid"></div>
     </div>
-      </div><!-- end vac-zoom-wrap -->
 
     <div id="view-settings" style="display:none">
       <div class="sec-title">הגדרות מערכת</div>
@@ -1541,13 +1540,6 @@
   </div>
 
   <div id="view-vacation" style="display:none;flex:1;overflow-y:auto;">
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding:2px 0">
-        <button class="zoom-btn" onclick="vacZoom(1)">+</button>
-        <span class="zoom-pct" id="vac-zoom-pct">58%</span>
-        <button class="zoom-btn" onclick="vacZoom(-1)">−</button>
-        <button class="zoom-btn" onclick="vacZoom(0)" style="font-size:12px">↺</button>
-      </div>
-      <div id="vac-zoom-wrap" style="zoom:0.58">
     <div id="vacation-container">
 <!-- MAIN APP -->
 <div id="screen-app" class="screen active">
@@ -1606,7 +1598,15 @@
           <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>ממתין</div>
           <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>אושרה</div>
         </div>
-        <div class="cal-grid" id="dept-calendar"></div>
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
+          <button class="zoom-btn" onclick="calZoom('dept-cal-zoom','dept-cal-zoom-pct',1)">+</button>
+          <span class="zoom-pct" id="dept-cal-zoom-pct" style="font-size:11px;min-width:32px;text-align:center">58%</span>
+          <button class="zoom-btn" onclick="calZoom('dept-cal-zoom','dept-cal-zoom-pct',-1)">−</button>
+          <button class="zoom-btn" onclick="calZoom('dept-cal-zoom','dept-cal-zoom-pct',0)" style="font-size:11px">↺</button>
+        </div>
+        <div id="dept-cal-zoom" style="zoom:0.58;transform-origin:top right">
+          <div class="cal-grid" id="dept-calendar"></div>
+        </div>
       </div>
     </div>
 
@@ -1650,7 +1650,15 @@
           <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>ממתין</div>
           <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>אושרה</div>
         </div>
-        <div class="cal-grid" id="admin-calendar"></div>
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
+          <button class="zoom-btn" onclick="calZoom('admin-cal-zoom','admin-cal-zoom-pct',1)">+</button>
+          <span class="zoom-pct" id="admin-cal-zoom-pct" style="font-size:11px;min-width:32px;text-align:center">58%</span>
+          <button class="zoom-btn" onclick="calZoom('admin-cal-zoom','admin-cal-zoom-pct',-1)">−</button>
+          <button class="zoom-btn" onclick="calZoom('admin-cal-zoom','admin-cal-zoom-pct',0)" style="font-size:11px">↺</button>
+        </div>
+        <div id="admin-cal-zoom" style="zoom:0.58;transform-origin:top right">
+          <div class="cal-grid" id="admin-calendar"></div>
+        </div>
       </div>
     </div>
 
@@ -1695,7 +1703,15 @@
           <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>ממתין</div>
           <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>אושרה</div>
         </div>
-        <div class="cal-grid" id="viewer-calendar"></div>
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
+          <button class="zoom-btn" onclick="calZoom('viewer-cal-zoom','viewer-cal-zoom-pct',1)">+</button>
+          <span class="zoom-pct" id="viewer-cal-zoom-pct" style="font-size:11px;min-width:32px;text-align:center">58%</span>
+          <button class="zoom-btn" onclick="calZoom('viewer-cal-zoom','viewer-cal-zoom-pct',-1)">−</button>
+          <button class="zoom-btn" onclick="calZoom('viewer-cal-zoom','viewer-cal-zoom-pct',0)" style="font-size:11px">↺</button>
+        </div>
+        <div id="viewer-cal-zoom" style="zoom:0.58;transform-origin:top right">
+          <div class="cal-grid" id="viewer-calendar"></div>
+        </div>
       </div>
     </div>
 
@@ -5544,6 +5560,17 @@ function applySchedZoom(){
   }
   const pct = document.getElementById('zoom-pct');
   if(pct) pct.textContent = _schedZoom+'%';
+}
+
+let _calZooms = {};
+function calZoom(wrapId, pctId, dir){
+  const current = _calZooms[wrapId] || (window.innerWidth < 600 ? 58 : 100);
+  const next = dir===0 ? (window.innerWidth < 600 ? 58 : 100) : Math.min(150, Math.max(40, current + dir*10));
+  _calZooms[wrapId] = next;
+  const wrap = document.getElementById(wrapId);
+  if(wrap) wrap.style.zoom = (next/100).toString();
+  const pct = document.getElementById(pctId);
+  if(pct) pct.textContent = next+'%';
 }
 
 let _vacZoom = window.innerWidth < 600 ? 58 : 100;
