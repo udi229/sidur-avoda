@@ -3254,29 +3254,31 @@ function renderOnlineList(){
 let _highlightedEmp = null;
 let _highlightedFree = null;
 function highlightFreelancer(firstName){
-  // Clear regular highlight
   document.querySelectorAll('.emp-tag.neon-highlight').forEach(el=>el.classList.remove('neon-highlight'));
   document.querySelectorAll('.stat-tile.selected').forEach(el=>el.classList.remove('selected'));
+  document.querySelectorAll('.stat-tile.selected-free').forEach(el=>el.classList.remove('selected-free'));
   const on = _highlightedFree !== firstName;
   _highlightedFree = on ? firstName : null;
   _highlightedEmp = null;
   if(on){
     document.querySelectorAll('.stat-tile[data-emp="'+firstName+'"]').forEach(el=>el.classList.add('selected-free'));
-    // Activate freelancer highlight mode temporarily
+    if(activeView !== 'schedule') showView('schedule');
     const prevFreelancers = showFreelancers;
     showFreelancers = true;
-    renderSchedule();
-    showFreelancers = prevFreelancers;
     setTimeout(()=>{
-      document.querySelectorAll('.emp-tag[data-emp="'+firstName+'"]').forEach(el=>{
-        el.style.background='white';
-        el.style.color='#d97706';
-        el.style.border='2px solid #fbbf24';
-        el.style.boxShadow='0 0 10px #fbbf24,0 0 20px #fbbf2466';
-        el.style.animation='neonPulseYellow 1.2s ease-in-out infinite';
-        el.style.fontWeight='900';
-      });
-    },80);
+      renderSchedule();
+      setTimeout(()=>{
+        document.querySelectorAll('.emp-tag[data-emp="'+firstName+'"]').forEach(el=>{
+          el.style.background='white';
+          el.style.color='#d97706';
+          el.style.border='2px solid #fbbf24';
+          el.style.boxShadow='0 0 10px #fbbf24,0 0 20px #fbbf2466';
+          el.style.animation='neonPulseYellow 1.2s ease-in-out infinite';
+          el.style.fontWeight='900';
+        });
+        showFreelancers = prevFreelancers;
+      },100);
+    },50);
   } else {
     renderSchedule();
   }
@@ -3375,11 +3377,13 @@ function renderStats(){
 
     // freelancers at end in yellow
     Object.entries(freeCounts).forEach(([name,count])=>{
-      html+=`<div style="background:#fefce8;border:1.5px solid #fcd34d;border-radius:10px;
-        padding:4px 8px;min-width:52px;text-align:center">
-        <div style="font-size:10px;font-weight:700;color:#854d0e">${name.split(' ')[0]}</div>
+      const fName=name.split(' ')[0];
+      html+=`<div class="stat-tile" data-emp="${fName}"
+        onclick="highlightFreelancer('${fName}')"
+        style="background:#fefce8;border:2.5px solid #fbbf24;border-radius:8px;
+        padding:4px 8px;min-width:52px;text-align:center;cursor:pointer;transition:all 0.15s">
+        <div style="font-size:10px;font-weight:700;color:#854d0e">${fName}</div>
         <div style="font-size:13px;font-weight:900;color:#d97706;line-height:1.2">${count}</div>
-        <div style="font-size:10px;color:#92400e">פרילנס</div>
       </div>`;
     });
 
