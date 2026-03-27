@@ -855,8 +855,15 @@
   }
 
   /* Column widths */
-  #view-loz .col-time { width: 120px; min-width:100px; }
-  #view-loz .col-name { width: auto; }
+  #view-loz .schedule-table { table-layout: fixed; width: 100%; }
+  #view-loz .col-time { width: 110px; min-width: 95px; }
+  #view-loz .col-name { width: auto; max-width: 55vw; }
+  @media (max-width:500px){
+    #view-loz .col-time { width: 95px; min-width: 95px; }
+    #view-loz .col-name { max-width: calc(100vw - 130px); }
+    #view-loz .ei-time  { width: 40px; font-size: 11px; }
+    #view-loz .sep      { font-size: 10px; }
+  }
   .col-del  { width: 36px; }
 
   /* Table head — date row */
