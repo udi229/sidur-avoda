@@ -1340,19 +1340,18 @@
         <button onclick="sendBroadcastNotif()" style="padding:7px 16px;background:#7c3aed;color:white;border:none;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">📤 שלח לכולם</button>
         <span id="broadcast-status" style="font-size:12px;color:#16a34a;white-space:nowrap"></span>
       </div>
-      <div id="sched-toolbar" style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
-        <input id="sched-search" type="text" placeholder="🔍 חפש שם..." value=""
-          oninput="searchQuery=this.value;renderSchedule()"
-          style="display:none;flex:1;min-width:160px;padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;font-family:inherit;background:white" />
+      <div id="sched-toolbar" style="display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:nowrap;overflow:hidden">
         <button id="my-shifts-btn" onclick="toggleMyShifts()"
-          style="display:none;padding:8px 16px;border:1.5px solid #00ff88;border-radius:20px;font-size:13px;
+          style="display:none;padding:5px 10px;border:1.5px solid #00ff88;border-radius:20px;font-size:11px;
           font-weight:700;cursor:pointer;font-family:inherit;background:white;color:#047857;
-          white-space:nowrap;box-shadow:0 0 10px #00ff8866;transition:all 0.2s">המשמרות שלי</button>
-
+          white-space:nowrap;box-shadow:0 0 8px #00ff8866;flex-shrink:0;transition:all 0.2s">המשמרות שלי</button>
         <button id="freelance-toggle" onclick="toggleFreelanceHighlight()"
-          style="display:none;padding:8px 16px;border:1.5px solid #f59e0b;border-radius:20px;
-          font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:white;
-          color:#b45309;box-shadow:0 0 8px #f59e0b44;transition:all 0.2s">👁 פרילנסרים</button>
+          style="display:none;padding:5px 10px;border:1.5px solid #f59e0b;border-radius:20px;
+          font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;background:white;
+          color:#b45309;box-shadow:0 0 6px #f59e0b44;flex-shrink:0;transition:all 0.2s">👁 פרילנסרים</button>
+        <input id="sched-search" type="text" placeholder="🔍 חפש..." value=""
+          oninput="searchQuery=this.value;renderSchedule()"
+          style="display:none;flex:1;min-width:0;padding:5px 10px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:12px;outline:none;font-family:inherit;background:white" />
       </div>
       <div class="zoom-controls">
         <button class="zoom-btn" onclick="schedZoom(1)" title="הגדל">+</button>
@@ -5522,7 +5521,7 @@ function showHubOrAuth(){
   }).catch(()=>{});
 }
 
-let _schedZoom = window.innerWidth < 600 ? 78 : 100;
+let _schedZoom = window.innerWidth < 600 ? 58 : 100;
 function schedZoom(dir){
   if(dir===0){ _schedZoom = window.innerWidth < 600 ? 78 : 100; }
   else { _schedZoom = Math.min(150, Math.max(40, _schedZoom + dir*10)); }
