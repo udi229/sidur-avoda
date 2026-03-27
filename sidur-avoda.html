@@ -103,7 +103,7 @@
   .cell-rel { position:relative; }
   .cell-tags { display:flex; flex-wrap:wrap; gap:3px; }
   .emp-tag { display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; cursor:default; white-space:nowrap; transition: all 0.15s; }
-  .emp-tag.neon-highlight { background:#1a0000 !important; color:#ff2200 !important; border-color:#ff2200 !important; box-shadow:0 0 8px #ff2200, 0 0 16px #ff220066 !important; text-shadow:0 0 6px #ff2200; }
+  .emp-tag.neon-highlight { background:#fff0f0 !important; color:#ff2200 !important; border:2px solid #ff2200 !important; box-shadow:0 0 8px #ff220088, 0 0 14px #ff220044 !important; text-shadow:0 0 6px #ff220088; font-weight:900 !important; }
   .stat-tile.selected { box-shadow:0 0 0 3px #ff2200, 0 0 12px #ff220066 !important; transform:scale(1.05); }
   .remove-tag { cursor:pointer; opacity:0.6; font-size:13px; }
   .remove-tag:hover { opacity:1; }
@@ -1338,13 +1338,13 @@
           style="display:none;flex:1;min-width:160px;padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;font-family:inherit;background:white" />
         <button id="my-shifts-btn" onclick="toggleMyShifts()"
           style="padding:8px 16px;border:1.5px solid #00ff88;border-radius:20px;font-size:13px;
-          font-weight:700;cursor:pointer;font-family:inherit;background:white;color:#047857;
-          white-space:nowrap;box-shadow:0 0 8px #00ff8844;transition:all 0.2s">המשמרות שלי</button>
+          font-weight:700;cursor:pointer;font-family:inherit;background:#f0fdf4;color:#15803d;
+          white-space:nowrap;border:2px solid #22c55e;box-shadow:0 0 10px #22c55e88,0 0 20px #22c55e44;transition:all 0.2s">המשמרות שלי</button>
 
         <button id="my-shifts-btn-tl" onclick="toggleMyShifts()"
           style="display:none;padding:8px 16px;border:1.5px solid #00ff88;border-radius:20px;font-size:13px;
-          font-weight:700;cursor:pointer;font-family:inherit;background:white;color:#047857;
-          white-space:nowrap;box-shadow:0 0 8px #00ff8844;transition:all 0.2s">המשמרות שלי</button>
+          font-weight:700;cursor:pointer;font-family:inherit;background:#f0fdf4;color:#15803d;
+          white-space:nowrap;border:2px solid #22c55e;box-shadow:0 0 10px #22c55e88,0 0 20px #22c55e44;transition:all 0.2s">המשמרות שלי</button>
         <button id="freelance-toggle" onclick="toggleFreelanceHighlight()"
           style="display:none;padding:8px 16px;border:1.5px solid #f59e0b;border-radius:20px;
           font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:white;
@@ -3157,8 +3157,11 @@ function renderSchedule(){
   wrap.appendChild(noteDiv);
 
   // ── STATS PANEL ──
+  // Remove any previous stats panel first
+  wrap.querySelectorAll('.inline-stats-panel').forEach(el=>el.remove());
   if((isMgr||currentEmp?.role==='manager'||(currentEmp?.role==='team_lead'&&currentEmp?.department_id===activeDeptId))&&activeDeptId){
     const statDiv=document.createElement('div');
+    statDiv.className='inline-stats-panel';
     statDiv.style.cssText='background:white;border-radius:14px;padding:16px 20px;box-shadow:0 1px 8px rgba(0,0,0,0.07);margin-top:14px';
     const deptEmpsForStats=employees.filter(e=>e.department_id===activeDeptId);
     const deptSchedForStats=schedules[activeDeptId];
