@@ -34,8 +34,8 @@
   .hdr-nav::-webkit-scrollbar { display:none; }
   .hdr-nav .nav-btn { flex-shrink:0; }
   .nav-btn { background:transparent; border:1.5px solid rgba(255,255,255,0.2); color:#94a3b8; padding:7px 16px; border-radius:20px; cursor:pointer; font-size:13px; font-weight:600; font-family:inherit; transition:all 0.2s; }
-  .nav-btn:hover { border-color:#00d4ff; color:#00d4ff; box-shadow:0 0 10px #00d4ff44; }
-  .nav-btn.active { border-color:#00d4ff; color:#00d4ff; background:rgba(0,212,255,0.1); box-shadow:0 0 14px #00d4ff44; }
+  .nav-btn:hover { border-color:#00d4ff; color:#00d4ff; box-shadow:0 0 12px #00d4ff88, 0 0 4px #00d4ffcc; }
+  .nav-btn.active { border-color:#00d4ff; color:#00d4ff; background:rgba(0,212,255,0.12); box-shadow:0 0 16px #00d4ffaa, 0 0 6px #00d4ffcc; }
 
   /* MAIN */
   .main { padding:20px; max-width:1400px; margin:0 auto; }
@@ -5694,9 +5694,11 @@ function lozCanEdit(){
 async function lozInit(){
   if(lozInitialized){ lozRenderRole(); return; }
   lozInitialized = true;
+  // Always start on today
+  offset = 0;
   try{ const {data}=await sb.from('loz_editors').select('user_email'); lozEditors=(data||[]).map(r=>r.user_email); }catch(e){}
   try{ const {data}=await sb.from('loz_default').select('data').single(); if(data?.data?.length) defSections=data.data; }catch(e){}
-  await lozLoadDay(dKey(getD(offset)));
+  await lozLoadDay(dKey(getD(0)));
   lozInjectSaveButtons();
   lozRenderRole();
 }
