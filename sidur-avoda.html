@@ -197,7 +197,6 @@
     .hdr{padding:6px 8px}
     .hdr-nav .nav-btn{padding:5px 8px;font-size:11px}
     #view-schedule,#view-stats,#view-settings{padding:4px 3px}
-    #sched-zoom-wrap{transform-origin:top right}
     .zoom-controls{padding:3px 0 4px}
   }
 
@@ -5412,18 +5411,9 @@ function schedZoom(dir){
 function applySchedZoom(){
   const wrap = document.getElementById('sched-zoom-wrap');
   if(wrap){
-    wrap.style.transform = `scale(${_schedZoom/100})`;
-    wrap.style.transformOrigin = 'top right';
-    // shrink wrapper so content below is not pushed down
-    const isMobile = window.innerWidth < 600;
-    const factor = _schedZoom/100;
-    if(factor < 1){
-      wrap.style.height = (wrap.scrollHeight * factor) + 'px';
-      wrap.style.overflow = 'hidden';
-    } else {
-      wrap.style.height = '';
-      wrap.style.overflow = '';
-    }
+    // Use zoom CSS property — resizes content, scroll works naturally
+    wrap.style.zoom = (_schedZoom/100).toString();
+    wrap.style.transform = '';
   }
   const pct = document.getElementById('zoom-pct');
   if(pct) pct.textContent = _schedZoom+'%';
