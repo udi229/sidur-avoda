@@ -2983,7 +2983,13 @@ function renderSchedule(){
         else{tagBg='#eff6ff';tagColor='#1e40af';tagBorder='#bfdbfe';}
         const firstName=name.split(' ')[0];
         const isCurrentNeon=(isCurrentUser&&showMyShifts);
-        html+=`<span class="emp-tag${isCurrentNeon?' emp-tag-me':''}" data-emp="${firstName}" style="background:${tagBg};color:${tagColor};border:${isCurrentNeon?'2px':'1px'} solid ${tagBorder};${isCurrentNeon?'box-shadow:0 0 8px #00ff88,0 0 16px #00ff8866;font-weight:900;text-shadow:0 0 6px #00cc44;animation:neonPulseGreen 1.2s ease-in-out infinite;':''}">
+        const isFreelanceNeon=(isFreelance&&showFreelancers);
+        const neonStyle=isCurrentNeon
+          ?'background:white!important;color:#00cc44!important;border:2px solid #00ff88!important;box-shadow:0 0 10px #00ff88,0 0 20px #00ff8866;font-weight:900;text-shadow:0 0 6px #00cc44;animation:neonPulseGreen 1.2s ease-in-out infinite;'
+          :isFreelanceNeon
+          ?'background:white!important;color:#d97706!important;border:2px solid #fbbf24!important;box-shadow:0 0 10px #fbbf24,0 0 20px #fbbf2466;font-weight:900;text-shadow:0 0 4px #f59e0b;animation:neonPulseYellow 1.2s ease-in-out infinite;'
+          :'';
+        html+=`<span class="emp-tag" data-emp="${firstName}" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder};${neonStyle}">
           ${firstName}
           ${ed?`<span class="remove-tag" onclick="removeName('${dept.id}','${shift.id}',${d},'${escapedName}')">×</span>`:''}
         </span>`;
@@ -3042,7 +3048,12 @@ function renderSchedule(){
           else if(showFreelancers&&isFreelance){tagBg='#fef9c3';tagColor='#854d0e';tagBorder='#fcd34d';}
           else{tagBg='#eff6ff';tagColor='#1e40af';tagBorder='#bfdbfe';}
           const firstName=name.split(' ')[0];
-          html+=`<span class="emp-tag" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder}">
+          const neonStyle2=(isCurrentUser&&showMyShifts)
+            ?'background:white!important;color:#00cc44!important;border:2px solid #00ff88!important;box-shadow:0 0 10px #00ff88,0 0 20px #00ff8866;font-weight:900;animation:neonPulseGreen 1.2s ease-in-out infinite;'
+            :(isFreelance&&showFreelancers)
+            ?'background:white!important;color:#d97706!important;border:2px solid #fbbf24!important;box-shadow:0 0 10px #fbbf24,0 0 20px #fbbf2466;font-weight:900;animation:neonPulseYellow 1.2s ease-in-out infinite;'
+            :'';
+          html+=`<span class="emp-tag" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder};${neonStyle2}">
             ${firstName}
             ${ed?`<span class="remove-tag" onclick="removeName('${dept.id}','${roleKey}',${d},'${escapedName}')">×</span>`:''}
           </span>`;
