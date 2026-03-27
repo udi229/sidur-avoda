@@ -30,7 +30,9 @@
   .usr-rl { font-size:11px; color:#94a3b8; font-weight:600; }
   .btn-exit { background:transparent; color:#ff4466; border:1.5px solid #ff4466; padding:6px 14px; border-radius:20px; cursor:pointer; font-size:12px; font-weight:700; font-family:inherit; transition:all 0.2s; box-shadow:0 0 10px #ff446644; }
   .btn-exit:hover { background:#ff4466; color:white; box-shadow:0 0 18px #ff4466; }
-  .hdr-nav { display:flex; gap:4px; }
+  .hdr-nav { display:flex; gap:4px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; flex-shrink:1; min-width:0; }
+  .hdr-nav::-webkit-scrollbar { display:none; }
+  .hdr-nav .nav-btn { flex-shrink:0; }
   .nav-btn { background:transparent; border:1.5px solid rgba(255,255,255,0.2); color:#94a3b8; padding:7px 16px; border-radius:20px; cursor:pointer; font-size:13px; font-weight:600; font-family:inherit; transition:all 0.2s; }
   .nav-btn:hover { border-color:#00d4ff; color:#00d4ff; box-shadow:0 0 10px #00d4ff44; }
   .nav-btn.active { border-color:#00d4ff; color:#00d4ff; background:rgba(0,212,255,0.1); box-shadow:0 0 14px #00d4ff44; }
