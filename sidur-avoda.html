@@ -92,6 +92,11 @@
   .cell-inner { display:flex; flex-direction:column; gap:3px; padding:4px; min-height:36px; position:relative; }
   /* Grid lines on schedule */
   #sched-wrap table { border-collapse:collapse; }
+  #sched-zoom-wrap { transform-origin: top right; transition: transform 0.15s ease; }
+  .zoom-controls { display:flex; align-items:center; gap:6px; position:sticky; top:0; z-index:10; background:#f1f5f9; padding:4px 0 6px; }
+  .zoom-btn { width:28px; height:28px; border:1.5px solid #cbd5e1; border-radius:6px; background:white; cursor:pointer; font-size:16px; font-weight:700; color:#475569; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+  .zoom-btn:hover { border-color:#6366f1; color:#6366f1; }
+  .zoom-pct { font-size:12px; color:#64748b; min-width:36px; text-align:center; font-weight:600; }
   #sched-wrap td { border-right:1px solid rgba(148,163,184,0.2); border-bottom:1px solid rgba(148,163,184,0.2); }
   #sched-wrap th { border-right:1px solid rgba(148,163,184,0.15); border-bottom:2px solid rgba(148,163,184,0.25); }
   #sched-wrap td:first-child, #sched-wrap th:first-child { border-right:none; }
@@ -812,7 +817,7 @@
     white-space: nowrap;
   }
 
-  .nav-btn:hover { border-color: var(--orange); color: var(--orange); }
+  .nav-btn:hover { border-color: #00d4ff; color: #00d4ff; box-shadow:0 0 12px #00d4ff88; }
 
   .day-info { text-align: center; flex: 1; }
 
@@ -1341,7 +1346,15 @@
           font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:white;
           color:#b45309;box-shadow:0 0 8px #f59e0b44;transition:all 0.2s">👁 פרילנסרים</button>
       </div>
-      <div id="sched-wrap"><div class="loading">⏳ טוען...</div></div>
+      <div class="zoom-controls">
+        <button class="zoom-btn" onclick="schedZoom(1)" title="הגדל">+</button>
+        <span class="zoom-pct" id="zoom-pct">100%</span>
+        <button class="zoom-btn" onclick="schedZoom(-1)" title="הקטן">−</button>
+        <button class="zoom-btn" onclick="schedZoom(0)" title="איפוס" style="font-size:12px">↺</button>
+      </div>
+      <div id="sched-zoom-wrap">
+        <div id="sched-wrap"><div class="loading">⏳ טוען...</div></div>
+      </div>
       <div id="online-list" style="display:none;margin-top:16px"></div>
     </div>
 
@@ -5385,6 +5398,16 @@ function showHubOrAuth(){
   sb.auth.getSession().then(({data:{session}})=>{
     if(session){ if(auth) auth.style.display='none'; initApp(session.user); }
   }).catch(()=>{});
+}
+
+let _schedZoom = 100;
+function schedZoom(dir){
+  if(dir===0){ _schedZoom=100; }
+  else { _schedZoom = Math.min(150, Math.max(50, _schedZoom + dir*10)); }
+  const wrap = document.getElementById('sched-zoom-wrap');
+  if(wrap) wrap.style.transform = `scale(${_schedZoom/100})`;
+  const pct = document.getElementById('zoom-pct');
+  if(pct) pct.textContent = _schedZoom+'%';
 }
 
 async function refreshApp(btn){
