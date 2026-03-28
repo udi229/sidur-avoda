@@ -424,7 +424,7 @@
   .legend-dot { width:10px; height:10px; border-radius:3px; }
   .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
   .cal-day-name { text-align:center; font-size:12px; font-weight:700; color:var(--text-light); padding:6px 0; letter-spacing:.5px; }
-  .cal-day { min-height:50px; border:1px solid #8a8a8a; border-radius:4px; padding:2px; background:white; transition:all .2s; overflow:visible; }
+  .cal-day { min-height:60px; border:1px solid #8a8a8a; border-radius:4px; padding:2px; background:white; transition:all .2s; overflow:visible; }
   .cal-day:hover { border-color:var(--orange-light); background:var(--orange-pale); }
   .cal-day.other-month { opacity:.3; }
   .cal-day.today { border-color:var(--orange); border-width:2px; background:var(--orange-pale); }
@@ -433,7 +433,7 @@
     .tab-content { padding:4px !important; }
     .cal-grid { gap:1px; }
     /* Each cell: tiny — just date number + colored dot */
-    .cal-day { min-height:0 !important; height:28px; padding:1px 1px 0; border-radius:2px; overflow:hidden; }
+    .cal-day { min-height:0 !important; height:44px; padding:2px; border-radius:3px; overflow:hidden; }
     .cal-day-num { font-size:9px; margin-bottom:0; line-height:1; }
     .cal-day-name { font-size:9px; padding:2px 0; letter-spacing:0; }
     .cal-month-name { font-size:13px; min-width:80px; }
@@ -1300,7 +1300,6 @@
       <div class="hdr-nav">
         <button class="nav-btn active" onclick="showView('schedule',event)">סידור</button>
         <button class="nav-btn" id="nav-stats" style="display:none" onclick="showView('stats',event)">סטטיסטיקות</button>
-        <button class="nav-btn" id="nav-settings" style="display:none" onclick="showView('settings',event)">הגדרות</button>
         <button class="nav-btn" id="nav-vacation" style="display:none" onclick="showView('vacation',event)">🏖 חופשות</button>
         <button class="nav-btn" id="nav-loz" style="display:none" onclick="showView('loz',event)">📋 לוז</button>
       </div>
@@ -1308,6 +1307,7 @@
         <div><div class="usr-nm" id="hdr-nm"></div><div class="usr-rl" id="hdr-rl"></div></div>
         <button class="btn-back-hub" onclick="goBackToHub()" style="font-size:11px;padding:5px 10px">→ חזרה</button>
         <button onclick="refreshApp(this)" style="background:none;border:1px solid #cbd5e1;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:11px;font-family:inherit;font-weight:700;color:#64748b;transition:all 0.2s;display:flex;align-items:center;gap:4px" onmouseover="this.style.borderColor='#6366f1';this.style.color='#6366f1'" onmouseout="this.style.borderColor='#cbd5e1';this.style.color='#64748b'">↻ רענן</button>
+        <button id="settings-gear-btn" onclick="showView('settings',event)" style="display:none;background:none;border:none;cursor:pointer;font-size:20px;padding:4px;line-height:1;color:#94a3b8;transition:all 0.2s" title="הגדרות" onmouseover="this.style.transform='rotate(30deg)';this.style.color='#6366f1'" onmouseout="this.style.transform='';this.style.color='#94a3b8'">⚙️</button>
       </div>
     </div>
   </div>
@@ -1600,11 +1600,11 @@
         </div>
         <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
           <button class="zoom-btn" onclick="calZoom('dept-cal-zoom','dept-cal-zoom-pct',1)">+</button>
-          <span class="zoom-pct" id="dept-cal-zoom-pct" style="font-size:11px;min-width:32px;text-align:center">58%</span>
+          <span class="zoom-pct" id="dept-cal-zoom-pct" style="font-size:11px;min-width:32px;text-align:center">100%</span>
           <button class="zoom-btn" onclick="calZoom('dept-cal-zoom','dept-cal-zoom-pct',-1)">−</button>
           <button class="zoom-btn" onclick="calZoom('dept-cal-zoom','dept-cal-zoom-pct',0)" style="font-size:11px">↺</button>
         </div>
-        <div id="dept-cal-zoom" style="zoom:0.58;transform-origin:top right">
+        <div id="dept-cal-zoom" style="zoom:1;transform-origin:top right">
           <div class="cal-grid" id="dept-calendar"></div>
         </div>
       </div>
@@ -1652,11 +1652,11 @@
         </div>
         <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
           <button class="zoom-btn" onclick="calZoom('admin-cal-zoom','admin-cal-zoom-pct',1)">+</button>
-          <span class="zoom-pct" id="admin-cal-zoom-pct" style="font-size:11px;min-width:32px;text-align:center">58%</span>
+          <span class="zoom-pct" id="admin-cal-zoom-pct" style="font-size:11px;min-width:32px;text-align:center">100%</span>
           <button class="zoom-btn" onclick="calZoom('admin-cal-zoom','admin-cal-zoom-pct',-1)">−</button>
           <button class="zoom-btn" onclick="calZoom('admin-cal-zoom','admin-cal-zoom-pct',0)" style="font-size:11px">↺</button>
         </div>
-        <div id="admin-cal-zoom" style="zoom:0.58;transform-origin:top right">
+        <div id="admin-cal-zoom" style="zoom:1;transform-origin:top right">
           <div class="cal-grid" id="admin-calendar"></div>
         </div>
       </div>
@@ -1705,11 +1705,11 @@
         </div>
         <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
           <button class="zoom-btn" onclick="calZoom('viewer-cal-zoom','viewer-cal-zoom-pct',1)">+</button>
-          <span class="zoom-pct" id="viewer-cal-zoom-pct" style="font-size:11px;min-width:32px;text-align:center">58%</span>
+          <span class="zoom-pct" id="viewer-cal-zoom-pct" style="font-size:11px;min-width:32px;text-align:center">100%</span>
           <button class="zoom-btn" onclick="calZoom('viewer-cal-zoom','viewer-cal-zoom-pct',-1)">−</button>
           <button class="zoom-btn" onclick="calZoom('viewer-cal-zoom','viewer-cal-zoom-pct',0)" style="font-size:11px">↺</button>
         </div>
-        <div id="viewer-cal-zoom" style="zoom:0.58;transform-origin:top right">
+        <div id="viewer-cal-zoom" style="zoom:1;transform-origin:top right">
           <div class="cal-grid" id="viewer-calendar"></div>
         </div>
       </div>
@@ -1918,7 +1918,7 @@ function enterMgr(label='מנהל',type='primary'){
   document.getElementById('hdr-nm').textContent=label;
   document.getElementById('hdr-rl').textContent='מנהל מערכת';
   document.getElementById('nav-stats').style.display='inline-block';
-  document.getElementById('nav-settings').style.display='inline-block';
+  const _gs=document.getElementById('settings-gear-btn');if(_gs)_gs.style.display='inline-block';
   document.getElementById('nav-vacation').style.display='inline-block';
   const _navloz=document.getElementById('nav-loz');if(_navloz)_navloz.style.display='inline-block';
   const bcBar=document.getElementById('mgr-broadcast-bar');
@@ -2019,7 +2019,7 @@ async function initApp(user){
   const deptTitle=dept4role?.title||(role==='manager'?'מנהל':'עובד');
   document.getElementById('hdr-rl').textContent=deptTitle;
   document.getElementById('nav-stats').style.display=(role==='manager')?'inline-block':'none';
-  document.getElementById('nav-settings').style.display='none';
+  const _gs2=document.getElementById('settings-gear-btn');if(_gs2)_gs2.style.display='none';
   if(role==='team_lead'&&currentEmp.department_id) activeDeptId=currentEmp.department_id;
   activeDeptId=currentEmp.department_id||departments[0]?.id||null;
   await loadWeekData();
@@ -5549,7 +5549,7 @@ function showHubOrAuth(){
 
 let _schedZoom = window.innerWidth < 600 ? 58 : 100;
 function schedZoom(dir){
-  if(dir===0){ _schedZoom = window.innerWidth < 600 ? 78 : 100; }
+  if(dir===0){ _schedZoom = window.innerWidth < 600 ? 58 : 100; }
   else { _schedZoom = Math.min(150, Math.max(40, _schedZoom + dir*10)); }
   applySchedZoom();
 }
@@ -5566,7 +5566,7 @@ function applySchedZoom(){
 
 let _calZooms = {};
 function calZoom(wrapId, pctId, dir){
-  const current = _calZooms[wrapId] || (window.innerWidth < 600 ? 58 : 100);
+  const current = _calZooms[wrapId] || 100;
   const next = dir===0 ? (window.innerWidth < 600 ? 58 : 100) : Math.min(150, Math.max(40, current + dir*10));
   _calZooms[wrapId] = next;
   const wrap = document.getElementById(wrapId);
