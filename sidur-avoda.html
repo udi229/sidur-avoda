@@ -3784,7 +3784,7 @@ async function requestNotifications(){
 }
 function showNotification(title, body){
   if(!('Notification' in window)||Notification.permission!=='granted') return;
-  new Notification(title,{body,icon:'icon.png',badge:'icon.png',dir:'rtl',lang:'he'});
+  new Notification(title,{body,icon:'icon.png',dir:'rtl',lang:'he'});
 }
 
 // Session restore runs AFTER splash (via showHubOrAuth)
