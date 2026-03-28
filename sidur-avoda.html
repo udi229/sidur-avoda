@@ -2461,7 +2461,7 @@ async function sendPushToEmployee(employeeName, shiftId, dayIdx, action){
     const res=await fetch(PUSH_EDGE_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVma2NudXpibXduc2xoZ3ZweHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NzA5ODksImV4cCI6MjA4OTE0Njk4OX0.stckE-88HoROHcPU9Rjlo4g-nMFBhJKHIUhSt2jlgEc','apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVma2NudXpibXduc2xoZ3ZweHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NzA5ODksImV4cCI6MjA4OTE0Njk4OX0.stckE-88HoROHcPU9Rjlo4g-nMFBhJKHIUhSt2jlgEc'},
-      body: JSON.stringify({employee_name:employeeName, shift_name:shift.name, day_name:dayName, action})
+      body: JSON.stringify({employee_name:employeeName, shift_name:shift.name, day_name:dayName, action:'broadcast', message:action==='added'?`שובצת למשמרת ${shift.name} ביום ${dayName}`:`הוסרת ממשמרת ${shift.name} ביום ${dayName}`})
     });
   }catch(e){ console.log('push send error:', e); }
 }
@@ -2541,7 +2541,7 @@ async function notifyPublishedCV(cv){
         await fetch(PUSH_EDGE_URL,{
           method:'POST',
           headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVma2NudXpibXduc2xoZ3ZweHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NzA5ODksImV4cCI6MjA4OTE0Njk4OX0.stckE-88HoROHcPU9Rjlo4g-nMFBhJKHIUhSt2jlgEc','apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVma2NudXpibXduc2xoZ3ZweHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NzA5ODksImV4cCI6MjA4OTE0Njk4OX0.stckE-88HoROHcPU9Rjlo4g-nMFBhJKHIUhSt2jlgEc'},
-          body:JSON.stringify({employee_name:name, shift_name:cv.name, day_name:'', action:'published'})
+          body:JSON.stringify({employee_name:name, shift_name:cv.name, day_name:'', action:'broadcast', message:`הסידור השבועי פורסם — לחץ לצפייה`})
         });
       }catch(e){}
     }
