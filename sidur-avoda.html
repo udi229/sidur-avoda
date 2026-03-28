@@ -4307,6 +4307,7 @@ function renderRepTab(){
   if(!repReqs.length){list.innerHTML='<div class="rep-intro" style="background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border:1px solid #A5D6A7"><div class="rep-intro-icon">✅</div><div><h3 style="color:#1B5E20">אין בקשות הממתינות להמלצה</h3><p style="color:#2E7D32">בקשות חדשות יופיעו כאן</p></div></div>';return;}
   
   // Show message if general rep
+  list.innerHTML = '';
   if(isGeneralRep){
     const banner = document.createElement('div');
     banner.style.cssText='background:linear-gradient(135deg,#e3f2fd,#bbdefb);border:2px solid #2196f3;border-radius:12px;padding:15px;margin-bottom:20px;text-align:center;';
@@ -4316,6 +4317,7 @@ function renderRepTab(){
   
   const recL={recommended:'<span class="status-badge recommended">👍 ממליץ לאישור</span>',not_recommended:'<span class="status-badge not-recommended">👎 לא ממליץ</span>'};
   const sm={pending:['⏳','ממתין','pending'],approved:['✅','אושרה','approved'],rejected:['❌','נדחתה','rejected']};
+  list.innerHTML='';
   list.innerHTML+=repReqs.map(r=>{
     const[si,sl,sc]=sm[r.status]||sm.pending;
     let acts;
