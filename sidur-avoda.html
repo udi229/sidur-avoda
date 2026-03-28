@@ -1296,7 +1296,8 @@
 <div id="app" style="display:none;background:#f1f5f9;min-height:100vh">
   <div class="header">
     <div class="hdr-in">
-      <div class="hdr-logo">🎬</div>
+      <div class="hdr-logo" id="hdr-logo-icon">🎬</div>
+      <button id="settings-gear-logo" onclick="showView('settings',event)" style="display:none;background:none;border:none;cursor:pointer;font-size:22px;padding:4px 8px;line-height:1;color:#94a3b8;transition:all 0.3s" title="הגדרות" onmouseover="this.style.transform='rotate(45deg)';this.style.color='#00d4ff'" onmouseout="this.style.transform='';this.style.color='#94a3b8'">⚙️</button>
       <div class="hdr-nav">
         <button class="nav-btn active" onclick="showView('schedule',event)">סידור</button>
         <button class="nav-btn" id="nav-stats" style="display:none" onclick="showView('stats',event)">סטטיסטיקות</button>
@@ -1918,7 +1919,9 @@ function enterMgr(label='מנהל',type='primary'){
   document.getElementById('hdr-nm').textContent=label;
   document.getElementById('hdr-rl').textContent='מנהל מערכת';
   document.getElementById('nav-stats').style.display='inline-block';
-  const _gs=document.getElementById('settings-gear-btn');if(_gs)_gs.style.display='inline-block';
+  const _gs=document.getElementById('settings-gear-btn');if(_gs)_gs.style.display='none'; // old gear hidden
+    const _gsl=document.getElementById('settings-gear-logo');if(_gsl)_gsl.style.display='inline-block';
+    const _li=document.getElementById('hdr-logo-icon');if(_li)_li.style.display='none';
   document.getElementById('nav-vacation').style.display='inline-block';
   const _navloz=document.getElementById('nav-loz');if(_navloz)_navloz.style.display='inline-block';
   const bcBar=document.getElementById('mgr-broadcast-bar');
@@ -2019,7 +2022,8 @@ async function initApp(user){
   const deptTitle=dept4role?.title||(role==='manager'?'מנהל':'עובד');
   document.getElementById('hdr-rl').textContent=deptTitle;
   document.getElementById('nav-stats').style.display=(role==='manager')?'inline-block':'none';
-  const _gs2=document.getElementById('settings-gear-btn');if(_gs2)_gs2.style.display='none';
+  const _gsl2=document.getElementById('settings-gear-logo');if(_gsl2)_gsl2.style.display='none';
+    const _li2=document.getElementById('hdr-logo-icon');if(_li2)_li2.style.display='flex';
   if(role==='team_lead'&&currentEmp.department_id) activeDeptId=currentEmp.department_id;
   activeDeptId=currentEmp.department_id||departments[0]?.id||null;
   await loadWeekData();
@@ -5725,10 +5729,30 @@ function buildTable(secs, onChange, onDel, onAdd, onTitleChange, onReset, onDelS
       const timeTd=document.createElement('td');timeTd.className='col-time';
       const tw=document.createElement('div');tw.className='time-wrap';
       const fromI=document.createElement('input');fromI.className='ei ei-time';fromI.value=r.from;fromI.placeholder='09:00';
-      fromI.onchange=e=>onChange(si,ri,'from',e.target.value); lozAutoSave();
+      fromI.oninput=e=>{
+        let v=e.target.value.replace(/[^0-9]/g,'');
+        if(v.length>=3&&!v.includes(':')) v=v.slice(0,2)+':'+v.slice(2,4);
+        e.target.value=v;
+      };
+      fromI.onchange=e=>{
+        let v=e.target.value.replace(/[^0-9]/g,'');
+        if(v.length>=3&&!v.includes(':')) v=v.slice(0,2)+':'+v.slice(2,4);
+        e.target.value=v;
+        onChange(si,ri,'from',v); lozAutoSave();
+      };
       const sep=document.createElement('span');sep.className='sep';sep.textContent='—';
       const toI=document.createElement('input');toI.className='ei ei-time';toI.value=r.to;toI.placeholder='10:00';
-      toI.onchange=e=>onChange(si,ri,'to',e.target.value); lozAutoSave();
+      toI.oninput=e=>{
+        let v=e.target.value.replace(/[^0-9]/g,'');
+        if(v.length>=3&&!v.includes(':')) v=v.slice(0,2)+':'+v.slice(2,4);
+        e.target.value=v;
+      };
+      toI.onchange=e=>{
+        let v=e.target.value.replace(/[^0-9]/g,'');
+        if(v.length>=3&&!v.includes(':')) v=v.slice(0,2)+':'+v.slice(2,4);
+        e.target.value=v;
+        onChange(si,ri,'to',v); lozAutoSave();
+      };
       tw.appendChild(fromI);tw.appendChild(sep);tw.appendChild(toI);timeTd.appendChild(tw);
 
       const nameTd=document.createElement('td');nameTd.className='col-name';
