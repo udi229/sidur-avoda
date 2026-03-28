@@ -4,6 +4,7 @@ self.addEventListener('push', function(event) {
 
 async function handlePush(event) {
   try {
+    // Read message directly from push payload
     const msg = event.data ? event.data.text() : 'סידור העבודה שלך לשבוע הבא מוכן';
     await showNotif('אולפנים 🎬', msg);
   } catch(e) {
@@ -13,10 +14,9 @@ async function handlePush(event) {
 
 async function showNotif(title, body) {
   return self.registration.showNotification(title, {
-    body,
-    icon: '/sidur-avoda/icon.png',
-    dir: 'rtl',
-    lang: 'he',
+    body, icon: '/sidur-avoda/icon.png',
+    badge: '/sidur-avoda/icon.png',
+    dir: 'rtl', lang: 'he',
     vibrate: [200, 100, 200],
     data: { url: '/sidur-avoda/sidur-avoda.html' }
   });
