@@ -2325,11 +2325,12 @@ function renderDeptTabs(){
     else if(submitted) indicator='<span style="font-size:11px;margin-right:4px">📬</span>';
     const isActive=!activeCombinedId&&activeDeptId===d.id;
     const isMgrView2=isMgr||currentEmp?.role==='manager';
-    const blinkStyle=submitted&&isMgrView2?';animation:neonPulseGreen 1s ease-in-out infinite;border-color:#00ff88!important;box-shadow:0 0 10px #00ff8877':'';
-    const submittedColor=submitted&&isMgrView2&&!isActive?';color:#15803d':'';
+    const nameHtml=(submitted&&isMgrView2)
+      ?`<span style="animation:neonPulseGreen 1s ease-in-out infinite;color:#15803d">${d.name}</span>`
+      :d.name;
     return `<button class="dept-tab${isActive?' active':''}"
-      style="border-color:${d.color};${isActive?`background:${d.color};color:white`:`color:${d.color}`}${submittedColor}${blinkStyle}"
-      onclick="setDept('${d.id}')">${indicator}${d.name}</button>`;
+      style="border-color:${d.color};${isActive?`background:${d.color};color:white`:`color:${d.color}`}"
+      onclick="setDept('${d.id}')">${indicator}${nameHtml}</button>`;
   }).join('');
 
   const cvTabsHtml=cvTabs.map(cv=>{
