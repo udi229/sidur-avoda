@@ -1908,6 +1908,7 @@ function checkPin(){
 }
 function enterMgr(label='מנהל',type='primary'){
   isMgr=true;
+  window._mgrType=type;
   currentUser={email:'manager@local',id:'manager-local'};
   currentEmp={id:'manager-local',full_name:label,email:'manager@local',role:'manager',department_id:null,position_percent:100};
   // save manager session
@@ -1921,9 +1922,11 @@ function enterMgr(label='מנהל',type='primary'){
   document.getElementById('hdr-nm').textContent=label;
   document.getElementById('hdr-rl').textContent='מנהל מערכת';
   document.getElementById('nav-stats').style.display='inline-block';
-  const _gs=document.getElementById('settings-gear-btn');if(_gs)_gs.style.display='none'; // old gear hidden
-    const _gsl=document.getElementById('settings-gear-logo');if(_gsl)_gsl.style.display='inline-block';
-    const _li=document.getElementById('hdr-logo-icon');if(_li)_li.style.display='none';
+  const _gs=document.getElementById('settings-gear-btn');if(_gs)_gs.style.display='none';
+    if(type==='primary'){
+      const _gsl=document.getElementById('settings-gear-logo');if(_gsl)_gsl.style.display='inline-block';
+      const _li=document.getElementById('hdr-logo-icon');if(_li)_li.style.display='none';
+    }
   document.getElementById('nav-vacation').style.display='inline-block';
   const _navloz=document.getElementById('nav-loz');if(_navloz)_navloz.style.display='inline-block';
   const bcBar=document.getElementById('mgr-broadcast-bar');
@@ -2202,8 +2205,7 @@ function updateWeekUI(){
   }
 
   // show manager notification if any dept submitted but not approved
-  const mgrNote=document.getElementById('mgr-note');
-  if(mgrNote) mgrNote.style.display=((isMgr||currentEmp?.role==='manager')&&anySubmitted2)?'block':'none';
+
 }
 
 async function approveWeek(){
@@ -2322,8 +2324,11 @@ function renderDeptTabs(){
     else if(returned) indicator='<span style="font-size:11px;margin-right:4px">↩️</span>';
     else if(submitted) indicator='<span style="font-size:11px;margin-right:4px">📬</span>';
     const isActive=!activeCombinedId&&activeDeptId===d.id;
+    const isMgrView2=isMgr||currentEmp?.role==='manager';
+    const blinkStyle=submitted&&isMgrView2?';animation:neonPulseGreen 1s ease-in-out infinite;border-color:#00ff88!important;box-shadow:0 0 10px #00ff8877':'';
+    const submittedColor=submitted&&isMgrView2&&!isActive?';color:#15803d':'';
     return `<button class="dept-tab${isActive?' active':''}"
-      style="border-color:${d.color};${isActive?`background:${d.color};color:white`:`color:${d.color}`}"
+      style="border-color:${d.color};${isActive?`background:${d.color};color:white`:`color:${d.color}`}${submittedColor}${blinkStyle}"
       onclick="setDept('${d.id}')">${indicator}${d.name}</button>`;
   }).join('');
 
