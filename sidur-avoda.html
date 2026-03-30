@@ -159,7 +159,13 @@
 
   /* SETTINGS */
   .set-sec { background:white; border-radius:14px; padding:16px 20px; margin-bottom:16px; box-shadow:0 1px 6px rgba(0,0,0,0.06); }
-  .set-sec h3 { font-size:13px; font-weight:700; color:#475569; margin:0 0 12px 0; text-transform:uppercase; letter-spacing:0.5px; }
+  .set-sec h3 { font-size:14px; font-weight:700; color:#475569; margin:0; text-transform:uppercase; letter-spacing:0.5px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; padding:12px 0; user-select:none; }
+  .set-sec h3::after { content:'▼'; font-size:10px; color:#94a3b8; transition:transform 0.2s; }
+  .set-sec.collapsed h3::after { content:'▶'; }
+  .set-sec h3:hover { color:#6366f1; }
+  .set-sec-body { overflow:hidden; transition:max-height 0.3s ease; }
+  .set-sec.collapsed .set-sec-body { display:none; }
+  .set-sec { border-bottom:1px solid #f1f5f9; padding:0 0 4px; margin-bottom:4px; }
   .set-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
   .s-inp { padding:8px 12px; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:8px; color:#0f172a; font-family:inherit; font-size:13px; outline:none; flex:1; min-width:120px; transition:border 0.2s; }
   .s-inp:focus { border-color:#00d4ff; box-shadow:0 0 8px #00d4ff22; }
@@ -1375,8 +1381,9 @@
 
     <div id="view-settings" style="display:none">
       <div class="sec-title">הגדרות מערכת</div>
-      <div class="set-sec">
-        <h3>מחלקות</h3>
+      <div class="set-sec collapsed">
+        <h3 onclick="toggleSetSec(this)">מחלקות</h3>
+        <div class="set-sec-body">
         <div class="set-row">
           <input class="s-inp" id="nd-nm" placeholder="שם מחלקה" />
           <input class="s-inp" id="nd-title" placeholder='תואר (למשל "במאי")' style="max-width:160px" />
@@ -1385,8 +1392,10 @@
         </div>
         <div class="item-list" id="dept-list"></div>
       </div>
-      <div class="set-sec">
-        <h3>תצוגות משולבות (קוקפיט)</h3>
+      </div>
+      <div class="set-sec collapsed">
+        <h3 onclick="toggleSetSec(this)">תצוגות משולבות (קוקפיט)</h3>
+        <div class="set-sec-body">
         <div class="notice n-info" style="margin-bottom:14px">💡 צור תצוגה שמאגדת מספר מחלקות יחד. תופיע כלשונית נפרדת לאחר שכל המחלקות אושרו.</div>
         <div class="set-row">
           <input class="s-inp" id="ncv-name" placeholder="שם התצוגה (למשל: קוקפיט)" />
@@ -1394,13 +1403,17 @@
         </div>
         <div id="cv-list"></div>
       </div>
-      <div class="set-sec">
-        <h3>משמרות לפי מחלקה</h3>
+      </div>
+      <div class="set-sec collapsed">
+        <h3 onclick="toggleSetSec(this)">משמרות לפי מחלקה</h3>
+        <div class="set-sec-body">
         <div class="notice n-info" style="margin-bottom:14px">💡 בחר אילו משמרות פעילות בכל מחלקה. אם לא נבחר כלום — יוצגו כל המשמרות.</div>
         <div id="dept-shift-settings"></div>
       </div>
-      <div class="set-sec">
-        <h3>תפקידים בתוך משמרת</h3>
+      </div>
+      <div class="set-sec collapsed">
+        <h3 onclick="toggleSetSec(this)">תפקידים בתוך משמרת</h3>
+        <div class="set-sec-body">
         <div class="notice n-info" style="margin-bottom:14px">💡 הגדר תפקידים לכל משמרת במחלקה. כל תפקיד יהיה שורה נפרדת בסידור.</div>
         <div class="set-row">
           <select class="s-inp" id="sr-dept" style="max-width:140px" onchange="renderShiftRolesList()"></select>
@@ -1410,8 +1423,10 @@
         </div>
         <div class="item-list" id="shift-roles-list"></div>
       </div>
-      <div class="set-sec">
-        <h3>סוגי משמרות</h3>
+      </div>
+      <div class="set-sec collapsed">
+        <h3 onclick="toggleSetSec(this)">סוגי משמרות</h3>
+        <div class="set-sec-body">
         <div class="set-row">
           <input class="s-inp" id="ns-nm" placeholder="שם משמרת" />
           <input class="s-inp" id="ns-tm" placeholder="שעות (06:00-14:00)" />
@@ -1420,8 +1435,10 @@
         </div>
         <div class="item-list" id="shift-list"></div>
       </div>
-      <div class="set-sec">
-        <h3>פרילנסרים לפי מחלקה</h3>
+      </div>
+      <div class="set-sec collapsed">
+        <h3 onclick="toggleSetSec(this)">פרילנסרים לפי מחלקה</h3>
+        <div class="set-sec-body">
         <div class="set-row">
           <input class="s-inp" id="nf-nm" placeholder="שם פרילנסר" />
           <select class="s-inp" id="nf-dept" style="max-width:160px"></select>
@@ -1429,25 +1446,33 @@
         </div>
         <div class="item-list" id="freelancer-list"></div>
       </div>
-      <div class="set-sec">
-        <h3>עובדים רשומים</h3>
+      </div>
+      <div class="set-sec collapsed">
+        <h3 onclick="toggleSetSec(this)">עובדים רשומים</h3>
+        <div class="set-sec-body">
         <div class="notice n-info" style="margin-bottom:14px">💡 עובדים נרשמים לבד. כאן ניתן לשנות תפקיד ואחוז משרה.</div>
         <div class="item-list" id="emp-list"></div>
       </div>
+      </div>
 
       <!-- הגדרות לוח חופשות -->
-      <div class="set-sec">
-        <h3>🏖 לוח חופשות — נציגי מחלקות</h3>
+      <div class="set-sec collapsed">
+        <h3 onclick="toggleSetSec(this)">🏖 לוח חופשות — נציגי מחלקות</h3>
+        <div class="set-sec-body">
         <div class="dept-assign-grid" id="dept-assign-grid"></div>
         <button class="btn-add" onclick="saveDeptReps()" style="margin-top:8px">💾 שמור</button>
       </div>
-      <div class="set-sec">
-        <h3>🏖 לוח חופשות — ניהול משתמשים</h3>
+      </div>
+      <div class="set-sec collapsed">
+        <h3 onclick="toggleSetSec(this)">🏖 לוח חופשות — ניהול משתמשים</h3>
+        <div class="set-sec-body">
         <p style="font-size:13px;color:#94a3b8;margin-bottom:12px">מחיקת משתמש תמחק גם את כל הבקשות שלו</p>
         <div id="users-manage-list"></div>
       </div>
-      <div class="set-sec">
-        <h3>🏖 לוח חופשות — צופים</h3>
+      </div>
+      <div class="set-sec collapsed">
+        <h3 onclick="toggleSetSec(this)">🏖 לוח חופשות — צופים</h3>
+        <div class="set-sec-body">
         <p style="font-size:13px;color:#94a3b8;margin-bottom:12px">צופים רואים את כל לוחות המחלקות ללא יכולת שינוי</p>
         <div style="display:flex;gap:8px;margin-bottom:8px">
           <select class="s-inp" id="viewer-select" style="max-width:200px"><option value="">בחר עובד...</option></select>
@@ -1455,8 +1480,10 @@
         </div>
         <div id="viewer-list"></div>
       </div>
-      <div class="set-sec">
-        <h3>📋 לוז — עורכים מורשים</h3>
+      </div>
+      <div class="set-sec collapsed">
+        <h3 onclick="toggleSetSec(this)">📋 לוז — עורכים מורשים</h3>
+        <div class="set-sec-body">
         <p style="font-size:12px;color:#94a3b8;margin-bottom:10px">מנהלים תמיד יכולים לערוך. הוסף אימייל של עובד כדי לאפשר לו עריכה.</p>
         <div style="display:flex;gap:8px;margin-bottom:8px">
           <input class="s-inp" id="loz-editor-inp-settings" placeholder="אימייל עורך..." style="flex:1" />
@@ -1464,13 +1491,16 @@
         </div>
         <div id="loz-editors-list-settings" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
       </div>
+      </div>
 
-      <div class="set-sec">
-        <h3>🏖 לוח חופשות — סיסמת מנהל</h3>
+      <div class="set-sec collapsed">
+        <h3 onclick="toggleSetSec(this)">🏖 לוח חופשות — סיסמת מנהל</h3>
+        <div class="set-sec-body">
         <div style="display:flex;gap:8px;align-items:center">
           <input class="s-inp" type="password" id="new-password" maxlength="4" placeholder="4 ספרות" style="max-width:120px;letter-spacing:6px;font-size:18px" />
           <button class="btn-add" onclick="changeAdminPassword()">שנה</button>
         </div>
+      </div>
       </div>
 
       <!-- לוז — עורכים מורשים -->
@@ -3777,6 +3807,11 @@ async function delFreelancer(id){
 }
 async function updateRole(id,role){await sb.from('employees').update({role}).eq('id',id);await loadAll();renderSettings();}
 async function updatePos(id,pos){await sb.from('employees').update({position_percent:parseInt(pos)||100}).eq('id',id);await loadAll();renderSettings();}
+function toggleSetSec(h3){
+  const sec = h3.closest('.set-sec');
+  sec.classList.toggle('collapsed');
+}
+
 async function delEmp(id){
   if(!confirm('למחוק עובד? פעולה זו תמחק את כל הנתונים שלו.')) return;
   try{
