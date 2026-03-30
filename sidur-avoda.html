@@ -117,8 +117,8 @@
   .remove-tag:hover { opacity:1; }
   .add-emp-btn { width:22px; height:22px; border-radius:50%; background:white; border:1.5px solid #00d4ff; color:#00d4ff; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; margin:2px; transition:all 0.2s; box-shadow:0 0 6px #00d4ff44; }
   .add-emp-btn:hover { background:#00d4ff; color:white; box-shadow:0 0 12px #00d4ff; }
-  .cell-note { width:100%; border:none; background:transparent; font-size:10px; color:#1e40af; font-family:inherit; resize:none; padding:2px 4px; outline:none; direction:rtl; margin-top:2px; border-top:1px solid #e2e8f0; }
-  .cell-note-view { font-size:10px; color:#1e40af; padding:2px 4px; }
+  .cell-note { width:100%; border:none; background:transparent; font-size:13px; color:#1e40af; font-family:inherit; resize:none; padding:2px 4px; outline:none; direction:rtl; margin-top:2px; border-top:1px solid #e2e8f0; }
+  .cell-note-view { font-size:13px; color:#1e40af; padding:2px 4px; }
 
   /* DROPDOWN */
   .emp-dropdown { position:absolute; top:100%; right:0; z-index:50; background:white; border:1.5px solid #00d4ff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.12),0 0 15px #00d4ff33; min-width:200px; max-height:280px; overflow-y:auto; }
@@ -3054,7 +3054,7 @@ function renderSchedule(){
           onblur="saveNote('${dept.id}','${shift.id}',${d},this.value)"
           onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" />`;
       } else if(noteVal2){
-        html+=`<div class="cell-note-view">${noteVal2}</div>`;
+        html+=`<div class="cell-note-view">⭐ ${noteVal2}</div>`;
       }
       html+=`</div></td>`;
     }
@@ -3119,7 +3119,7 @@ function renderSchedule(){
             onblur="saveNote('${dept.id}','${roleKey}',${d},this.value)"
             onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" />`;
         } else if(noteVal2){
-          html+=`<div class="cell-note-view">${noteVal2}</div>`;
+          html+=`<div class="cell-note-view">⭐ ${noteVal2}</div>`;
         }
         html+=`</div></td>`;
       }
