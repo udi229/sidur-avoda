@@ -5610,19 +5610,9 @@ function applySchedZoom(){
     // Use zoom for Chrome/Android, transform for Safari/iOS
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     if(isSafari){
-      wrap.style.transform = `scale(${f})`;
-      wrap.style.transformOrigin = 'top right';
-      // Adjust height so content below is reachable
-      if(f < 1){
-        const h = wrap.scrollHeight;
-        wrap.style.height = h + 'px';
-        wrap.parentElement.style.height = Math.round(h * f) + 'px';
-        wrap.parentElement.style.overflow = 'hidden';
-      } else {
-        wrap.style.height = '';
-        wrap.parentElement.style.height = '';
-        wrap.parentElement.style.overflow = '';
-      }
+      // On Safari use zoom too — it's supported in Safari 14+
+      wrap.style.zoom = f.toString();
+      wrap.style.transform = '';
     } else {
       wrap.style.zoom = f.toString();
       wrap.style.transform = '';
@@ -5965,11 +5955,12 @@ function publishDay(){
 function closePreview(){
   if(_lozHourglassTimer){ clearInterval(_lozHourglassTimer); _lozHourglassTimer=null; }
   document.getElementById('preview-overlay').classList.remove('open');
-  // Only re-render for editors/managers - viewers stay on closed state
   if(lozCanEdit()){
     lozRenderRole();
+  } else {
+    // Regular viewer — go back to previous view (schedule)
+    showView('schedule');
   }
-  // Viewers just see the closed preview — they can use the nav to browse days
 }
 
 
