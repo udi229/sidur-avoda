@@ -3701,41 +3701,73 @@ function renderSettings(){
   // Freelancers
   const nfSel=document.getElementById('nf-dept');
   nfSel.innerHTML=departments.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
-  document.getElementById('freelancer-list').innerHTML=freelancers.map(f=>{
-    const dept=departments.find(d=>d.id===f.department_id);
-    return `<div class="item-row"><div class="item-info" style="flex:1">
-      <span class="freelance-badge">פרילנס</span>
-      <input value="${f.name}" onblur="updateFreelancerName('${f.id}',this.value)"
-        style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:13px;font-weight:600;width:140px;font-family:inherit" />
-      ${dept?`<span style="color:#94a3b8;font-size:12px">· ${dept.name}</span>`:''}
-    </div><button class="btn-del" onclick="delFreelancer('${f.id}')">מחק</button></div>`;
-  }).join('')||'<div style="color:#94a3b8;padding:8px">אין פרילנסרים</div>';
+  {
+    let fHtml='';
+    departments.forEach(d=>{
+      const dFree=freelancers.filter(f=>f.department_id===d.id);
+      if(!dFree.length) return;
+      fHtml+=`<div style="font-size:11px;font-weight:700;color:${d.color};margin:8px 0 4px;padding:4px 8px;background:${d.color}18;border-radius:6px;border-right:3px solid ${d.color}">${d.name}</div>`;
+      fHtml+=dFree.map(f=>`<div class="item-row"><div class="item-info" style="flex:1">
+        <span class="freelance-badge">פרילנס</span>
+        <input value="${f.name}" onblur="updateFreelancerName('${f.id}',this.value)"
+          style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:13px;font-weight:600;width:140px;font-family:inherit" />
+      </div><button class="btn-del" onclick="delFreelancer('${f.id}')">מחק</button></div>`).join('');
+    });
+    document.getElementById('freelancer-list').innerHTML=fHtml||'<div style="color:#94a3b8;padding:8px">אין פרילנסרים</div>';
+  }
 
-  // Employees
-  document.getElementById('emp-list').innerHTML=employees.map(emp=>{
-    const dept=departments.find(d=>d.id===emp.department_id);
-    return `<div class="item-row">
-      <div class="item-info">
-        <div class="emp-av" style="background:${dept?.color||'#64748b'};width:30px;height:30px;font-size:12px">${emp.full_name[0]}</div>
-        <div>
-          <input value="${emp.full_name}" onblur="updateEmpName('${emp.id}',this.value)"
-            style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:13px;font-weight:600;width:150px;font-family:inherit;display:block;margin-bottom:2px" />
-          <div style="font-size:12px;color:#64748b">${emp.email}</div>
-          <div style="font-size:11px;color:#94a3b8">${dept?.name||'ללא מחלקה'} · ${ROLE_HEB[emp.role]||'עובד'} · ${emp.position_percent}%</div>
+  // Employees - grouped by department
+  {
+    let eHtml='';
+    departments.forEach(d=>{
+      const dEmps=employees.filter(e=>e.department_id===d.id);
+      if(!dEmps.length) return;
+      eHtml+=`<div style="font-size:11px;font-weight:700;color:${d.color};margin:10px 0 4px;padding:4px 8px;background:${d.color}18;border-radius:6px;border-right:3px solid ${d.color}">${d.name} (${dEmps.length})</div>`;
+      eHtml+=dEmps.map(emp=>`<div class="item-row">
+        <div class="item-info">
+          <div class="emp-av" style="background:${d.color};width:28px;height:28px;font-size:11px">${emp.full_name[0]}</div>
+          <div>
+            <input value="${emp.full_name}" onblur="updateEmpName('${emp.id}',this.value)"
+              style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:13px;font-weight:600;width:140px;font-family:inherit;display:block;margin-bottom:2px" />
+            <div style="font-size:11px;color:#64748b">${emp.email}</div>
+            <div style="font-size:10px;color:#94a3b8">${ROLE_HEB[emp.role]||'עובד'} · ${emp.position_percent}%</div>
+          </div>
         </div>
-      </div>
-      <div class="item-btns">
-        <select class="role-sel" onchange="updateRole('${emp.id}',this.value)">
-          <option value="employee" ${emp.role==='employee'?'selected':''}>עובד</option>
-          <option value="team_lead" ${emp.role==='team_lead'?'selected':''}>ראש צוות</option>
-          <option value="manager" ${emp.role==='manager'?'selected':''}>מנהל</option>
-        </select>
-        <input type="number" value="${emp.position_percent}" min="10" max="100"
-          style="width:60px;padding:4px 6px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit"
-          onchange="updatePos('${emp.id}',this.value)" />
-        <button class="btn-del" onclick="delEmp('${emp.id}')">מחק</button>
-      </div></div>`;
-  }).join('')||'<div style="color:#94a3b8;padding:8px">אין עובדים עדיין</div>';
+        <div class="item-btns">
+          <select class="role-sel" onchange="updateRole('${emp.id}',this.value)">
+            <option value="employee" ${emp.role==='employee'?'selected':''}>עובד</option>
+            <option value="team_lead" ${emp.role==='team_lead'?'selected':''}>ראש צוות</option>
+            <option value="manager" ${emp.role==='manager'?'selected':''}>מנהל</option>
+          </select>
+          <input type="number" value="${emp.position_percent}" min="10" max="100"
+            style="width:52px;padding:4px 6px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit"
+            onchange="updatePos('${emp.id}',this.value)" />
+          <button class="btn-del" onclick="delEmp('${emp.id}')">מחק</button>
+        </div></div>`).join('');
+    });
+    // Employees without department
+    const noDept=employees.filter(e=>!e.department_id);
+    if(noDept.length){
+      eHtml+=`<div style="font-size:11px;font-weight:700;color:#94a3b8;margin:10px 0 4px;padding:4px 8px;background:#f1f5f9;border-radius:6px">ללא מחלקה (${noDept.length})</div>`;
+      eHtml+=noDept.map(emp=>`<div class="item-row">
+        <div class="item-info">
+          <div class="emp-av" style="background:#64748b;width:28px;height:28px;font-size:11px">${emp.full_name[0]}</div>
+          <div>
+            <input value="${emp.full_name}" onblur="updateEmpName('${emp.id}',this.value)"
+              style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:13px;font-weight:600;width:140px;font-family:inherit;display:block;margin-bottom:2px" />
+            <div style="font-size:11px;color:#64748b">${emp.email}</div>
+          </div>
+        </div>
+        <div class="item-btns">
+          <select class="role-sel" onchange="updateRole('${emp.id}',this.value)">
+            <option value="employee" ${emp.role==='employee'?'selected':''}>עובד</option>
+            <option value="team_lead" ${emp.role==='team_lead'?'selected':''}>ראש צוות</option>
+          </select>
+          <button class="btn-del" onclick="delEmp('${emp.id}')">מחק</button>
+        </div></div>`).join('');
+    }
+    document.getElementById('emp-list').innerHTML=eHtml||'<div style="color:#94a3b8;padding:8px">אין עובדים עדיין</div>';
+  }
 }
 
 async function updateFreelancerName(id, name){
