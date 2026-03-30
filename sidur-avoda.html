@@ -5901,8 +5901,17 @@ function buildTable(secs, onChange, onDel, onAdd, onTitleChange, onReset, onDelS
       nameTd.appendChild(nameWrap);
 
       const delTd=document.createElement('td');delTd.className='col-del';
+      delTd.style.cssText='white-space:nowrap;';
+
+      // Insert row below this row button
+      const insBtn=document.createElement('button');insBtn.className='del-btn';
+      insBtn.textContent='+';insBtn.title='הוסף שורה כאן';
+      insBtn.style.cssText='background:#1a2f1a;color:#00ff88;border-color:#00ff8866;margin-left:3px;font-size:14px;font-weight:900;';
+      insBtn.onclick=()=>{onAdd(si, ri+1);};
+
       const delBtn=document.createElement('button');delBtn.className='del-btn';delBtn.textContent='✕';
       delBtn.onclick=()=>onDel(si,ri);
+      delTd.appendChild(insBtn);
       delTd.appendChild(delBtn);
 
       tr.appendChild(timeTd);tr.appendChild(nameTd);tr.appendChild(delTd);
@@ -5914,7 +5923,7 @@ function buildTable(secs, onChange, onDel, onAdd, onTitleChange, onReset, onDelS
     const addTd=document.createElement('td');addTd.colSpan=3;
     const addBtn=document.createElement('button');addBtn.className='add-row-btn';
     addBtn.textContent='+ הוסף שורה ל'+sec.title;
-    addBtn.onclick=()=>onAdd(si);
+    addBtn.onclick=()=>onAdd(si, null); // null = add to end
     addTd.appendChild(addBtn);addTr.appendChild(addTd);tb.appendChild(addTr);
   });
 
@@ -5931,7 +5940,7 @@ function renderDaily(){
   wrap.appendChild(buildTable(secs,
     (si,ri,f,v)=>{secs[si].rows[ri][f]=v},
     (si,ri)=>{secs[si].rows.splice(ri,1);renderDaily()},
-    (si)=>{secs[si].rows.push({from:'',to:'',name:'',color:''});renderDaily()},
+    (si,idx)=>{if(idx==null){secs[si].rows.push({from:'',to:'',name:'',color:''});}else{secs[si].rows.splice(idx,0,{from:'',to:'',name:'',color:''});}renderDaily();},
     (si,v)=>{secs[si].title=v},
     (si)=>{dailyData[key][si].rows=defSections[si]?defSections[si].rows.map(r=>({...r})):[];renderDaily()},
     (si)=>{secs.splice(si,1);renderDaily()},
@@ -5944,7 +5953,7 @@ function renderDefault(){
   wrap.appendChild(buildTable(defSections,
     (si,ri,f,v)=>{defSections[si].rows[ri][f]=v},
     (si,ri)=>{defSections[si].rows.splice(ri,1);renderDefault()},
-    (si)=>{defSections[si].rows.push({from:'',to:'',name:'',color:''});renderDefault()},
+    (si,idx)=>{if(idx==null){defSections[si].rows.push({from:'',to:'',name:'',color:''});}else{defSections[si].rows.splice(idx,0,{from:'',to:'',name:'',color:''});}renderDefault();},
     (si,v)=>{defSections[si].title=v},
     null,
     (si)=>{defSections.splice(si,1);renderDefault()},
