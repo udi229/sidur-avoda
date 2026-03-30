@@ -2844,11 +2844,11 @@ function renderCombinedView(){
       if(isFirst){
         html+=`<td rowspan="${allRows.length}" style="${B};padding:6px 8px;text-align:right;
           vertical-align:middle;background:#f8fafc;border-right:3px solid ${shift.color}">
-          <div style="font-weight:700;color:#0f172a;font-size:12px">
+          <div style="font-weight:700;color:#0f172a;font-size:16px">
             <span style="display:inline-block;width:7px;height:7px;border-radius:50%;
               background:${shift.color};vertical-align:middle;margin-left:3px"></span>${shift.name}
           </div>
-          ${shift.time?`<div style="font-size:15px;font-weight:700;color:#334155;margin-top:3px">${shift.time}</div>`:''}
+          ${shift.time?`<div style="font-size:20px;font-weight:800;color:#1e293b;margin-top:3px">${shift.time}</div>`:''}
         </td>`;
       }
 
@@ -2979,7 +2979,7 @@ function renderSchedule(){
     html+=`<tr><td class="shift-label" rowspan="${rowCount}" style="vertical-align:top;padding:6px 10px">
       <div style="display:flex;align-items:center;gap:3px;margin-bottom:2px">
         <span class="shift-dot" style="background:${shift.color}"></span>
-        <strong style="font-size:16px;color:#0f172a">${shift.name}</strong>
+        <strong style="font-size:18px;color:#0f172a">${shift.name}</strong>
       </div>
       ${isMgr ? (isEditShiftTime ?
         `<div style="display:flex;gap:3px;margin-top:3px;align-items:center">
@@ -2988,7 +2988,7 @@ function renderSchedule(){
           <button onclick="event.stopPropagation();editingShiftTime=null;renderSchedule()" style="background:#f1f5f9;border:none;border-radius:4px;padding:2px 5px;font-size:10px;cursor:pointer">✕</button>
         </div>` :
         `${shift.time?`<div style="font-size:20px;font-weight:800;color:#1e293b;cursor:pointer;margin-top:3px" onclick="event.stopPropagation();editingShiftTime={shiftId:'${shift.id}'};renderSchedule()">${shift.time} ✎</div>`:`<div style="font-size:12px;color:#bfdbfe;cursor:pointer" onclick="event.stopPropagation();editingShiftTime={shiftId:'${shift.id}'};renderSchedule()">+ שעות</div>`}`)
-        : (shift.time?`<div style="font-size:9px;color:#94a3b8">${shift.time}</div>`:'')}
+        : (shift.time?`<div style="font-size:20px;font-weight:800;color:#1e293b;margin-top:3px">${shift.time}</div>`:'')}
       ${roles.length>0?`<div style="margin-top:4px">
         ${roles.map((r,ri)=>`<div style="font-size:10px;font-weight:600;color:#64748b;
           padding:2px 0;line-height:${rowCount===1?1.4:2.8}">${r.role_name}</div>`).join('')}
@@ -5606,9 +5606,27 @@ function schedZoom(dir){
 function applySchedZoom(){
   const wrap = document.getElementById('sched-zoom-wrap');
   if(wrap){
-    // Use zoom CSS property — resizes content, scroll works naturally
-    wrap.style.zoom = (_schedZoom/100).toString();
-    wrap.style.transform = '';
+    const f = _schedZoom/100;
+    // Use zoom for Chrome/Android, transform for Safari/iOS
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    if(isSafari){
+      wrap.style.transform = `scale(${f})`;
+      wrap.style.transformOrigin = 'top right';
+      // Adjust height so content below is reachable
+      if(f < 1){
+        const h = wrap.scrollHeight;
+        wrap.style.height = h + 'px';
+        wrap.parentElement.style.height = Math.round(h * f) + 'px';
+        wrap.parentElement.style.overflow = 'hidden';
+      } else {
+        wrap.style.height = '';
+        wrap.parentElement.style.height = '';
+        wrap.parentElement.style.overflow = '';
+      }
+    } else {
+      wrap.style.zoom = f.toString();
+      wrap.style.transform = '';
+    }
   }
   const pct = document.getElementById('zoom-pct');
   if(pct) pct.textContent = _schedZoom+'%';
