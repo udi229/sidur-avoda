@@ -3647,13 +3647,21 @@ function renderSettings(){
 
   // Shifts
   document.getElementById('shift-list').innerHTML=shiftTypes.map((s,i)=>`
-    <div class="item-row"><div class="item-info"><div class="cdot" style="background:${s.color}"></div>
-    <span style="font-weight:600">${s.name}</span>${s.time?`<span style="color:#94a3b8;font-size:12px;margin-right:8px">${s.time}</span>`:''}</div>
-    <div class="item-btns">
-      <button class="btn-del" style="background:#f1f5f9;color:#374151;border-color:#e2e8f0" onclick="moveShift(${i},-1)">↑</button>
-      <button class="btn-del" style="background:#f1f5f9;color:#374151;border-color:#e2e8f0" onclick="moveShift(${i},1)">↓</button>
-      <button class="btn-del" onclick="delShift('${s.id}')">מחק</button>
-    </div></div>`).join('');
+    <div class="item-row" style="flex-wrap:wrap;gap:6px">
+      <div class="item-info" style="flex:1;flex-wrap:wrap;gap:6px;align-items:center">
+        <input type="color" value="${s.color}" onchange="updateShiftField('${s.id}','color',this.value)"
+          style="width:28px;height:28px;border:none;cursor:pointer;border-radius:50%;flex-shrink:0" />
+        <input value="${s.name}" onblur="updateShiftField('${s.id}','name',this.value)"
+          style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:13px;font-weight:600;width:100px;font-family:inherit" />
+        <input value="${s.time||''}" placeholder="שעות (09:00-17:00)" onblur="updateShiftField('${s.id}','time',this.value)"
+          style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:12px;color:#64748b;width:130px;font-family:inherit" />
+      </div>
+      <div class="item-btns">
+        <button class="btn-del" style="background:#f1f5f9;color:#374151;border-color:#e2e8f0" onclick="moveShift(${i},-1)">↑</button>
+        <button class="btn-del" style="background:#f1f5f9;color:#374151;border-color:#e2e8f0" onclick="moveShift(${i},1)">↓</button>
+        <button class="btn-del" onclick="delShift('${s.id}')">מחק</button>
+      </div>
+    </div>`).join('');
 
   // Freelancers
   const nfSel=document.getElementById('nf-dept');
