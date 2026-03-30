@@ -2810,8 +2810,8 @@ function renderCombinedView(){
       <tr style="background:#f1f5f9">
         <th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">משמרת</th>
         <th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">תפקיד</th>
-        ${DAYS_DISPLAY.map((d,i)=>`<th style="${B};padding:8px 4px;text-align:center;font-size:12px;color:#475569;font-weight:700">
-          ${d}<br><span style="font-size:10px;font-weight:600;color:#0f172a">${dates[i]}</span>
+        ${DAYS_DISPLAY.map((d,i)=>`<th style="${B};padding:8px 4px;text-align:center;font-size:15px;color:#475569;font-weight:700">
+          ${d}<br><span style="font-size:13px;font-weight:700;color:#0f172a">${dates[i]}</span>
         </th>`).join('')}
       </tr>
     </thead>
@@ -2961,7 +2961,7 @@ function renderSchedule(){
     <div class="tbl-wrap"><table>
     <thead><tr>
       <th class="shift-col">משמרת</th>
-      ${DAYS_DISPLAY.map((d,i)=>`<th>${d}<br><span style="font-size:10px;font-weight:600;color:#0f172a">${dates[i]}</span></th>`).join('')}
+      ${DAYS_DISPLAY.map((d,i)=>`<th style="text-align:center;font-size:15px;color:#475569;font-weight:700;padding:8px 4px">${d}<br><span style="font-size:13px;font-weight:700;color:#0f172a">${dates[i]}</span></th>`).join('')}
     </tr></thead><tbody>`;
 
   // get shifts for this dept (fallback to all if none configured)
@@ -3017,7 +3017,9 @@ function renderSchedule(){
         else{tagBg='#eff6ff';tagColor='#1e40af';tagBorder='#bfdbfe';}
         const firstName=name.split(' ')[0];
         const isCurrentNeon=(isCurrentUser&&showMyShifts);
-        const isFreelanceNeon=(isFreelance&&_highlightedFree&&name.split(' ')[0]===_highlightedFree);
+        const isFreelanceNeon=(isFreelance&&_highlightedFree&&firstName===_highlightedFree);
+        // Override tagBg if this specific freelancer is highlighted
+        if(isFreelanceNeon){tagBg='white';tagColor='#d97706';tagBorder='#fbbf24';}
         const neonStyle=isCurrentNeon
           ?'background:white!important;color:#00cc44!important;border:2px solid #00ff88!important;box-shadow:0 0 10px #00ff88,0 0 20px #00ff8866;font-weight:900;text-shadow:0 0 6px #00cc44;animation:neonPulseGreen 1.2s ease-in-out infinite;'
           :isFreelanceNeon
@@ -3298,22 +3300,7 @@ function highlightFreelancer(firstName){
   if(on){
     document.querySelectorAll('.stat-tile[data-emp="'+firstName+'"]').forEach(el=>el.classList.add('selected-free'));
     if(activeView !== 'schedule') showView('schedule');
-    const prevFreelancers = showFreelancers;
-    showFreelancers = true;
-    setTimeout(()=>{
-      renderSchedule();
-      setTimeout(()=>{
-        document.querySelectorAll('.emp-tag[data-emp="'+firstName+'"]').forEach(el=>{
-          el.style.background='white';
-          el.style.color='#d97706';
-          el.style.border='2px solid #fbbf24';
-          el.style.boxShadow='0 0 10px #fbbf24,0 0 20px #fbbf2466';
-          el.style.animation='neonPulseYellow 1.2s ease-in-out infinite';
-          el.style.fontWeight='900';
-        });
-        showFreelancers = prevFreelancers;
-      },100);
-    },50);
+    setTimeout(()=>{ renderSchedule(); },50);
   } else {
     renderSchedule();
   }
