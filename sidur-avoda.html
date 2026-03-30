@@ -3051,10 +3051,13 @@ function renderSchedule(){
         const isFreelanceNeon=(isFreelance&&_highlightedFree&&firstName===_highlightedFree);
         // Override tagBg if this specific freelancer is highlighted
         if(isFreelanceNeon){tagBg='white';tagColor='#d97706';tagBorder='#fbbf24';}
+        const isEmpHighlighted=_highlightedEmp&&firstName===_highlightedEmp;
         const neonStyle=isCurrentNeon
           ?'background:white!important;color:#00cc44!important;border:2px solid #00ff88!important;box-shadow:0 0 10px #00ff88,0 0 20px #00ff8866;font-weight:900;text-shadow:0 0 6px #00cc44;animation:neonPulseGreen 1.2s ease-in-out infinite;'
           :isFreelanceNeon
           ?'background:white!important;color:#d97706!important;border:2px solid #fbbf24!important;box-shadow:0 0 10px #fbbf24,0 0 20px #fbbf2466;font-weight:900;text-shadow:0 0 4px #f59e0b;animation:neonPulseYellow 1.2s ease-in-out infinite;'
+          :isEmpHighlighted
+          ?'background:#fff0f0!important;color:#ff2200!important;border:2px solid #ff2200!important;box-shadow:0 0 8px #ff220088,0 0 14px #ff220044;font-weight:900;text-shadow:0 0 6px #ff220088;'
           :'';
         const tagFontSize = uniqueNames.length >= 2 ? '13px' : '18px';
         html+=`<span class="emp-tag" data-emp="${firstName}" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder};font-size:${tagFontSize};${neonStyle}">
@@ -3117,10 +3120,13 @@ function renderSchedule(){
           else{tagBg='#eff6ff';tagColor='#1e40af';tagBorder='#bfdbfe';}
           const firstName=name.split(' ')[0];
           const isHighlightedFree=isFreelance&&_highlightedFree&&name.split(' ')[0]===_highlightedFree;
+        const isEmpHighlighted2=_highlightedEmp&&name.split(' ')[0]===_highlightedEmp;
         const neonStyle2=(isCurrentUser&&showMyShifts)
             ?'background:white!important;color:#00cc44!important;border:2px solid #00ff88!important;box-shadow:0 0 10px #00ff88,0 0 20px #00ff8866;font-weight:900;animation:neonPulseGreen 1.2s ease-in-out infinite;'
             :isHighlightedFree
             ?'background:white!important;color:#d97706!important;border:2px solid #fbbf24!important;box-shadow:0 0 10px #fbbf24,0 0 20px #fbbf2466;font-weight:900;animation:neonPulseYellow 1.2s ease-in-out infinite;'
+            :isEmpHighlighted2
+            ?'background:#fff0f0!important;color:#ff2200!important;border:2px solid #ff2200!important;box-shadow:0 0 8px #ff220088,0 0 14px #ff220044;font-weight:900;text-shadow:0 0 6px #ff220088;'
             :'';
           html+=`<span class="emp-tag" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder};${neonStyle2}">
             ${firstName}
@@ -3349,13 +3355,10 @@ function highlightEmp(firstName){
   document.querySelectorAll('.stat-tile.selected').forEach(el=>el.classList.remove('selected'));
   if(on){
     _highlightedEmp = firstName;
-    document.querySelectorAll(`.stat-tile[data-emp="${firstName}"]`).forEach(el=>el.classList.add('selected'));
-    // Re-render to apply neon via CSS class in render
     renderSchedule();
-    // Also apply directly to already-rendered tags
     setTimeout(()=>{
-      document.querySelectorAll(`.emp-tag[data-emp="${firstName}"]`).forEach(el=>el.classList.add('neon-highlight'));
-    }, 80);
+      document.querySelectorAll(`.stat-tile[data-emp="${firstName}"]`).forEach(el=>el.classList.add('selected'));
+    }, 50);
   } else {
     _highlightedEmp = null;
     renderSchedule();
