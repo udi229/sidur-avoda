@@ -3671,9 +3671,10 @@ function renderSettings(){
   nfSel.innerHTML=departments.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
   document.getElementById('freelancer-list').innerHTML=freelancers.map(f=>{
     const dept=departments.find(d=>d.id===f.department_id);
-    return `<div class="item-row"><div class="item-info">
+    return `<div class="item-row"><div class="item-info" style="flex:1">
       <span class="freelance-badge">פרילנס</span>
-      <span style="font-weight:600">${f.name}</span>
+      <input value="${f.name}" onblur="updateFreelancerName('${f.id}',this.value)"
+        style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:13px;font-weight:600;width:140px;font-family:inherit" />
       ${dept?`<span style="color:#94a3b8;font-size:12px">· ${dept.name}</span>`:''}
     </div><button class="btn-del" onclick="delFreelancer('${f.id}')">מחק</button></div>`;
   }).join('')||'<div style="color:#94a3b8;padding:8px">אין פרילנסרים</div>';
@@ -3685,7 +3686,8 @@ function renderSettings(){
       <div class="item-info">
         <div class="emp-av" style="background:${dept?.color||'#64748b'};width:30px;height:30px;font-size:12px">${emp.full_name[0]}</div>
         <div>
-          <div style="font-weight:600">${emp.full_name}</div>
+          <input value="${emp.full_name}" onblur="updateEmpName('${emp.id}',this.value)"
+            style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:13px;font-weight:600;width:150px;font-family:inherit;display:block;margin-bottom:2px" />
           <div style="font-size:12px;color:#64748b">${emp.email}</div>
           <div style="font-size:11px;color:#94a3b8">${dept?.name||'ללא מחלקה'} · ${ROLE_HEB[emp.role]||'עובד'} · ${emp.position_percent}%</div>
         </div>
@@ -3702,6 +3704,17 @@ function renderSettings(){
         <button class="btn-del" onclick="delEmp('${emp.id}')">מחק</button>
       </div></div>`;
   }).join('')||'<div style="color:#94a3b8;padding:8px">אין עובדים עדיין</div>';
+}
+
+async function updateFreelancerName(id, name){
+  if(!name.trim()) return;
+  await sb.from('freelancers').update({name:name.trim()}).eq('id',id);
+  await loadAll(); renderSettings();
+}
+async function updateEmpName(id, name){
+  if(!name.trim()) return;
+  await sb.from('employees').update({full_name:name.trim()}).eq('id',id);
+  await loadAll(); renderSettings(); renderDeptTabs(); renderSchedule();
 }
 
 async function updateDeptField(id, field, value){
