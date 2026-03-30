@@ -1923,10 +1923,8 @@ function enterMgr(label='מנהל',type='primary'){
   document.getElementById('hdr-rl').textContent='מנהל מערכת';
   document.getElementById('nav-stats').style.display='inline-block';
   const _gs=document.getElementById('settings-gear-btn');if(_gs)_gs.style.display='none';
-    if(type==='primary'){
-      const _gsl=document.getElementById('settings-gear-logo');if(_gsl)_gsl.style.display='inline-block';
-      const _li=document.getElementById('hdr-logo-icon');if(_li)_li.style.display='none';
-    }
+    const _gsl=document.getElementById('settings-gear-logo');if(_gsl)_gsl.style.display='inline-block';
+    const _li=document.getElementById('hdr-logo-icon');if(_li)_li.style.display='none';
   document.getElementById('nav-vacation').style.display='inline-block';
   const _navloz=document.getElementById('nav-loz');if(_navloz)_navloz.style.display='inline-block';
   const bcBar=document.getElementById('mgr-broadcast-bar');
@@ -3037,8 +3035,8 @@ function renderSchedule(){
           const deptEmps2=employees.filter(e=>e.department_id===dept.id&&!names.includes(e.full_name));
           const deptFree2=freelancers.filter(f=>f.department_id===dept.id&&!names.includes(f.name));
           let ddHtml='';
-          if(deptEmps2.length){ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">עובדים</div>`;deptEmps2.forEach(e=>{ddHtml+=`<div class="emp-dd-item" onclick="addName('${dept.id}','${shift.id}',${d},'${e.full_name.replace(/'/g,"\'")}')">👤 ${e.full_name}</div>`;});ddHtml+=`</div>`;}
-          if(deptFree2.length){ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">פרילנסרים</div>`;deptFree2.forEach(f=>{ddHtml+=`<div class="emp-dd-item freelance-item" onclick="addName('${dept.id}','${shift.id}',${d},'${f.name.replace(/'/g,"\'")}')">🔄 ${f.name}</div>`;});ddHtml+=`</div>`;}
+          if(deptEmps2.length){ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">עובדים</div>`;deptEmps2.forEach(e=>{ddHtml+=`<div class="emp-dd-item" onclick="addName('${dept.id}','${shift.id}',${d},'${e.full_name.replace(/'/g,"\\'")}')">👤 ${e.full_name}</div>`;});ddHtml+=`</div>`;}
+          if(deptFree2.length){ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">פרילנסרים</div>`;deptFree2.forEach(f=>{ddHtml+=`<div class="emp-dd-item freelance-item" onclick="addName('${dept.id}','${shift.id}',${d},'${f.name.replace(/'/g,"\\'")}')">🔄 ${f.name}</div>`;});ddHtml+=`</div>`;}
           if(!deptEmps2.length&&!deptFree2.length) ddHtml='<div class="emp-dd-empty">אין עובדים</div>';
           html+=`<div class="emp-dropdown" onclick="event.stopPropagation()">
             <div class="emp-dd-search"><input id="dd-search" placeholder="חפש..." oninput="filterDropdown('${dept.id}','${shift.id}',${d})" /></div>
@@ -3101,7 +3099,7 @@ function renderSchedule(){
             const deptEmps2=employees.filter(e=>e.department_id===dept.id&&!roleNames.includes(e.full_name));
             const deptFree2=freelancers.filter(f=>f.department_id===dept.id&&!roleNames.includes(f.name));
             let ddHtml='';
-            if(deptEmps2.length){ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">עובדים</div>`;deptEmps2.forEach(e=>{ddHtml+=`<div class="emp-dd-item" onclick="addName('${dept.id}','${roleKey}',${d},'${e.full_name.replace(/'/g,"\'")}')">👤 ${e.full_name}</div>`;});ddHtml+=`</div>`;}
+            if(deptEmps2.length){ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">עובדים</div>`;deptEmps2.forEach(e=>{ddHtml+=`<div class="emp-dd-item" onclick="addName('${dept.id}','${roleKey}',${d},'${e.full_name.replace(/'/g,"\\'")}')">👤 ${e.full_name}</div>`;});ddHtml+=`</div>`;}
             if(deptFree2.length){ddHtml+=`<div class="emp-dd-group"><div class="emp-dd-label">פרילנסרים</div>`;deptFree2.forEach(f=>{ddHtml+=`<div class="emp-dd-item freelance-item" onclick="addName('${dept.id}','${roleKey}',${d},'${f.name.replace(/'/g,"\'")}')">🔄 ${f.name}</div>`;});ddHtml+=`</div>`;}
             if(!deptEmps2.length&&!deptFree2.length) ddHtml='<div class="emp-dd-empty">אין עובדים</div>';
             html+=`<div class="emp-dropdown" onclick="event.stopPropagation()">
@@ -3624,6 +3622,18 @@ async function lozRenderEditorsListSettings(){
 }
 
 function renderSettings(){
+  const isSecondary = window._mgrType === 'secondary';
+  // For secondary manager: show only freelancers + employees sections
+  document.querySelectorAll('#view-settings .set-sec').forEach((sec,i) => {
+    if(isSecondary){
+      const h3 = sec.querySelector('h3');
+      const title = h3?.textContent||'';
+      const allowed = title.includes('פרילנסרים') || title.includes('עובדים רשומים');
+      sec.style.display = allowed ? '' : 'none';
+    } else {
+      sec.style.display = '';
+    }
+  });
   // Depts
   renderDeptShiftSettings();
   renderCVSettings();
