@@ -102,7 +102,7 @@
   #sched-wrap td:first-child, #sched-wrap th:first-child { border-right:none; }
   .cell-rel { position:relative; }
   .cell-tags { display:flex; flex-wrap:wrap; gap:3px; }
-  .emp-tag { display:inline-flex; align-items:center; justify-content:center; gap:3px; padding:3px 8px; border-radius:12px; font-size:14px; font-weight:700; cursor:default; white-space:nowrap; transition: all 0.15s; width:calc(100% - 4px); text-align:center; }
+  .emp-tag { display:inline-flex; align-items:center; justify-content:center; gap:3px; padding:4px 8px; border-radius:12px; font-size:18px; font-weight:700; cursor:default; white-space:nowrap; transition: all 0.15s; width:calc(100% - 4px); text-align:center; }
   .my-shifts-active {
     background: white !important;
     color: #15803d !important;
@@ -3023,7 +3023,7 @@ function renderSchedule(){
           :isFreelanceNeon
           ?'background:white!important;color:#d97706!important;border:2px solid #fbbf24!important;box-shadow:0 0 10px #fbbf24,0 0 20px #fbbf2466;font-weight:900;text-shadow:0 0 4px #f59e0b;animation:neonPulseYellow 1.2s ease-in-out infinite;'
           :'';
-        const tagFontSize = uniqueNames.length >= 2 ? '11px' : '14px';
+        const tagFontSize = uniqueNames.length >= 2 ? '13px' : '18px';
         html+=`<span class="emp-tag" data-emp="${firstName}" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder};font-size:${tagFontSize};${neonStyle}">
           ${firstName}
           ${ed?`<span class="remove-tag" onclick="removeName('${dept.id}','${shift.id}',${d},'${escapedName}')">×</span>`:''}
