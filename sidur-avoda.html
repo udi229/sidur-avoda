@@ -3807,6 +3807,17 @@ async function delFreelancer(id){
 }
 async function updateRole(id,role){await sb.from('employees').update({role}).eq('id',id);await loadAll();renderSettings();}
 async function updatePos(id,pos){await sb.from('employees').update({position_percent:parseInt(pos)||100}).eq('id',id);await loadAll();renderSettings();}
+async function updateShiftField(id, field, value){
+  const update = {};
+  update[field] = value.trim();
+  await sb.from('shift_types').update(update).eq('id', id);
+  const s = shiftTypes.find(s=>s.id===id);
+  if(s) s[field] = value.trim();
+  renderSettings();
+  renderDeptTabs();
+  renderSchedule();
+}
+
 function toggleSetSec(h3){
   const sec = h3.closest('.set-sec');
   sec.classList.toggle('collapsed');
