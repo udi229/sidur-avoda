@@ -2979,7 +2979,7 @@ function renderSchedule(){
     html+=`<tr><td class="shift-label" rowspan="${rowCount}" style="vertical-align:top;padding:6px 10px">
       <div style="display:flex;align-items:center;gap:3px;margin-bottom:2px">
         <span class="shift-dot" style="background:${shift.color}"></span>
-        <strong style="font-size:13px;color:#0f172a">${shift.name}</strong>
+        <strong style="font-size:16px;color:#0f172a">${shift.name}</strong>
       </div>
       ${isMgr ? (isEditShiftTime ?
         `<div style="display:flex;gap:3px;margin-top:3px;align-items:center">
@@ -2987,7 +2987,7 @@ function renderSchedule(){
           <button onclick="event.stopPropagation();saveShiftTime('${shift.id}',document.getElementById('stime-${shift.id}').value)" style="background:#0f172a;color:white;border:none;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer">✓</button>
           <button onclick="event.stopPropagation();editingShiftTime=null;renderSchedule()" style="background:#f1f5f9;border:none;border-radius:4px;padding:2px 5px;font-size:10px;cursor:pointer">✕</button>
         </div>` :
-        `${shift.time?`<div style="font-size:9px;color:#94a3b8;cursor:pointer" onclick="event.stopPropagation();editingShiftTime={shiftId:'${shift.id}'};renderSchedule()">${shift.time} ✎</div>`:`<div style="font-size:9px;color:#bfdbfe;cursor:pointer" onclick="event.stopPropagation();editingShiftTime={shiftId:'${shift.id}'};renderSchedule()">+ שעות</div>`}`)
+        `${shift.time?`<div style="font-size:13px;font-weight:700;color:#475569;cursor:pointer;margin-top:2px" onclick="event.stopPropagation();editingShiftTime={shiftId:'${shift.id}'};renderSchedule()">${shift.time} ✎</div>`:`<div style="font-size:9px;color:#bfdbfe;cursor:pointer" onclick="event.stopPropagation();editingShiftTime={shiftId:'${shift.id}'};renderSchedule()">+ שעות</div>`}`)
         : (shift.time?`<div style="font-size:9px;color:#94a3b8">${shift.time}</div>`:'')}
       ${roles.length>0?`<div style="margin-top:4px">
         ${roles.map((r,ri)=>`<div style="font-size:10px;font-weight:600;color:#64748b;
@@ -3017,7 +3017,7 @@ function renderSchedule(){
         else{tagBg='#eff6ff';tagColor='#1e40af';tagBorder='#bfdbfe';}
         const firstName=name.split(' ')[0];
         const isCurrentNeon=(isCurrentUser&&showMyShifts);
-        const isFreelanceNeon=(isFreelance&&showFreelancers);
+        const isFreelanceNeon=(isFreelance&&_highlightedFree&&name.split(' ')[0]===_highlightedFree);
         const neonStyle=isCurrentNeon
           ?'background:white!important;color:#00cc44!important;border:2px solid #00ff88!important;box-shadow:0 0 10px #00ff88,0 0 20px #00ff8866;font-weight:900;text-shadow:0 0 6px #00cc44;animation:neonPulseGreen 1.2s ease-in-out infinite;'
           :isFreelanceNeon
@@ -3083,9 +3083,10 @@ function renderSchedule(){
           else if(showFreelancers&&isFreelance){tagBg='#fef9c3';tagColor='#854d0e';tagBorder='#fcd34d';}
           else{tagBg='#eff6ff';tagColor='#1e40af';tagBorder='#bfdbfe';}
           const firstName=name.split(' ')[0];
-          const neonStyle2=(isCurrentUser&&showMyShifts)
+          const isHighlightedFree=isFreelance&&_highlightedFree&&name.split(' ')[0]===_highlightedFree;
+        const neonStyle2=(isCurrentUser&&showMyShifts)
             ?'background:white!important;color:#00cc44!important;border:2px solid #00ff88!important;box-shadow:0 0 10px #00ff88,0 0 20px #00ff8866;font-weight:900;animation:neonPulseGreen 1.2s ease-in-out infinite;'
-            :(isFreelance&&showFreelancers)
+            :isHighlightedFree
             ?'background:white!important;color:#d97706!important;border:2px solid #fbbf24!important;box-shadow:0 0 10px #fbbf24,0 0 20px #fbbf2466;font-weight:900;animation:neonPulseYellow 1.2s ease-in-out infinite;'
             :'';
           html+=`<span class="emp-tag" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder};${neonStyle2}">
