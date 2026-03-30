@@ -3264,12 +3264,18 @@ function renderSchedule(){
     });
     // Freelancers - yellow neon on click
     const deptFreeForStats=freelancers.filter(f=>f.department_id===activeDeptId);
+    const empNamesInDept=new Set(deptEmpsForStats.map(e=>e.full_name));
     const freeCnts={};
     shiftTypes.forEach(shift=>{
       if(!schedules[activeDeptId]) return;
       for(let d=0;d<7;d++){
         const names=getCellNames(schedules[activeDeptId].id,shift.id,d);
-        names.forEach(n=>{ if(deptFreeForStats.find(f=>f.name===n)) freeCnts[n]=(freeCnts[n]||0)+1; });
+        // Count anyone who is NOT a regular employee as freelancer
+        names.forEach(n=>{
+          if(!empNamesInDept.has(n)){
+            freeCnts[n]=(freeCnts[n]||0)+1;
+          }
+        });
       }
     });
     Object.entries(freeCnts).forEach(([name,cnt])=>{
@@ -3343,18 +3349,16 @@ function highlightEmp(firstName){
   document.querySelectorAll('.stat-tile.selected').forEach(el=>el.classList.remove('selected'));
   if(on){
     _highlightedEmp = firstName;
-    // Switch to schedule view to see the highlights
-    if(activeView !== 'schedule'){
-      showView('schedule');
-    }
-    // Wait for render then highlight
+    document.querySelectorAll(`.stat-tile[data-emp="${firstName}"]`).forEach(el=>el.classList.add('selected'));
+    // Re-render to apply neon via CSS class in render
+    renderSchedule();
+    // Also apply directly to already-rendered tags
     setTimeout(()=>{
       document.querySelectorAll(`.emp-tag[data-emp="${firstName}"]`).forEach(el=>el.classList.add('neon-highlight'));
-    }, 100);
-    // Also highlight stat tile if still visible
-    document.querySelectorAll(`.stat-tile[data-emp="${firstName}"]`).forEach(el=>el.classList.add('selected'));
+    }, 80);
   } else {
     _highlightedEmp = null;
+    renderSchedule();
   }
 }
 
