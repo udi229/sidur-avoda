@@ -3149,7 +3149,22 @@ function renderSchedule(){
   const dates=weekDates();
 
   const isSoundDept=dept.name.toLowerCase().includes('סאונד')||dept.name.toLowerCase().includes('שמע');
-  let html=`<div class="sched-block" style="position:relative;overflow:hidden">
+  const deptShiftIds2=deptShifts[dept.id];
+  const activeShifts2=deptShiftIds2&&deptShiftIds2.length>0
+    ? shiftTypes.filter(s=>deptShiftIds2.includes(s.id))
+    : shiftTypes;
+  const shiftNames2=activeShifts2.map(s=>s.name);
+  const singleSpecial=activeShifts2.length===1&&(shiftNames2[0]==="ערבית"||shiftNames2[0]==="לילה");
+  let blockStyle="position:relative;overflow:hidden;border-radius:12px;";
+  if(singleSpecial){
+    const sc=activeShifts2[0].color;
+    blockStyle+=`border:3px solid ${sc};`;
+  } else {
+    const clrs=activeShifts2.slice(0,4).map(s=>s.color);
+    const grad=`linear-gradient(white,white) padding-box, linear-gradient(to bottom,${clrs.join(",")}) border-box`;
+    blockStyle+=`border:3px solid transparent;background:${grad};`;
+  }
+  let html=`<div class="sched-block" style="${blockStyle}">
     ${isSoundDept?`<div style="position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden">
       <span style="position:absolute;font-size:220px;opacity:0.07;top:50%;left:50%;transform:translate(-50%,-50%);
         animation:musicnote 6s ease-in-out infinite;user-select:none;line-height:1;color:#1e40af">♪</span>
