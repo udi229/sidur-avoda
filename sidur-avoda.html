@@ -1342,7 +1342,7 @@
         📬 יש סידורים שהוגשו על ידי ראשי צוות וממתינים לאישורך!
         <button onclick="showView('stats',event)" style="margin-right:10px;background:#0f172a;color:white;border:none;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:12px;font-family:inherit">צפה בסטטוס</button>
       </div>
-      <div id="lock-notice" class="notice n-warn" style="display:none">🔒 הסידור עדיין לא אושר — מוצגת רק המחלקה שלך</div>
+      <div id="lock-notice" style="display:none"></div>
       <div id="dept-tabs" class="dept-tabs"></div>
       <div id="mgr-broadcast-bar" style="display:none;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
         <input id="broadcast-msg" type="text" placeholder="✍️ כתוב הודעה לעובדים..." style="flex:1;min-width:200px;padding:7px 12px;border:1.5px solid #7c3aed;border-radius:20px;font-size:13px;outline:none;font-family:inherit" />
@@ -2955,29 +2955,35 @@ function renderSchedule(){
   if(isEmployee&&!isApproved(activeDeptId)&&!deptInPublishedCV){
     document.getElementById('lock-notice').style.display='block';
     document.getElementById('sched-wrap').innerHTML=`
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:55vh;gap:20px">
-        <div style="font-size:22px;font-weight:800;color:#00d4ff;text-shadow:0 0 12px #00d4ff88;letter-spacing:2px">ממתינים לסידור</div>
-        <svg width="80" height="110" viewBox="0 0 80 110" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 12px #00d4ff88)">
-          <defs>
-            <linearGradient id="hgB1" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#00d4ff"/>
-              <stop offset="100%" stop-color="#0088cc"/>
-            </linearGradient>
-            <linearGradient id="hgB2" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#0088cc"/>
-              <stop offset="100%" stop-color="#00d4ff"/>
-            </linearGradient>
-          </defs>
-          <rect x="4" y="1" width="72" height="7" rx="3.5" fill="#00d4ff" opacity="0.9"/>
-          <rect x="4" y="102" width="72" height="7" rx="3.5" fill="#00d4ff" opacity="0.9"/>
-          <path d="M8 8 L40 52 L72 8 Z" fill="url(#hgB1)" opacity="0.85"/>
-          <path d="M8 102 L40 58 L72 102 Z" fill="url(#hgB2)" opacity="0.6"/>
-          <circle cx="40" cy="75" r="10" fill="#00d4ff" opacity="0.9">
-            <animate attributeName="r" values="8;13;8" dur="1.8s" repeatCount="indefinite"/>
-            <animate attributeName="opacity" values="0.9;0.4;0.9" dur="1.8s" repeatCount="indefinite"/>
-          </circle>
-        </svg>
-        <div style="font-size:14px;color:#00d4ff99;text-align:center;letter-spacing:1px">הסידור יפורסם בקרוב</div>
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:55vh;gap:24px;background:transparent">
+        <div style="font-size:24px;font-weight:900;color:#00d4ff;text-shadow:0 0 18px #00d4ffcc,0 0 40px #00d4ff66;letter-spacing:3px;animation:schedWaitPulse 2s ease-in-out infinite">עובדים על זה</div>
+        <div id="sched-hg-wrap" style="position:relative;width:90px;height:130px">
+          <svg id="sched-hg-svg" width="90" height="130" viewBox="0 0 90 130" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 14px #00d4ffaa)">
+            <!-- Frame -->
+            <rect x="5" y="2" width="80" height="9" rx="4.5" fill="#00d4ff" opacity="0.95"/>
+            <rect x="5" y="119" width="80" height="9" rx="4.5" fill="#00d4ff" opacity="0.95"/>
+            <!-- Glass outline -->
+            <path d="M10 11 L45 60 L80 11 Z" fill="none" stroke="#00d4ff" stroke-width="1.5" opacity="0.5"/>
+            <path d="M10 119 L45 70 L80 119 Z" fill="none" stroke="#00d4ff" stroke-width="1.5" opacity="0.5"/>
+            <!-- Sand top (draining) -->
+            <clipPath id="topClip"><path d="M10 11 L45 60 L80 11 Z"/></clipPath>
+            <rect id="sched-sand-top" x="10" y="11" width="70" height="49" fill="#FFD700" opacity="0.85" clip-path="url(#topClip)">
+              <animate attributeName="height" values="49;0;49" dur="3.5s" repeatCount="indefinite"/>
+              <animate attributeName="y" values="11;60;11" dur="3.5s" repeatCount="indefinite"/>
+            </rect>
+            <!-- Sand bottom (filling) -->
+            <clipPath id="botClip"><path d="M10 119 L45 70 L80 119 Z"/></clipPath>
+            <rect id="sched-sand-bot" x="10" y="70" width="70" height="49" fill="#FFD700" opacity="0.85" clip-path="url(#botClip)">
+              <animate attributeName="height" values="0;49;0" dur="3.5s" repeatCount="indefinite"/>
+              <animate attributeName="y" values="119;70;119" dur="3.5s" repeatCount="indefinite"/>
+            </rect>
+            <!-- Sand stream -->
+            <line x1="45" y1="58" x2="45" y2="72" stroke="#FFD700" stroke-width="2.5" opacity="0.9">
+              <animate attributeName="opacity" values="0.9;0.2;0.9" dur="3.5s" repeatCount="indefinite"/>
+            </line>
+          </svg>
+        </div>
+        <style>@keyframes schedWaitPulse{0%,100%{opacity:1;text-shadow:0 0 18px #00d4ffcc,0 0 40px #00d4ff66}50%{opacity:0.6;text-shadow:0 0 8px #00d4ff44}}</style>
       </div>`;
     return;
   }
