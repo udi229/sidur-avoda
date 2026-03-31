@@ -2931,8 +2931,10 @@ function renderCombinedView(){
             else if(showMyShifts&&!isMe){col='#94a3b8';bg='transparent';}
             else if(showFreelancers&&freelancers.some(f=>f.name===name)){col='#854d0e';bg='#fef9c3';}
             else{col='#1e40af';bg='#eff6ff';}
-            html+=`<span style="font-size:11px;font-weight:600;color:${col};background:${bg};
-              border-radius:8px;padding:1px 5px;white-space:nowrap;display:inline-block">${name.split(' ')[0]}</span> `;
+            const nameCount=names.length;
+            const combinedFontSize=nameCount>=2?'13px':'18px';
+            html+=`<span style="font-size:${combinedFontSize};font-weight:700;color:${col};background:${bg};
+              border-radius:8px;padding:2px 5px;white-space:nowrap;display:inline-block;width:calc(100% - 4px);text-align:center">${name.split(' ')[0]}</span>`;
           });
         } else {
           html+=`<span style="color:#d1d5db;font-size:12px">—</span>`;
