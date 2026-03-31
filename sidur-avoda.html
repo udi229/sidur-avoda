@@ -2895,7 +2895,7 @@ function renderCombinedView(){
       const isFirst=ri===0;
       const isLast=ri===allRows.length-1;
       const rowBg=ri%2===0?'white':'#fdf6ee';
-      html+=`<tr style="background:${rowBg}">`;
+      html+=`<tr style="background:${rowBg};${isFirst?`border-top:2px solid ${shift.color}`:''}${isLast?`;border-bottom:2px solid ${shift.color}`:''}">`;
 
       // shift name cell (rowspan, first row only)
       if(isFirst){
@@ -2922,7 +2922,6 @@ function renderCombinedView(){
         html+=`<td style="${B};padding:3px 2px;text-align:center;vertical-align:middle;
           background:${rowBg};border-bottom:${isLast?'2px solid #334155':'1px solid #334155'}">`;
         if(names.length){
-          html+=`<div style="border:2px solid ${shift.color};border-radius:10px;padding:2px;margin:1px;">`;
           names.forEach(name=>{
             const isMe=currentEmp&&currentEmp.full_name===name&&!isMgr;
             const isSearch=searchQuery&&name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -2939,7 +2938,6 @@ function renderCombinedView(){
             html+=`<span style="font-size:${combinedFontSize};font-weight:700;color:${combinedCol};background:${combinedBg};
               border-radius:8px;padding:2px 5px;white-space:nowrap;display:inline-block;width:calc(100% - 4px);text-align:center">${name.split(' ')[0]}</span>`;
           });
-          html+=`</div>`;
         } else {
           html+=`<span style="color:#d1d5db;font-size:12px">—</span>`;
         }
@@ -3070,7 +3068,7 @@ function renderSchedule(){
     // if no roles defined - render single row (old behavior)
     // if roles defined - render one sub-row per role
     const rowCount=roles.length||1;
-    html+=`<tr><td class="shift-label" rowspan="${rowCount}" style="vertical-align:top;padding:6px 10px">
+    html+=`<tr style="outline:2px solid ${shift.color};outline-offset:-1px"><td class="shift-label" rowspan="${rowCount}" style="vertical-align:top;padding:6px 10px">
       <div style="display:flex;align-items:center;gap:3px;margin-bottom:2px">
         <strong style="font-size:18px;color:${shift.color}">${shift.name}</strong>
       </div>
@@ -3094,9 +3092,9 @@ function renderSchedule(){
       const noteVal2=noteKey2&&cellData[noteKey2]?.content||'';
       const names=sched?getCellNames(sched.id,shift.id,d):[];
       const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===shift.id&&openDropdown.dayIdx===d;
-      html+=`<td><div class="cell-inner cell-rel" style="position:relative">`;
+      html+=`<td><div class="cell-inner cell-rel" style="position:relative">
+        <div class="cell-tags">`;
       const uniqueNames=[...new Set(names)];
-      html+=`<div class="cell-tags" style="${uniqueNames.length?`border:2px solid ${shift.color};border-radius:10px;padding:2px;margin:1px;`:''}">`;
       uniqueNames.forEach(name=>{
         const isFreelance=freelancers.some(f=>f.name===name&&f.department_id===dept.id);
         const escapedName=name.replace(/\'/g,"\\'");
@@ -3166,9 +3164,9 @@ function renderSchedule(){
         const noteKey2=sched2?`note_${sched2.id}_${roleKey}_${d}`:'';
         const noteVal2=noteKey2&&cellData[noteKey2]?.content||'';
         const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===roleKey&&openDropdown.dayIdx===d;
-        html+=`<td style="position:relative;border-bottom:${ri===roles.length-1?'2px solid #334155':'1px solid #e2e8f0'}"><div class="cell-inner cell-rel" style="position:relative">`;
+        html+=`<td style="position:relative;border-bottom:${ri===roles.length-1?'2px solid #334155':'1px solid #e2e8f0'}"><div class="cell-inner cell-rel" style="position:relative">
+          <div class="cell-tags">`;
         const uniqueRoleNames=[...new Set(roleNames)];
-        html+=`<div class="cell-tags" style="${uniqueRoleNames.length?`border:2px solid ${shift.color};border-radius:10px;padding:2px;margin:1px;`:''}">`;
         uniqueRoleNames.forEach(name=>{
           const isFreelance=freelancers.some(f=>f.name===name&&f.department_id===dept.id);
           const escapedName=name.replace(/\'/g,"\\'");
