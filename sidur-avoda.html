@@ -3043,8 +3043,7 @@ function renderSchedule(){
     const rowCount=roles.length||1;
     html+=`<tr><td class="shift-label" rowspan="${rowCount}" style="vertical-align:top;padding:6px 10px">
       <div style="display:flex;align-items:center;gap:3px;margin-bottom:2px">
-        <span class="shift-dot" style="background:${shift.color}"></span>
-        <strong style="font-size:18px;color:#0f172a">${shift.name}</strong>
+        <strong style="font-size:18px;color:${shift.color}">${shift.name}</strong>
       </div>
       ${isMgr ? (isEditShiftTime ?
         `<div style="display:flex;gap:3px;margin-top:3px;align-items:center">
