@@ -2933,8 +2933,11 @@ function renderCombinedView(){
             else{col='#1e40af';bg='#eff6ff';}
             const nameCount=names.length;
             const combinedFontSize=nameCount>=2?'13px':'18px';
-            html+=`<span style="font-size:${combinedFontSize};font-weight:700;color:${col};background:${bg};
-              border-radius:8px;padding:2px 5px;white-space:nowrap;display:inline-block;width:calc(100% - 4px);text-align:center">${name.split(' ')[0]}</span>`;
+            const combinedBg=(isMe&&showMyShifts)||isSearch?bg:'transparent';
+            const combinedCol=(isMe&&showMyShifts)||isSearch?col:'#0f172a';
+            const combinedBorder=shift.color||'#cbd5e1';
+            html+=`<span style="font-size:${combinedFontSize};font-weight:700;color:${combinedCol};background:${combinedBg};
+              border:1px solid ${combinedBorder};border-radius:8px;padding:2px 5px;white-space:nowrap;display:inline-block;width:calc(100% - 4px);text-align:center">${name.split(' ')[0]}</span>`;
           });
         } else {
           html+=`<span style="color:#d1d5db;font-size:12px">—</span>`;
@@ -3103,7 +3106,7 @@ function renderSchedule(){
         else if(isCurrentUser&&showMyShifts){tagBg='white';tagColor='#00cc44';tagBorder='#00ff88';}
         else if(showMyShifts&&!isCurrentUser){tagBg='#f8fafc';tagColor='#cbd5e1';tagBorder='#f1f5f9';}
         else if(showFreelancers&&isFreelance){tagBg='#fef9c3';tagColor='#854d0e';tagBorder='#fcd34d';}
-        else{tagBg='transparent';tagColor='#0f172a';tagBorder='#cbd5e1';}
+        else{tagBg='transparent';tagColor='#0f172a';tagBorder=shift.color||'#cbd5e1';}
         const firstName=name.split(' ')[0];
         const isCurrentNeon=(isCurrentUser&&showMyShifts);
         const isFreelanceNeon=(_highlightedFree&&firstName===_highlightedFree);
@@ -3175,7 +3178,7 @@ function renderSchedule(){
           else if(isCurrentUser&&showMyShifts){tagBg='white';tagColor='#00cc44';tagBorder='#00ff88';}
           else if(showMyShifts&&!isCurrentUser){tagBg='#f8fafc';tagColor='#cbd5e1';tagBorder='#f1f5f9';}
           else if(showFreelancers&&isFreelance){tagBg='#fef9c3';tagColor='#854d0e';tagBorder='#fcd34d';}
-          else{tagBg='transparent';tagColor='#0f172a';tagBorder='#cbd5e1';}
+          else{tagBg='transparent';tagColor='#0f172a';tagBorder=shift.color||'#cbd5e1';}
           const firstName=name.split(' ')[0];
           const isHighlightedFree=_highlightedFree&&name.split(' ')[0]===_highlightedFree;
         const isEmpHighlighted2=_highlightedEmp&&name.split(' ')[0]===_highlightedEmp;
