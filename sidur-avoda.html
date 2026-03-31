@@ -3103,7 +3103,7 @@ function renderSchedule(){
         else if(isCurrentUser&&showMyShifts){tagBg='white';tagColor='#00cc44';tagBorder='#00ff88';}
         else if(showMyShifts&&!isCurrentUser){tagBg='#f8fafc';tagColor='#cbd5e1';tagBorder='#f1f5f9';}
         else if(showFreelancers&&isFreelance){tagBg='#fef9c3';tagColor='#854d0e';tagBorder='#fcd34d';}
-        else{tagBg='#eff6ff';tagColor='#1e40af';tagBorder='#bfdbfe';}
+        else{tagBg='transparent';tagColor='#0f172a';tagBorder='#cbd5e1';}
         const firstName=name.split(' ')[0];
         const isCurrentNeon=(isCurrentUser&&showMyShifts);
         const isFreelanceNeon=(_highlightedFree&&firstName===_highlightedFree);
@@ -3175,7 +3175,7 @@ function renderSchedule(){
           else if(isCurrentUser&&showMyShifts){tagBg='white';tagColor='#00cc44';tagBorder='#00ff88';}
           else if(showMyShifts&&!isCurrentUser){tagBg='#f8fafc';tagColor='#cbd5e1';tagBorder='#f1f5f9';}
           else if(showFreelancers&&isFreelance){tagBg='#fef9c3';tagColor='#854d0e';tagBorder='#fcd34d';}
-          else{tagBg='#eff6ff';tagColor='#1e40af';tagBorder='#bfdbfe';}
+          else{tagBg='transparent';tagColor='#0f172a';tagBorder='#cbd5e1';}
           const firstName=name.split(' ')[0];
           const isHighlightedFree=_highlightedFree&&name.split(' ')[0]===_highlightedFree;
         const isEmpHighlighted2=_highlightedEmp&&name.split(' ')[0]===_highlightedEmp;
