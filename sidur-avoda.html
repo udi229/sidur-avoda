@@ -2419,6 +2419,49 @@ function setDept(id){
   renderDeptTabs();
   renderSchedule();
 }
+function previewCombined(cvId){
+  // Find the sched-block for this cv and show it in a fullscreen overlay
+  const overlay = document.getElementById('cv-preview-overlay');
+  if(overlay){
+    overlay.remove();
+  }
+  // Clone the combined view block
+  const blocks = document.querySelectorAll('.sched-block');
+  let targetBlock = null;
+  // Find block by cv id stored in publish button
+  document.querySelectorAll('[onclick*="toggleCVPublish"]').forEach(btn=>{
+    if(btn.getAttribute('onclick')&&btn.getAttribute('onclick').includes(cvId)){
+      targetBlock = btn.closest('.sched-block');
+    }
+  });
+  if(!targetBlock){
+    // fallback: use last rendered combined block
+    targetBlock = blocks[blocks.length-1];
+  }
+  const div = document.createElement('div');
+  div.id = 'cv-preview-overlay';
+  div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:white;overflow:auto;padding:16px;direction:rtl';
+  div.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <button onclick="document.getElementById('cv-preview-overlay').remove()"
+        style="background:#dc2626;color:white;border:none;border-radius:10px;padding:8px 18px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">
+        ✕ סגור
+      </button>
+      <button onclick="window.print()"
+        style="background:#1e293b;color:white;border:none;border-radius:10px;padding:8px 18px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">
+        🖨 הדפסה
+      </button>
+    </div>
+  `;
+  if(targetBlock){
+    const clone = targetBlock.cloneNode(true);
+    // Remove buttons from clone
+    clone.querySelectorAll('button').forEach(b=>b.remove());
+    div.appendChild(clone);
+  }
+  document.body.appendChild(div);
+}
+
 async function toggleCVPublish(id){
   const cv=combinedViews.find(v=>v.id===id);
   if(!cv) return;
@@ -2842,7 +2885,7 @@ function renderCombinedView(){
   const B='border:1px solid #e2e8f0';
 
   let html=`<div class="sched-block">
-    ${(isMgr||currentEmp?.role==='manager')?`<div style="text-align:center;padding:6px 0">
+    ${(isMgr||currentEmp?.role==='manager')?`<div style="text-align:center;padding:6px 0;display:flex;gap:10px;justify-content:center;align-items:center">
       <button onclick="event.stopPropagation();toggleCVPublish('${cv.id}')"
         title="${cv.published?'לחץ לעצירת הפרסום':'לחץ לפרסום הסידור'}"
         style="background:${cv.published?'#dc2626':'#16a34a'};color:white;
@@ -2851,6 +2894,14 @@ function renderCombinedView(){
           box-shadow:${cv.published?'0 0 14px #dc262666':'0 0 14px #16a34a66'};
           animation:${cv.published?'neonPulseRed':'neonPulseGreen'} 1.5s ease-in-out infinite">
         ${cv.published?'🛑 עצור פרסום':'🚀 פרסם'}
+      </button>
+      <button onclick="event.stopPropagation();previewCombined('${cv.id}')"
+        style="background:#1e293b;color:#00d4ff;border:2px solid #00d4ff;border-radius:20px;
+          padding:7px 18px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;
+          box-shadow:0 0 10px #00d4ff44;transition:all 0.2s"
+        onmouseover="this.style.background='#00d4ff';this.style.color='#0f172a'"
+        onmouseout="this.style.background='#1e293b';this.style.color='#00d4ff'">
+        👁 תצוגה מקדימה
       </button>
     </div>`:''}
     <div class="sched-hdr" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);text-align:center;position:relative">
