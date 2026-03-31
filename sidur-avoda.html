@@ -2463,34 +2463,34 @@ function previewCombined(cvId){
     const zoomWrap = document.getElementById('sched-zoom-wrap');
     const currentZoom = zoomWrap ? (zoomWrap.style.zoom || '1') : '1';
     clone.style.zoom = currentZoom;
-    // Set table to moderate width - not too wide, not too narrow
+    // Shrink shift and role columns to content, keep day columns equal
     const tableWrap = clone.querySelector('div[style*="overflow-x"]');
     if(tableWrap){ tableWrap.style.overflow='visible'; tableWrap.style.width='100%'; }
     const table = clone.querySelector('table');
     if(table){
-      table.setAttribute('style', 'border-collapse:collapse;direction:rtl;width:100%;table-layout:fixed');
+      table.setAttribute('style', 'border-collapse:collapse;direction:rtl;width:100%;table-layout:auto');
     }
-    // Set uniform column widths
     clone.querySelectorAll('colgroup').forEach(cg=>cg.remove());
-    // Add balanced colgroup: shift col narrow, day cols equal
-    const colgroup = document.createElement('colgroup');
-    const shiftCol = document.createElement('col');
-    shiftCol.style.width = '80px';
-    const roleCol = document.createElement('col');
-    roleCol.style.width = '60px';
-    colgroup.appendChild(shiftCol);
-    colgroup.appendChild(roleCol);
-    for(let i=0;i<7;i++){
-      const c = document.createElement('col');
-      c.style.width = '11%';
-      colgroup.appendChild(c);
-    }
-    if(table) table.prepend(colgroup);
-    // Names: allow wrap, centered
-    clone.querySelectorAll('span[style*="width:calc"]').forEach(s=>{
-      s.style.width='100%';
-      s.style.whiteSpace='normal';
-      s.style.wordBreak='break-word';
+    // Shift name col: shrink to content
+    clone.querySelectorAll('td[rowspan], th:first-child').forEach(cell=>{
+      cell.style.whiteSpace='nowrap';
+      cell.style.width='1px';
+    });
+    // Role col: shrink to content
+    clone.querySelectorAll('td:nth-child(2), th:nth-child(2)').forEach(cell=>{
+      cell.style.whiteSpace='nowrap';
+      cell.style.width='1px';
+    });
+    // Day cells: equal remaining width
+    clone.querySelectorAll('td:not([rowspan]):not(:nth-child(2)), th:not(:first-child):not(:nth-child(2))').forEach(cell=>{
+      cell.style.width='auto';
+    });
+    // Name spans: no fixed width
+    clone.querySelectorAll('span').forEach(s=>{
+      if(s.style.width&&s.style.width.includes('calc')){
+        s.style.width='auto';
+        s.style.whiteSpace='nowrap';
+      }
     });
     div.appendChild(clone);
   }
