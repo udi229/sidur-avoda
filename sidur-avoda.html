@@ -2873,13 +2873,17 @@ function renderCombinedView(){
 
       // shift name cell (rowspan, first row only)
       if(isFirst){
+        // Count distinct depts in this shift
+        const deptsInShift=new Set(allRows.map(r=>r.dept.id)).size;
+        const timeSize=deptsInShift<depts.length?'11px':'20px';
+        const timeColor=deptsInShift<depts.length?'#94a3b8':'#1e293b';
         html+=`<td rowspan="${allRows.length}" style="${B};padding:6px 8px;text-align:right;
           vertical-align:middle;background:#f8fafc;border-right:3px solid ${shift.color}">
           <div style="font-weight:700;color:#0f172a;font-size:16px">
             <span style="display:inline-block;width:7px;height:7px;border-radius:50%;
               background:${shift.color};vertical-align:middle;margin-left:3px"></span>${shift.name}
           </div>
-          ${shift.time?`<div style="font-size:20px;font-weight:400;color:#1e293b;margin-top:3px">${shift.time}</div>`:''}
+          ${shift.time?`<div style="font-size:${timeSize};font-weight:400;color:${timeColor};margin-top:2px">${shift.time}</div>`:''}
         </td>`;
       }
 
@@ -2950,7 +2954,31 @@ function renderSchedule(){
   const deptInPublishedCV=combinedViews.some(cv=>cv.published&&cv.dept_ids.includes(activeDeptId));
   if(isEmployee&&!isApproved(activeDeptId)&&!deptInPublishedCV){
     document.getElementById('lock-notice').style.display='block';
-    document.getElementById('sched-wrap').innerHTML='<div class="loading" style="padding:40px;text-align:center">🔒 הסידור טרם אושר על ידי המנהל<br><span style="font-size:13px;color:#94a3b8;margin-top:8px;display:block">הסידור יופיע כאן לאחר אישור המנהל</span></div>';
+    document.getElementById('sched-wrap').innerHTML=`
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:55vh;gap:20px">
+        <div style="font-size:22px;font-weight:800;color:#00d4ff;text-shadow:0 0 12px #00d4ff88;letter-spacing:2px">ממתינים לסידור</div>
+        <svg width="80" height="110" viewBox="0 0 80 110" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 12px #00d4ff88)">
+          <defs>
+            <linearGradient id="hgB1" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#00d4ff"/>
+              <stop offset="100%" stop-color="#0088cc"/>
+            </linearGradient>
+            <linearGradient id="hgB2" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#0088cc"/>
+              <stop offset="100%" stop-color="#00d4ff"/>
+            </linearGradient>
+          </defs>
+          <rect x="4" y="1" width="72" height="7" rx="3.5" fill="#00d4ff" opacity="0.9"/>
+          <rect x="4" y="102" width="72" height="7" rx="3.5" fill="#00d4ff" opacity="0.9"/>
+          <path d="M8 8 L40 52 L72 8 Z" fill="url(#hgB1)" opacity="0.85"/>
+          <path d="M8 102 L40 58 L72 102 Z" fill="url(#hgB2)" opacity="0.6"/>
+          <circle cx="40" cy="75" r="10" fill="#00d4ff" opacity="0.9">
+            <animate attributeName="r" values="8;13;8" dur="1.8s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.9;0.4;0.9" dur="1.8s" repeatCount="indefinite"/>
+          </circle>
+        </svg>
+        <div style="font-size:14px;color:#00d4ff99;text-align:center;letter-spacing:1px">הסידור יפורסם בקרוב</div>
+      </div>`;
     return;
   }
   document.getElementById('lock-notice').style.display='none';
