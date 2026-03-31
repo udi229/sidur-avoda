@@ -2463,9 +2463,20 @@ function previewCombined(cvId){
     const zoomWrap = document.getElementById('sched-zoom-wrap');
     const currentZoom = zoomWrap ? (zoomWrap.style.zoom || '1') : '1';
     clone.style.zoom = currentZoom;
-    // Make sure table doesn't stretch wider than needed
+    // Make columns as narrow as possible (fit content)
     const table = clone.querySelector('table');
-    if(table){ table.style.width='100%'; table.style.minWidth=''; }
+    if(table){
+      table.style.width='auto';
+      table.style.minWidth='';
+      table.style.tableLayout='auto';
+    }
+    // Remove fixed col widths
+    clone.querySelectorAll('col').forEach(col=>{ col.style.width=''; col.style.minWidth=''; });
+    // Make all cells shrink to content
+    clone.querySelectorAll('td,th').forEach(cell=>{ 
+      cell.style.whiteSpace='nowrap';
+      cell.style.width='1%';
+    });
     div.appendChild(clone);
   }
   document.body.appendChild(div);
