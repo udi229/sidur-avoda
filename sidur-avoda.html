@@ -3137,7 +3137,6 @@ function renderCombinedView(){
         const names2=sched?getCellNames(sched.id,row.key,d):[];
         bHtml+=`<td style="${B};padding:3px 2px;text-align:center;vertical-align:middle;background:${rowBg2};border-bottom:${isLast2?'2px solid #334155':'1px solid #334155'}">`;
         if(names2.length){
-          bHtml+=`<div style="border:2px solid ${shift.color};border-radius:10px;padding:2px;margin:1px;">`;
           names2.forEach(name=>{
             const nameCount2=names2.length;
             const fs2=nameCount2>=2?'13px':'18px';
@@ -3146,7 +3145,6 @@ function renderCombinedView(){
             const bg2=isMe2&&showMyShifts?'#dcfce7':'transparent';
             bHtml+=`<span style="font-size:${fs2};font-weight:700;color:${col2};background:${bg2};border-radius:8px;padding:2px 5px;display:inline-block;width:calc(100% - 4px);text-align:center">${name.split(' ')[0]}</span>`;
           });
-          bHtml+=`</div>`;
         } else {
           bHtml+=`<span style="color:#d1d5db;font-size:12px">—</span>`;
         }
@@ -3158,8 +3156,8 @@ function renderCombinedView(){
     return bHtml;
   }
 
-  html+=buildSpecialBlock(eveningShift);
   html+=buildSpecialBlock(nightShift);
+  html+=buildSpecialBlock(eveningShift);
 
   wrap.innerHTML=html;
 }
