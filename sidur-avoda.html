@@ -2879,10 +2879,7 @@ function renderCombinedView(){
         const timeColor=deptsInShift<depts.length?'#94a3b8':'#1e293b';
         html+=`<td rowspan="${allRows.length}" style="${B};padding:6px 8px;text-align:right;
           vertical-align:middle;background:#f8fafc;border-right:3px solid ${shift.color}">
-          <div style="font-weight:700;color:#0f172a;font-size:16px">
-            <span style="display:inline-block;width:7px;height:7px;border-radius:50%;
-              background:${shift.color};vertical-align:middle;margin-left:3px"></span>${shift.name}
-          </div>
+          <div style="font-weight:700;color:${shift.color};font-size:16px">${shift.name}</div>
           ${shift.time?`<div style="font-size:${timeSize};font-weight:400;color:${timeColor};margin-top:2px">${shift.time}</div>`:''}
         </td>`;
       }
