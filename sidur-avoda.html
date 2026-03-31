@@ -2134,7 +2134,13 @@ async function loadAll(){
   window.departments=departments;
   employees=e.data||[]; window.employees=employees;
   freelancers=f.data||[];
-  combinedViews=(cv.data||[]).map(v=>({...v, dept_ids: v.dept_ids.split(','), published: v.published||false}));
+  combinedViews=(cv.data||[]).map(v=>({...v, dept_ids: v.dept_ids.split(','), published: false}));
+  // Load weekly publish status
+  const ws=weekStartStr();
+  const {data:cvPub}=await sb.from('cv_weekly_publish').select('*').eq('week_start',ws);
+  window._cvWeeklyPub={};
+  (cvPub||[]).forEach(p=>{ window._cvWeeklyPub[p.cv_id]=p.published; });
+  combinedViews.forEach(cv=>{ cv.published=window._cvWeeklyPub[cv.id]||false; });
   if(st.data&&st.data.length>0){
     shiftTypes=st.data.map(s=>({id:s.id,name:s.name,time:s.time||'',color:s.color||'#94a3b8'}));
   } else {
@@ -2165,6 +2171,12 @@ function weekStartStr(o=weekOffset){return weekStart(o).toISOString().split('T')
 function weekDates(o=weekOffset){const s=weekStart(o);return DAYS_DISPLAY.map((_,i)=>{const d=new Date(s);d.setDate(s.getDate()+i);return `${d.getDate()}.${d.getMonth()+1}`;});}
 
 async function loadWeekData(){
+  // Reload weekly publish status for new week
+  const ws2=weekStartStr();
+  const {data:cvPub2}=await sb.from('cv_weekly_publish').select('*').eq('week_start',ws2);
+  window._cvWeeklyPub={};
+  (cvPub2||[]).forEach(p=>{ window._cvWeeklyPub[p.cv_id]=p.published; });
+  combinedViews.forEach(cv=>{ cv.published=window._cvWeeklyPub[cv.id]||false; });
   const ws=weekStartStr();
   const {data:sc}=await sb.from('schedules').select('*').eq('week_start',ws);
   schedules={};(sc||[]).forEach(s=>{schedules[s.department_id]=s;});
@@ -2515,9 +2527,13 @@ async function toggleCVPublish(id){
   if(!cv) return;
   const newVal=!cv.published;
   cv.published=newVal;
+  if(!window._cvWeeklyPub) window._cvWeeklyPub={};
+  window._cvWeeklyPub[id]=newVal;
   renderDeptTabs();
   renderSchedule();
-  await sb.from('combined_views').update({published:newVal}).eq('id',id);
+  const ws=weekStartStr();
+  // Upsert into cv_weekly_publish
+  await sb.from('cv_weekly_publish').upsert({cv_id:id, week_start:ws, published:newVal},{onConflict:'cv_id,week_start'});
 }
 function setCombined(id){
   activeCombinedId=id;openDropdown=null;
@@ -2998,6 +3014,11 @@ function renderCombinedView(){
 
       // shift name cell (rowspan, first row only)
       if(isFirst){
+        // Add extra spacing before ערב and לילה
+        const needsGap=shift.name==='ערב'||shift.name==='לילה';
+        if(needsGap){
+          html+=`<tr style="line-height:0;font-size:0"><td colspan="9" style="padding:0;height:8px;background:#f1f5f9;border:none!important"></td></tr>`;
+        }
         // Add colored separator before this shift group
         html+=`<tr style="line-height:0;font-size:0"><td colspan="9" style="padding:0;height:4px;background:${shift.color};border:none!important;border-top:none!important;border-bottom:none!important;box-shadow:none;outline:none"></td></tr>`;
         html+=`<tr style="background:${rowBg}">`;
@@ -3929,6 +3950,10 @@ function renderSettings(){
           </div>
         </div>
         <div class="item-btns">
+          <select class="role-sel" onchange="updateEmpDept('${emp.id}',this.value)">
+            <option value="">בחר מחלקה...</option>
+            ${departments.map(d=>`<option value="${d.id}">${d.name}</option>`).join('')}
+          </select>
           <select class="role-sel" onchange="updateRole('${emp.id}',this.value)">
             <option value="employee" ${emp.role==='employee'?'selected':''}>עובד</option>
             <option value="team_lead" ${emp.role==='team_lead'?'selected':''}>ראש צוות</option>
@@ -3944,6 +3969,12 @@ async function updateFreelancerName(id, name){
   if(!name.trim()) return;
   await sb.from('freelancers').update({name:name.trim()}).eq('id',id);
   await loadAll(); renderSettings();
+}
+async function updateEmpDept(id, deptId){
+  if(!deptId) return;
+  await sb.from('employees').update({department_id:deptId}).eq('id',id);
+  await loadAll(); renderSettings(); renderDeptTabs(); renderSchedule();
+  showToast('✅ מחלקה עודכנה','success');
 }
 async function updateEmpName(id, name){
   if(!name.trim()) return;
