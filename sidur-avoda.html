@@ -2948,7 +2948,26 @@ function renderCombinedView(){
   const activeShifts=shiftTypes.filter(s=>allShiftIds.has(s.id));
   const B='border:1px solid #e2e8f0';
 
-  let html=`<div class="sched-block">
+  // Split shifts into groups
+  const specialNames=['ערבית','לילה'];
+  const regularShifts=activeShifts.filter(s=>!specialNames.includes(s.name));
+  const eveningShift=activeShifts.find(s=>s.name==='ערבית');
+  const nightShift=activeShifts.find(s=>s.name==='לילה');
+
+  function buildCVBlock(shiftsGroup, borderStyle){
+    if(!shiftsGroup.length) return '';
+    const clrs=shiftsGroup.map(s=>s.color);
+    const grad=clrs.length>1
+      ?`linear-gradient(white,white) padding-box, linear-gradient(to bottom,${clrs.join(',')}) border-box`
+      :'none';
+    const bStyle=clrs.length>1
+      ?`border:3px solid transparent;border-radius:12px;background:${grad};`
+      :borderStyle||`border:3px solid ${clrs[0]};border-radius:12px;`;
+    return bStyle;
+  }
+
+  const regularBorderStyle=buildCVBlock(regularShifts,'');
+  let html=`<div class="sched-block" style="${regularBorderStyle}">
     ${(isMgr||currentEmp?.role==='manager')?`<div style="text-align:center;padding:6px 0;display:flex;gap:10px;justify-content:center;align-items:center">
       <button onclick="event.stopPropagation();toggleCVPublish('${cv.id}')"
         title="${cv.published?'לחץ לעצירת הפרסום':'לחץ לפרסום הסידור'}"
@@ -2989,7 +3008,7 @@ function renderCombinedView(){
     </thead>
     <tbody>`;
 
-  activeShifts.forEach(shift=>{
+  regularShifts.forEach(shift=>{
     // collect all role rows across all depts
     const allRows=[];
     depts.forEach(dept=>{
@@ -3071,6 +3090,77 @@ function renderCombinedView(){
   });
 
   html+=`</tbody></table></div></div>`;
+
+  // Add separate blocks for ערבית and לילה
+  function buildSpecialBlock(shift){
+    if(!shift) return '';
+    const col=shift.color;
+    let bHtml=`<div class="sched-block" style="border:3px solid ${col};border-radius:12px;margin-top:8px">`;
+    bHtml+=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">`;
+    bHtml+=`<table style="border-collapse:collapse;direction:rtl;min-width:500px;width:100%">`;
+    bHtml+=`<colgroup><col style="width:80px;min-width:80px"><col style="width:75px;min-width:65px">${DAYS_DISPLAY.map(()=>'<col style="min-width:65px">').join('')}</colgroup>`;
+    bHtml+=`<thead><tr style="background:#f1f5f9">`;
+    bHtml+=`<th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">משמרת</th>`;
+    bHtml+=`<th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">תפקיד</th>`;
+    bHtml+=dates.map((date,i)=>`<th style="${B};padding:8px 4px;text-align:center;font-size:15px;color:#475569;font-weight:700">${DAYS_DISPLAY[i]}<br><span style="font-size:13px;font-weight:700;color:#0f172a">${date}</span></th>`).join('');
+    bHtml+=`</tr></thead><tbody>`;
+    // Render rows for this shift
+    const allRows2=[];
+    depts.forEach(dept=>{
+      const ds=deptShifts[dept.id];
+      if(ds&&ds.length>0&&!ds.includes(shift.id)) return;
+      const roles=shiftRoles[dept.id+'_'+shift.id]||[];
+      if(roles.length>0){
+        roles.forEach(role=>{ allRows2.push({dept,role,key:'r_'+role.id,label:role.role_name}); });
+      } else {
+        allRows2.push({dept,role:null,key:shift.id,label:dept.name});
+      }
+    });
+    if(!allRows2.length) return '';
+    allRows2.forEach((row,ri)=>{
+      const isFirst2=ri===0;
+      const isLast2=ri===allRows2.length-1;
+      const rowBg2=ri%2===0?'white':'#fdf6ee';
+      bHtml+=`<tr style="background:${rowBg2}">`;
+      if(isFirst2){
+        const deptsInShift2=new Set(allRows2.map(r=>r.dept.id)).size;
+        const timeSize2=deptsInShift2<depts.length?'15px':'20px';
+        const timeColor2=deptsInShift2<depts.length?'#94a3b8':'#1e293b';
+        bHtml+=`<td rowspan="${allRows2.length}" style="${B};padding:6px 8px;text-align:right;vertical-align:middle;background:#f8fafc;border-right:3px solid ${shift.color}">`;
+        bHtml+=`<div style="font-weight:700;color:${shift.color};font-size:16px">${shift.name}</div>`;
+        bHtml+=shift.time?`<div style="font-size:${timeSize2};font-weight:400;color:${timeColor2};margin-top:2px">${shift.time}</div>`:'';
+        bHtml+=`</td>`;
+      }
+      bHtml+=`<td style="${B};padding:5px 8px;text-align:right;vertical-align:middle;font-size:11px;font-weight:700;color:${row.dept.color};background:${isFirst2?'#fafafa':'white'};border-bottom:${isLast2?'2px solid #334155':'1px solid #334155'}">${row.label}</td>`;
+      for(let d=0;d<7;d++){
+        const sched=schedules[row.dept.id];
+        const names2=sched?getCellNames(sched.id,row.key,d):[];
+        bHtml+=`<td style="${B};padding:3px 2px;text-align:center;vertical-align:middle;background:${rowBg2};border-bottom:${isLast2?'2px solid #334155':'1px solid #334155'}">`;
+        if(names2.length){
+          bHtml+=`<div style="border:2px solid ${shift.color};border-radius:10px;padding:2px;margin:1px;">`;
+          names2.forEach(name=>{
+            const nameCount2=names2.length;
+            const fs2=nameCount2>=2?'13px':'18px';
+            const isMe2=currentEmp&&currentEmp.full_name===name&&!isMgr;
+            const col2=isMe2&&showMyShifts?'#15803d':'#0f172a';
+            const bg2=isMe2&&showMyShifts?'#dcfce7':'transparent';
+            bHtml+=`<span style="font-size:${fs2};font-weight:700;color:${col2};background:${bg2};border-radius:8px;padding:2px 5px;display:inline-block;width:calc(100% - 4px);text-align:center">${name.split(' ')[0]}</span>`;
+          });
+          bHtml+=`</div>`;
+        } else {
+          bHtml+=`<span style="color:#d1d5db;font-size:12px">—</span>`;
+        }
+        bHtml+=`</td>`;
+      }
+      bHtml+=`</tr>`;
+    });
+    bHtml+=`</tbody></table></div></div>`;
+    return bHtml;
+  }
+
+  html+=buildSpecialBlock(eveningShift);
+  html+=buildSpecialBlock(nightShift);
+
   wrap.innerHTML=html;
 }
 
