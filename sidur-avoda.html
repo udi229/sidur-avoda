@@ -1914,8 +1914,12 @@ async function handleAuth(){
         deptName=dept;
       }catch(e){}
     }
+    // Check if employee already exists - preserve role and position
+    const {data:existingEmp}=await sb.from('employees').select('role,position_percent').eq('email',email).single().catch(()=>({data:null}));
+    const preservedRole=existingEmp?.role||'employee';
+    const preservedPos=existingEmp?.position_percent||100;
     await sb.from('employees').delete().eq('email',email);
-    await sb.from('employees').insert({full_name:name,email,role:'employee',department_id:deptId||null,position_percent:100});
+    await sb.from('employees').insert({full_name:name,email,role:preservedRole,department_id:deptId||null,position_percent:preservedPos});
     await initApp(authData.user);
   }
 }
@@ -2739,14 +2743,36 @@ function renderDropdownItems(dId,shiftId,dayIdx,q=''){
 function countEmpShifts(name, deptId){
   const sched=schedules[deptId];
   if(!sched) return 0;
-  let count=0;
+  // Count unique (shiftId, dayIdx) combinations to avoid double-counting
+  // when person appears in both shift and role cells
+  const seen=new Set();
   Object.entries(cellData).forEach(([key,cell])=>{
-    if(cell.schedule_id===sched.id&&cell.content&&!key.startsWith('note_')){
-      const names=cell.content.split('|');
-      if(names.includes(name)) count++;
+    if(cell.schedule_id!==sched.id||!cell.content) return;
+    const names=cell.content.split('|').filter(Boolean);
+    if(!names.includes(name)) return;
+    // Extract dayIdx from shift_type
+    const dayIdx=cell.day_index;
+    // Get base shiftId (strip r_ prefix for roles)
+    const shiftType=cell.shift_type||'';
+    const baseShift=shiftType.startsWith('r_')?'role':shiftType;
+    const uniqKey=`${baseShift}_${dayIdx}`;
+    if(!seen.has(uniqKey)){
+      seen.add(uniqKey);
+      // But for role shifts: find parent shiftId
+      // Actually just count per unique day+shiftBase
     }
   });
-  return count;
+  // Simpler: count per unique dayIdx (one per day max per dept)
+  const days=new Set();
+  Object.entries(cellData).forEach(([key,cell])=>{
+    if(cell.schedule_id!==sched.id||!cell.content) return;
+    const names=cell.content.split('|').filter(Boolean);
+    if(!names.includes(name)) return;
+    if(key.includes('note_')) return;
+    // Use shiftType+dayIdx as unique key
+    days.add(`${cell.shift_type}_${cell.day_index}`);
+  });
+  return days.size;
 }
 
 async function saveNote(dId,shiftId,dayIdx,note){
@@ -3078,7 +3104,7 @@ function renderSchedule(){
         else{tagBg='#eff6ff';tagColor='#1e40af';tagBorder='#bfdbfe';}
         const firstName=name.split(' ')[0];
         const isCurrentNeon=(isCurrentUser&&showMyShifts);
-        const isFreelanceNeon=(isFreelance&&_highlightedFree&&firstName===_highlightedFree);
+        const isFreelanceNeon=(_highlightedFree&&firstName===_highlightedFree);
         // Override tagBg if this specific freelancer is highlighted
         if(isFreelanceNeon){tagBg='white';tagColor='#d97706';tagBorder='#fbbf24';}
         const isEmpHighlighted=_highlightedEmp&&firstName===_highlightedEmp;
@@ -3149,7 +3175,7 @@ function renderSchedule(){
           else if(showFreelancers&&isFreelance){tagBg='#fef9c3';tagColor='#854d0e';tagBorder='#fcd34d';}
           else{tagBg='#eff6ff';tagColor='#1e40af';tagBorder='#bfdbfe';}
           const firstName=name.split(' ')[0];
-          const isHighlightedFree=isFreelance&&_highlightedFree&&name.split(' ')[0]===_highlightedFree;
+          const isHighlightedFree=_highlightedFree&&name.split(' ')[0]===_highlightedFree;
         const isEmpHighlighted2=_highlightedEmp&&name.split(' ')[0]===_highlightedEmp;
         const neonStyle2=(isCurrentUser&&showMyShifts)
             ?'background:white!important;color:#00cc44!important;border:2px solid #00ff88!important;box-shadow:0 0 10px #00ff88,0 0 20px #00ff8866;font-weight:900;animation:neonPulseGreen 1.2s ease-in-out infinite;'
@@ -3304,16 +3330,20 @@ function renderSchedule(){
     const freeCnts={};
     const sched4=schedules[activeDeptId];
     if(sched4){
-      // Count from all cellData entries for this schedule
+      // Count unique day+shift per freelancer
+      const freeKeys={};
       Object.entries(cellData).forEach(([key,cell])=>{
         if(!cell.schedule_id||cell.schedule_id!==sched4.id) return;
         if(!cell.content||key.includes('note_')) return;
+        const dayShiftKey=`${cell.shift_type}_${cell.day_index}`;
         cell.content.split('|').filter(Boolean).forEach(n=>{
           if(!empNamesInDept.has(n)){
-            freeCnts[n]=(freeCnts[n]||0)+1;
+            if(!freeKeys[n]) freeKeys[n]=new Set();
+            freeKeys[n].add(dayShiftKey);
           }
         });
       });
+      Object.entries(freeKeys).forEach(([n,keys])=>{ freeCnts[n]=keys.size; });
     }
     Object.entries(freeCnts).forEach(([name,cnt])=>{
       const firstName5=name.split(' ')[0];
