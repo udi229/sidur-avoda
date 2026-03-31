@@ -3014,10 +3014,10 @@ function renderCombinedView(){
 
       // shift name cell (rowspan, first row only)
       if(isFirst){
-        // Add extra spacing before ערב and לילה
-        const needsGap=shift.name==='ערב'||shift.name==='לילה';
+        // Add extra spacing before לילה and ערבית
+        const needsGap=shift.name==='לילה'||shift.name==='ערבית';
         if(needsGap){
-          html+=`<tr style="line-height:0;font-size:0"><td colspan="9" style="padding:0;height:8px;background:#f1f5f9;border:none!important"></td></tr>`;
+          html+=`<tr><td colspan="9" style="padding:0;height:28px;background:#f8fafc;border:none!important;border-top:1px solid #e2e8f0!important"></td></tr>`;
         }
         // Add colored separator before this shift group
         html+=`<tr style="line-height:0;font-size:0"><td colspan="9" style="padding:0;height:4px;background:${shift.color};border:none!important;border-top:none!important;border-bottom:none!important;box-shadow:none;outline:none"></td></tr>`;
