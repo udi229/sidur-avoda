@@ -2471,25 +2471,38 @@ function previewCombined(cvId){
       table.setAttribute('style', 'border-collapse:collapse;direction:rtl;width:100%;table-layout:auto');
     }
     clone.querySelectorAll('colgroup').forEach(cg=>cg.remove());
-    // Shift name col: shrink to content
-    clone.querySelectorAll('td[rowspan], th:first-child').forEach(cell=>{
-      cell.style.whiteSpace='nowrap';
-      cell.style.width='1px';
+    // Shrink only shift and role columns, keep day columns equal
+    // Use colgroup for precise control
+    const cols = clone.querySelectorAll('colgroup');
+    cols.forEach(cg=>cg.remove());
+    const newCg = document.createElement('colgroup');
+    // Col 1: shift name - shrink
+    const c1=document.createElement('col'); c1.style.width='1px'; newCg.appendChild(c1);
+    // Col 2: role/dept - shrink  
+    const c2=document.createElement('col'); c2.style.width='1px'; newCg.appendChild(c2);
+    // Cols 3-9: days - equal
+    for(let i=0;i<7;i++){
+      const c=document.createElement('col'); c.style.width=''; newCg.appendChild(c);
+    }
+    if(table) table.prepend(newCg);
+    // Nowrap only on shift and role cells
+    clone.querySelectorAll('td[rowspan]').forEach(cell=>{
+      cell.style.whiteSpace='nowrap'; cell.style.width='1px';
     });
-    // Role col: shrink to content
-    clone.querySelectorAll('td:nth-child(2), th:nth-child(2)').forEach(cell=>{
-      cell.style.whiteSpace='nowrap';
-      cell.style.width='1px';
-    });
-    // Day cells: equal remaining width
-    clone.querySelectorAll('td:not([rowspan]):not(:nth-child(2)), th:not(:first-child):not(:nth-child(2))').forEach(cell=>{
-      cell.style.width='auto';
+    // th first two
+    const ths=clone.querySelectorAll('th');
+    if(ths[0]){ ths[0].style.whiteSpace='nowrap'; ths[0].style.width='1px'; }
+    if(ths[1]){ ths[1].style.whiteSpace='nowrap'; ths[1].style.width='1px'; }
+    // Role td (second col, no rowspan)
+    clone.querySelectorAll('tr').forEach(tr=>{
+      const tds=[...tr.querySelectorAll('td')];
+      const firstNoRowspan=tds.find(td=>!td.hasAttribute('rowspan'));
+      if(firstNoRowspan){ firstNoRowspan.style.whiteSpace='nowrap'; firstNoRowspan.style.width='1px'; }
     });
     // Name spans: no fixed width
     clone.querySelectorAll('span').forEach(s=>{
       if(s.style.width&&s.style.width.includes('calc')){
-        s.style.width='auto';
-        s.style.whiteSpace='nowrap';
+        s.style.width='auto'; s.style.whiteSpace='nowrap';
       }
     });
     div.appendChild(clone);
