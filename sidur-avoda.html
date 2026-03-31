@@ -4073,8 +4073,10 @@ function showView(v,e){
 }
 function changeWeek(d){
   const role=currentEmp?.role||'employee';
-  if(role==='employee'&&!isMgr&&weekOffset+d>0) return;
-  weekOffset+=d;openDropdown=null;editingShiftTime=null;editMode=false;
+  const newOffset=weekOffset+d;
+  // Employees can go back freely, but forward only up to 2 weeks
+  if(role==='employee'&&!isMgr&&newOffset>2) return;
+  weekOffset=newOffset;openDropdown=null;editingShiftTime=null;editMode=false;
   loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});
 }
 function goToday(){weekOffset=0;openDropdown=null;editingShiftTime=null;loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});}
@@ -6456,21 +6458,29 @@ async function lozBrowseDay(dir){
 }
 
 async function lozViewerDay(dir){
-  offset+=dir;
-  await lozLoadDay(dKey(getD(offset)));
+  // Skip unpublished days - keep searching in the direction
+  let tries=0;
+  do{
+    offset+=dir;
+    await lozLoadDay(dKey(getD(offset)));
+    tries++;
+  } while(!lozIsPublished()&&tries<14);
+  
   const pub=lozIsPublished();
   if(pub){
     printDay();
     const dateEl=document.getElementById('loz-viewer-date');
     if(dateEl) dateEl.textContent=fmtHe(getD(offset));
-    // re-hide publish btn
     setTimeout(()=>{
       const pubBtn=document.getElementById('pv-publish-btn');
       if(pubBtn) pubBtn.style.display='none';
+      const nvw=document.getElementById('loz-viewer-nav-wrap');
+      if(nvw) nvw.style.display='flex';
     },50);
   } else {
-    document.getElementById('preview-overlay').classList.remove('open');
-    lozRenderRole();
+    // No published days found in this direction - revert
+    offset-=dir*tries;
+    showToast('אין ימים מפורסמים בכיוון זה','');
   }
 }
 
