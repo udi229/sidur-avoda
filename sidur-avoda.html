@@ -2922,6 +2922,7 @@ function renderCombinedView(){
         html+=`<td style="${B};padding:3px 2px;text-align:center;vertical-align:middle;
           background:${rowBg};border-bottom:${isLast?'2px solid #334155':'1px solid #334155'}">`;
         if(names.length){
+          html+=`<div style="border:2px solid ${shift.color};border-radius:10px;padding:2px;margin:1px;">`;
           names.forEach(name=>{
             const isMe=currentEmp&&currentEmp.full_name===name&&!isMgr;
             const isSearch=searchQuery&&name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -2930,15 +2931,15 @@ function renderCombinedView(){
             else if(isMe&&showMyShifts){col='#15803d';bg='#dcfce7';}
             else if(showMyShifts&&!isMe){col='#94a3b8';bg='transparent';}
             else if(showFreelancers&&freelancers.some(f=>f.name===name)){col='#854d0e';bg='#fef9c3';}
-            else{col='#1e40af';bg='#eff6ff';}
+            else{col='#0f172a';bg='transparent';}
             const nameCount=names.length;
             const combinedFontSize=nameCount>=2?'13px':'18px';
             const combinedBg=(isMe&&showMyShifts)||isSearch?bg:'transparent';
             const combinedCol=(isMe&&showMyShifts)||isSearch?col:'#0f172a';
-            const combinedBorder=shift.color||'#cbd5e1';
             html+=`<span style="font-size:${combinedFontSize};font-weight:700;color:${combinedCol};background:${combinedBg};
-              border:1px solid ${combinedBorder};border-radius:8px;padding:2px 5px;white-space:nowrap;display:inline-block;width:calc(100% - 4px);text-align:center">${name.split(' ')[0]}</span>`;
+              border-radius:8px;padding:2px 5px;white-space:nowrap;display:inline-block;width:calc(100% - 4px);text-align:center">${name.split(' ')[0]}</span>`;
           });
+          html+=`</div>`;
         } else {
           html+=`<span style="color:#d1d5db;font-size:12px">—</span>`;
         }
@@ -3093,9 +3094,9 @@ function renderSchedule(){
       const noteVal2=noteKey2&&cellData[noteKey2]?.content||'';
       const names=sched?getCellNames(sched.id,shift.id,d):[];
       const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===shift.id&&openDropdown.dayIdx===d;
-      html+=`<td><div class="cell-inner cell-rel" style="position:relative">
-        <div class="cell-tags">`;
+      html+=`<td><div class="cell-inner cell-rel" style="position:relative">`;
       const uniqueNames=[...new Set(names)];
+      html+=`<div class="cell-tags" style="${uniqueNames.length?`border:2px solid ${shift.color};border-radius:10px;padding:2px;margin:1px;`:''}">`;
       uniqueNames.forEach(name=>{
         const isFreelance=freelancers.some(f=>f.name===name&&f.department_id===dept.id);
         const escapedName=name.replace(/\'/g,"\\'");
@@ -3106,7 +3107,7 @@ function renderSchedule(){
         else if(isCurrentUser&&showMyShifts){tagBg='white';tagColor='#00cc44';tagBorder='#00ff88';}
         else if(showMyShifts&&!isCurrentUser){tagBg='#f8fafc';tagColor='#cbd5e1';tagBorder='#f1f5f9';}
         else if(showFreelancers&&isFreelance){tagBg='#fef9c3';tagColor='#854d0e';tagBorder='#fcd34d';}
-        else{tagBg='transparent';tagColor='#0f172a';tagBorder=shift.color||'#cbd5e1';}
+        else{tagBg='transparent';tagColor='#0f172a';tagBorder='transparent';}
         const firstName=name.split(' ')[0];
         const isCurrentNeon=(isCurrentUser&&showMyShifts);
         const isFreelanceNeon=(_highlightedFree&&firstName===_highlightedFree);
@@ -3165,9 +3166,9 @@ function renderSchedule(){
         const noteKey2=sched2?`note_${sched2.id}_${roleKey}_${d}`:'';
         const noteVal2=noteKey2&&cellData[noteKey2]?.content||'';
         const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===roleKey&&openDropdown.dayIdx===d;
-        html+=`<td style="position:relative;border-bottom:${ri===roles.length-1?'2px solid #334155':'1px solid #e2e8f0'}"><div class="cell-inner cell-rel" style="position:relative">
-          <div class="cell-tags">`;
+        html+=`<td style="position:relative;border-bottom:${ri===roles.length-1?'2px solid #334155':'1px solid #e2e8f0'}"><div class="cell-inner cell-rel" style="position:relative">`;
         const uniqueRoleNames=[...new Set(roleNames)];
+        html+=`<div class="cell-tags" style="${uniqueRoleNames.length?`border:2px solid ${shift.color};border-radius:10px;padding:2px;margin:1px;`:''}">`;
         uniqueRoleNames.forEach(name=>{
           const isFreelance=freelancers.some(f=>f.name===name&&f.department_id===dept.id);
           const escapedName=name.replace(/\'/g,"\\'");
@@ -3178,7 +3179,7 @@ function renderSchedule(){
           else if(isCurrentUser&&showMyShifts){tagBg='white';tagColor='#00cc44';tagBorder='#00ff88';}
           else if(showMyShifts&&!isCurrentUser){tagBg='#f8fafc';tagColor='#cbd5e1';tagBorder='#f1f5f9';}
           else if(showFreelancers&&isFreelance){tagBg='#fef9c3';tagColor='#854d0e';tagBorder='#fcd34d';}
-          else{tagBg='transparent';tagColor='#0f172a';tagBorder=shift.color||'#cbd5e1';}
+          else{tagBg='transparent';tagColor='#0f172a';tagBorder='transparent';}
           const firstName=name.split(' ')[0];
           const isHighlightedFree=_highlightedFree&&name.split(' ')[0]===_highlightedFree;
         const isEmpHighlighted2=_highlightedEmp&&name.split(' ')[0]===_highlightedEmp;
