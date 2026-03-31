@@ -2463,19 +2463,26 @@ function previewCombined(cvId){
     const zoomWrap = document.getElementById('sched-zoom-wrap');
     const currentZoom = zoomWrap ? (zoomWrap.style.zoom || '1') : '1';
     clone.style.zoom = currentZoom;
-    // Make columns as narrow as possible (fit content)
+    // Force table to shrink to content
+    const tableWrap = clone.querySelector('div[style*="overflow-x"]');
+    if(tableWrap){ tableWrap.style.overflow='visible'; tableWrap.style.width='auto'; }
     const table = clone.querySelector('table');
     if(table){
-      table.style.width='auto';
-      table.style.minWidth='';
-      table.style.tableLayout='auto';
+      table.setAttribute('style', 'border-collapse:collapse;direction:rtl;width:auto;table-layout:auto');
     }
-    // Remove fixed col widths
-    clone.querySelectorAll('col').forEach(col=>{ col.style.width=''; col.style.minWidth=''; });
-    // Make all cells shrink to content
-    clone.querySelectorAll('td,th').forEach(cell=>{ 
+    // Remove all col fixed widths
+    clone.querySelectorAll('col').forEach(col=>col.remove());
+    clone.querySelectorAll('colgroup').forEach(cg=>cg.remove());
+    // Force all cells to shrink
+    clone.querySelectorAll('td,th').forEach(cell=>{
       cell.style.whiteSpace='nowrap';
-      cell.style.width='1%';
+      cell.style.minWidth='';
+      cell.style.width='auto';
+    });
+    // Remove width from emp-tag spans
+    clone.querySelectorAll('span[style*="width:calc"]').forEach(s=>{
+      s.style.width='auto';
+      s.style.whiteSpace='nowrap';
     });
     div.appendChild(clone);
   }
