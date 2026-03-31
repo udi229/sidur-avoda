@@ -2895,10 +2895,13 @@ function renderCombinedView(){
       const isFirst=ri===0;
       const isLast=ri===allRows.length-1;
       const rowBg=ri%2===0?'white':'#fdf6ee';
-      html+=`<tr style="background:${rowBg};${isFirst?`border-top:2px solid ${shift.color}`:''}${isLast?`;border-bottom:2px solid ${shift.color}`:''}">`;
+      if(!isFirst) html+=`<tr style="background:${rowBg}">`;
 
       // shift name cell (rowspan, first row only)
       if(isFirst){
+        // Add colored separator before this shift group
+        html+=`<tr><td colspan="9" style="padding:0;height:4px;background:${shift.color};border:none"></td></tr>`;
+        html+=`<tr style="background:${rowBg}">`;
         // Count distinct depts in this shift
         const deptsInShift=new Set(allRows.map(r=>r.dept.id)).size;
         const timeSize=deptsInShift<depts.length?'11px':'20px';
@@ -3068,7 +3071,7 @@ function renderSchedule(){
     // if no roles defined - render single row (old behavior)
     // if roles defined - render one sub-row per role
     const rowCount=roles.length||1;
-    html+=`<tr style="outline:2px solid ${shift.color};outline-offset:-1px"><td class="shift-label" rowspan="${rowCount}" style="vertical-align:top;padding:6px 10px">
+    html+=`<tr><td colspan="${activeShifts.length>0?9:8}" style="padding:0;height:4px;background:${shift.color};border:none"></td></tr><tr><td class="shift-label" rowspan="${rowCount}" style="vertical-align:top;padding:6px 10px">
       <div style="display:flex;align-items:center;gap:3px;margin-bottom:2px">
         <strong style="font-size:18px;color:${shift.color}">${shift.name}</strong>
       </div>
