@@ -2440,23 +2440,32 @@ function previewCombined(cvId){
   }
   const div = document.createElement('div');
   div.id = 'cv-preview-overlay';
-  div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:white;overflow:auto;padding:16px;direction:rtl';
-  div.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <button onclick="document.getElementById('cv-preview-overlay').remove()"
-        style="background:#dc2626;color:white;border:none;border-radius:10px;padding:8px 18px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">
-        ✕ סגור
-      </button>
-      <button onclick="window.print()"
-        style="background:#1e293b;color:white;border:none;border-radius:10px;padding:8px 18px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">
-        🖨 הדפסה
-      </button>
-    </div>
+  div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:white;overflow:auto;padding:8px;direction:rtl';
+  
+  const toolbar = document.createElement('div');
+  toolbar.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 4px';
+  toolbar.innerHTML = `
+    <button onclick="document.getElementById('cv-preview-overlay').remove()"
+      style="background:#dc2626;color:white;border:none;border-radius:10px;padding:8px 18px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">
+      ✕ סגור
+    </button>
+    <button onclick="window.print()"
+      style="background:#1e293b;color:white;border:none;border-radius:10px;padding:8px 18px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">
+      🖨 הדפסה
+    </button>
   `;
+  div.appendChild(toolbar);
+
   if(targetBlock){
     const clone = targetBlock.cloneNode(true);
-    // Remove buttons from clone
     clone.querySelectorAll('button').forEach(b=>b.remove());
+    // Apply same zoom as the schedule
+    const zoomWrap = document.getElementById('sched-zoom-wrap');
+    const currentZoom = zoomWrap ? (zoomWrap.style.zoom || '1') : '1';
+    clone.style.zoom = currentZoom;
+    // Make sure table doesn't stretch wider than needed
+    const table = clone.querySelector('table');
+    if(table){ table.style.width='100%'; table.style.minWidth=''; }
     div.appendChild(clone);
   }
   document.body.appendChild(div);
@@ -2955,7 +2964,7 @@ function renderCombinedView(){
         html+=`<tr style="background:${rowBg}">`;
         // Count distinct depts in this shift
         const deptsInShift=new Set(allRows.map(r=>r.dept.id)).size;
-        const timeSize=deptsInShift<depts.length?'11px':'20px';
+        const timeSize=deptsInShift<depts.length?'15px':'20px';
         const timeColor=deptsInShift<depts.length?'#94a3b8':'#1e293b';
         html+=`<td rowspan="${allRows.length}" style="${B};padding:6px 8px;text-align:right;
           vertical-align:middle;background:#f8fafc;border-right:3px solid ${shift.color}">
