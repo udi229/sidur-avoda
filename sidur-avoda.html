@@ -267,10 +267,16 @@
   @keyframes neonPulseRed{0%,100%{box-shadow:0 0 8px #ff003c,0 0 16px #ff003c66}50%{box-shadow:0 0 20px #ff003c,0 0 40px #ff003caa}}
   @keyframes neonPulseBlue{0%,100%{box-shadow:0 0 8px #3b82f6,0 0 16px #3b82f666,inset 0 0 4px #3b82f622}50%{box-shadow:0 0 18px #3b82f6,0 0 36px #3b82f6aa,inset 0 0 8px #3b82f644}}
   @keyframes neonPulsePurple{0%,100%{box-shadow:0 0 8px #7c3aed,0 0 16px #7c3aed66}50%{box-shadow:0 0 18px #a78bfa,0 0 36px #7c3aedaa}}
-  @keyframes sparkRun{0%{left:-20%}100%{left:120%}}
-  .cv-hdr-spark-wrap { position:relative; overflow:hidden; }
-  .cv-hdr-spark { position:absolute;top:0;left:-20%;width:15%;height:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),white,rgba(255,255,255,0.2),transparent);animation:sparkRun 5s linear infinite;z-index:10;pointer-events:none; }
-  .cv-dark-hdr th { background:#1e293b!important;border-color:#334155!important; }
+  @keyframes orbitSpark{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  .hol-wrap{position:relative;border-radius:8px;padding:2px;overflow:hidden;display:block;width:100%;box-sizing:border-box}
+  .hol-wrap.jewish{background:#3b82f6}
+  .hol-wrap.muslim{background:#22c55e}
+  .hol-spark{position:absolute;inset:-100%;width:300%;height:300%;pointer-events:none}
+  .hol-wrap.jewish .hol-spark{background:conic-gradient(from 0deg,#3b82f6 0%,#3b82f6 80%,rgba(255,255,255,0.3) 88%,white 92%,rgba(255,255,255,0.3) 96%,#3b82f6 100%);animation:orbitSpark 7s linear infinite}
+  .hol-wrap.muslim .hol-spark{background:conic-gradient(from 0deg,#22c55e 0%,#22c55e 80%,rgba(255,255,255,0.3) 88%,white 92%,rgba(255,255,255,0.3) 96%,#22c55e 100%);animation:orbitSpark 7s linear infinite}
+  .hol-inner{position:relative;z-index:2;background:white;border-radius:6px;padding:6px 4px;text-align:center}
+  @keyframes sparkRun{0%{left:-25%}100%{left:115%}}
+
   #night-modal::backdrop{background:rgba(0,0,0,0.6)}
   @keyframes onair{0%,100%{background:#cc0000;box-shadow:0 0 12px #ff000077}50%{background:#ff1111;box-shadow:0 0 28px #ff0000aa}}
   @keyframes musicnote{0%,100%{transform:translate(-50%,-50%) scale(1) rotate(-5deg)}50%{transform:translate(-50%,-52%) scale(1.05) rotate(5deg)}}
@@ -3381,20 +3387,25 @@ function renderCombinedView(){
   function buildSpecialBlock(shift, showDates=false){
     if(!shift) return '';
     const col=shift.color;
-    let bHtml=`<div class="sched-block" style="border:3px solid ${col};border-radius:12px;margin-top:8px">`;
+    const isMorning=shift.name==='בוקר';
+    let bHtml=`<div class="sched-block" style="border:${isMorning?'2px solid #0f172a':`3px solid ${col}`};border-radius:12px;margin-top:8px">`;
     bHtml+=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">`;
     bHtml+=`<table style="border-collapse:collapse;direction:rtl;min-width:500px;width:100%">`;
     bHtml+=`<colgroup><col style="width:80px;min-width:80px"><col style="width:75px;min-width:65px">${DAYS_DISPLAY.map(()=>'<col style="min-width:65px">').join('')}</colgroup>`;
     if(showDates){
-    bHtml+=`<thead class="cv-hdr-spark-wrap">
-      <tr><th colspan="9" style="padding:0;border:none;height:0;position:relative;background:#1e293b"><div class="cv-hdr-spark"></div></th></tr>
-      <tr class="cv-dark-hdr">
-        <th style="padding:8px 10px;text-align:right;font-size:11px;color:#94a3b8">משמרת</th>
-        <th style="padding:8px 8px;text-align:right;font-size:11px;color:#94a3b8">תפקיד</th>
+    bHtml+=`<thead>
+      <tr style="background:white">
+        <th style="padding:9px 10px;text-align:right;font-size:11px;color:#64748b;border-bottom:2px solid #0f172a;border-left:0.5px solid #e2e8f0">משמרת</th>
+        <th style="padding:9px 8px;text-align:right;font-size:11px;color:#64748b;border-bottom:2px solid #0f172a;border-left:0.5px solid #e2e8f0">תפקיד</th>
         ${dates.map((date,i)=>{
           const hol=getHolidayForDate(date);
-          const holBadge=hol.jewish?`<div style="font-size:8px;color:#93c5fd;font-weight:700">✡️ ${hol.jewish}</div>`:hol.muslim?`<div style="font-size:8px;color:#86efac;font-weight:700">☪️ ${hol.muslim}</div>`:'';
-          return `<th style="padding:6px 4px;text-align:center;border-bottom:1px solid #334155">${holBadge}<div style="font-size:14px;font-weight:900;color:white">${DAYS_DISPLAY[i]}</div><div style="font-size:11px;font-weight:700;color:#94a3b8;margin-top:2px">${date}</div></th>`;
+          const isJewish=!!hol.jewish, isMuslim=!!hol.muslim;
+          const holBadge=isJewish?`<div style="font-size:9px;color:#1d4ed8;font-weight:800">✡️ ${hol.jewish}</div>`:isMuslim?`<div style="font-size:9px;color:#15803d;font-weight:800">☪️ ${hol.muslim}</div>`:'';
+          const dayContent=`${holBadge}<div style="font-size:15px;font-weight:900;color:#0f172a">${DAYS_DISPLAY[i]}</div><div style="font-size:12px;font-weight:700;color:#334155;margin-top:3px">${date}</div>`;
+          const innerContent=isJewish||isMuslim
+            ?`<div class="hol-wrap ${isJewish?'jewish':'muslim'}"><div class="hol-spark"></div><div class="hol-inner">${dayContent}</div></div>`
+            :dayContent;
+          return `<th style="padding:${isJewish||isMuslim?'2px':'6px'} 4px;text-align:center;border-bottom:2px solid #0f172a;border-left:0.5px solid #e2e8f0">${innerContent}</th>`;
         }).join('')}
       </tr>
     </thead>`;
