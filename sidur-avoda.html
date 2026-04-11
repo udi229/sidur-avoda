@@ -3304,14 +3304,14 @@ function renderCombinedView(){
       // role/dept name cell
       html+=`<td style="${B};padding:5px 8px;text-align:right;vertical-align:middle;
         font-size:11px;font-weight:700;color:${row.dept.color};background:${isFirst?'#fafafa':'white'};
-        border-bottom:${isLast?'2px solid #334155':'1px solid #334155'}">${row.label}</td>`;
+        border-bottom:1px solid #e2e8f0">${row.label}</td>`;
 
       // day cells
       for(let d=0;d<7;d++){
         const sched=schedules[row.dept.id];
         const names=sched?getCellNames(sched.id,row.key,d):[];
         html+=`<td style="${B};padding:3px 2px;text-align:center;vertical-align:middle;
-          background:${rowBg};border-bottom:${isLast?'2px solid #334155':'1px solid #334155'}">`;
+          background:${rowBg};border-bottom:1px solid #e2e8f0">`;
         if(names.length){
           names.forEach(name=>{
             const isMe=currentEmp&&currentEmp.full_name===name&&!isMgr;
@@ -3385,11 +3385,11 @@ function renderCombinedView(){
         bHtml+=shift.time?`<div style="font-size:${timeSize2};font-weight:400;color:${timeColor2};margin-top:2px">${shift.time}</div>`:'';
         bHtml+=`</td>`;
       }
-      bHtml+=`<td style="${B};padding:5px 8px;text-align:right;vertical-align:middle;font-size:11px;font-weight:700;color:${row.dept.color};background:${isFirst2?'#fafafa':'white'};border-bottom:${isLast2?'2px solid #334155':'1px solid #334155'}">${row.label}</td>`;
+      bHtml+=`<td style="${B};padding:5px 8px;text-align:right;vertical-align:middle;font-size:11px;font-weight:700;color:${row.dept.color};background:${isFirst2?'#fafafa':'white'};border-bottom:1px solid #e2e8f0">${row.label}</td>`;
       for(let d=0;d<7;d++){
         const sched=schedules[row.dept.id];
         const names2=sched?getCellNames(sched.id,row.key,d):[];
-        bHtml+=`<td style="${B};padding:3px 2px;text-align:center;vertical-align:middle;background:${rowBg2};border-bottom:${isLast2?'2px solid #334155':'1px solid #334155'}">`;
+        bHtml+=`<td style="${B};padding:3px 2px;text-align:center;vertical-align:middle;background:${rowBg2};border-bottom:1px solid #e2e8f0">`;
         if(names2.length){
           names2.forEach(name=>{
             const nameCount2=names2.length;
@@ -3672,7 +3672,7 @@ function renderSchedule(){
         const noteKey2=sched2?`note_${sched2.id}_${roleKey}_${d}`:'';
         const noteVal2=noteKey2&&cellData[noteKey2]?.content||'';
         const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===roleKey&&openDropdown.dayIdx===d;
-        html+=`<td style="position:relative;border-bottom:${ri===roles.length-1?'2px solid #334155':'1px solid #e2e8f0'}"><div class="cell-inner cell-rel" style="position:relative">
+        html+=`<td style="position:relative;border-bottom:1px solid #e2e8f0"><div class="cell-inner cell-rel" style="position:relative">
           <div class="cell-tags">`;
         const uniqueRoleNames=[...new Set(roleNames)];
         uniqueRoleNames.forEach(name=>{
