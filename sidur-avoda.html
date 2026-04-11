@@ -268,11 +268,43 @@
   @keyframes neonPulseBlue{0%,100%{box-shadow:0 0 8px #3b82f6,0 0 16px #3b82f666,inset 0 0 4px #3b82f622}50%{box-shadow:0 0 18px #3b82f6,0 0 36px #3b82f6aa,inset 0 0 8px #3b82f644}}
   @keyframes neonPulsePurple{0%,100%{box-shadow:0 0 8px #7c3aed,0 0 16px #7c3aed66}50%{box-shadow:0 0 18px #a78bfa,0 0 36px #7c3aedaa}}
   @keyframes orbitSpark{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-  @keyframes holGlow{0%,100%{box-shadow:0 0 0 2px #3b82f6,0 0 8px rgba(59,130,246,0.5),0 0 18px rgba(59,130,246,0.2),0 3px 10px rgba(15,23,42,0.15)}50%{box-shadow:0 0 0 2px #3b82f6,0 0 14px rgba(59,130,246,0.8),0 0 28px rgba(59,130,246,0.35),0 3px 10px rgba(15,23,42,0.15)}}
-  @keyframes holGlowGreen{0%,100%{box-shadow:0 0 0 2px #22c55e,0 0 8px rgba(34,197,94,0.5),0 0 18px rgba(34,197,94,0.2),0 3px 10px rgba(15,23,42,0.15)}50%{box-shadow:0 0 0 2px #22c55e,0 0 14px rgba(34,197,94,0.8),0 0 28px rgba(34,197,94,0.35),0 3px 10px rgba(15,23,42,0.15)}}
-  .th-jewish{animation:holGlow 2.5s ease-in-out infinite;border:2px solid #3b82f6!important}
-  .th-muslim{animation:holGlowGreen 2.5s ease-in-out infinite;border:2px solid #22c55e!important}
-  @keyframes breatheShadow{0%,100%{text-shadow:0 1px 2px rgba(0,0,0,0.08)}50%{text-shadow:0 2px 12px rgba(0,0,0,0.45),0 1px 4px rgba(0,0,0,0.25)}}
+  @keyframes sparkOrbitBlue{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  @keyframes sparkOrbitGreen{from{transform:rotate(180deg)}to{transform:rotate(540deg)}}
+  .th-jewish{
+    position:relative;
+    border:2px solid #3b82f6!important;
+    box-shadow:0 0 10px rgba(59,130,246,0.4),0 0 20px rgba(59,130,246,0.15),0 3px 10px rgba(15,23,42,0.12);
+    overflow:hidden;
+  }
+  .th-muslim{
+    position:relative;
+    border:2px solid #22c55e!important;
+    box-shadow:0 0 10px rgba(34,197,94,0.4),0 0 20px rgba(34,197,94,0.15),0 3px 10px rgba(15,23,42,0.12);
+    overflow:hidden;
+  }
+  .th-jewish::before{
+    content:'';
+    position:absolute;
+    inset:-120%;
+    width:340%;
+    height:340%;
+    background:conic-gradient(from 0deg,transparent 0%,transparent 78%,rgba(255,255,255,0.08) 86%,rgba(255,255,255,0.6) 90%,rgba(255,255,255,0.08) 94%,transparent 100%);
+    animation:sparkOrbitBlue 8s linear infinite;
+    pointer-events:none;
+    z-index:0;
+  }
+  .th-muslim::before{
+    content:'';
+    position:absolute;
+    inset:-120%;
+    width:340%;
+    height:340%;
+    background:conic-gradient(from 0deg,transparent 0%,transparent 78%,rgba(255,255,255,0.08) 86%,rgba(255,255,255,0.6) 90%,rgba(255,255,255,0.08) 94%,transparent 100%);
+    animation:sparkOrbitGreen 8s linear infinite;
+    pointer-events:none;
+    z-index:0;
+  }
+  .th-jewish .hol-content, .th-muslim .hol-content{position:relative;z-index:2}
   .cv-day-th { box-shadow:0 3px 10px rgba(15,23,42,0.18),0 6px 20px rgba(15,23,42,0.08),inset 0 1px 0 rgba(255,255,255,0.9); }
   .hol-content{position:relative;z-index:2}
   @keyframes sparkRun{0%{left:-25%}100%{left:115%}}
@@ -3403,9 +3435,10 @@ function renderCombinedView(){
           const holBadge=isJewish?`<div style="font-size:9px;color:#1d4ed8;font-weight:800">✡️ ${hol.jewish}</div>`:isMuslim?`<div style="font-size:9px;color:#15803d;font-weight:800">☪️ ${hol.muslim}</div>`:'';
           const holBorder=isJewish?'border:2.5px solid #3b82f6':isMuslim?'border:2.5px solid #22c55e':'border-bottom:2px solid #0f172a;border-left:0.5px solid #e2e8f0';
           const holClass=isJewish?'th-jewish':isMuslim?'th-muslim':'';
-          const dayName=`<div style="font-size:18px;font-weight:900;color:#0f172a;animation:breatheShadow 3s ease-in-out infinite">${DAYS_DISPLAY[i]}</div>`;
+          const dayName=`<div style="font-size:18px;font-weight:900;color:#0f172a;text-shadow:0 2px 8px rgba(15,23,42,0.25),0 1px 3px rgba(15,23,42,0.15)">${DAYS_DISPLAY[i]}</div>`;
           const dayDate=`<div style="font-size:12px;font-weight:700;color:#334155;margin-top:3px">${date}</div>`;
-          return `<th class="${holClass} cv-day-th" style="padding:6px 4px;text-align:center;background:white;${holBorder}">${holBadge}${dayName}${dayDate}</th>`;
+          const cellContent=isJewish||isMuslim?`<div class="hol-content">${holBadge}${dayName}${dayDate}</div>`:`${holBadge}${dayName}${dayDate}`;
+          return `<th class="${holClass} cv-day-th" style="padding:6px 4px;text-align:center;background:white;${holBorder}">${cellContent}</th>`;
         }).join('')}
       </tr>
     </thead>`;
