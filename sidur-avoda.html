@@ -2692,7 +2692,7 @@ function setCombined(id){
   searchQuery='';
   const si=document.getElementById('sched-search');
   if(si) si.value='';
-  renderDeptTabs();renderSchedule(); setTimeout(applySchedZoom,50);
+  renderDeptTabs();renderSchedule(); setTimeout(autoFitMobile,80);
 }
 
 // ── CELL DATA ──
@@ -3319,6 +3319,7 @@ function renderCombinedView(){
   html+=buildSpecialBlock(eveningShift);
 
   wrap.innerHTML=html;
+  if(window.innerWidth<600) setTimeout(autoFitMobile,60);
 }
 
 
@@ -3750,6 +3751,8 @@ function renderSchedule(){
 
   // online list after stats
   renderOnlineList();
+  // Auto-fit zoom on mobile
+  if(window.innerWidth<600) setTimeout(autoFitMobile,60);
 }
 
 // ── ONLINE LIST ──
@@ -6159,29 +6162,42 @@ function showHubOrAuth(){
   }).catch(()=>{});
 }
 
-let _schedZoom = window.innerWidth < 600 ? 58 : 100;
+function calcMobileZoom(){
+  if(window.innerWidth >= 600) return 100;
+  // Auto-fit: find the schedule table width and scale to viewport
+  const wrap = document.getElementById('sched-zoom-wrap');
+  const tbl = wrap ? wrap.querySelector('table') : null;
+  if(tbl){
+    // Temporarily reset zoom to measure natural width
+    wrap.style.zoom = '1';
+    const naturalW = tbl.scrollWidth;
+    const viewW = window.innerWidth - 8; // small margin
+    const auto = Math.floor((viewW / naturalW) * 100);
+    return Math.min(100, Math.max(30, auto));
+  }
+  return 40; // fallback
+}
+let _schedZoom = window.innerWidth < 600 ? 40 : 100;
 function schedZoom(dir){
-  if(dir===0){ _schedZoom = window.innerWidth < 600 ? 58 : 100; }
-  else { _schedZoom = Math.min(150, Math.max(40, _schedZoom + dir*10)); }
+  if(dir===0){ _schedZoom = calcMobileZoom(); }
+  else { _schedZoom = Math.min(150, Math.max(30, _schedZoom + dir*10)); }
   applySchedZoom();
 }
 function applySchedZoom(){
   const wrap = document.getElementById('sched-zoom-wrap');
   if(wrap){
     const f = _schedZoom/100;
-    // Use zoom for Chrome/Android, transform for Safari/iOS
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    if(isSafari){
-      // On Safari use zoom too — it's supported in Safari 14+
-      wrap.style.zoom = f.toString();
-      wrap.style.transform = '';
-    } else {
-      wrap.style.zoom = f.toString();
-      wrap.style.transform = '';
-    }
+    wrap.style.zoom = f.toString();
+    wrap.style.transform = '';
   }
   const pct = document.getElementById('zoom-pct');
   if(pct) pct.textContent = _schedZoom+'%';
+}
+// Auto-fit on mobile after render
+function autoFitMobile(){
+  if(window.innerWidth >= 600) return;
+  _schedZoom = calcMobileZoom();
+  applySchedZoom();
 }
 
 let _calZooms = {};
