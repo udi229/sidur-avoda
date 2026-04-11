@@ -3457,11 +3457,10 @@ function renderCombinedView(){
     return bHtml;
   }
 
-  html+=buildSpecialBlock(morningShift);
   html+=buildSpecialBlock(nightShift);
   html+=buildSpecialBlock(eveningShift);
 
-  wrap.innerHTML=html;
+  wrap.innerHTML=buildSpecialBlock(morningShift)+html;
   if(window.innerWidth<600) setTimeout(()=>autoFitMobile(true),60);
 }
 
