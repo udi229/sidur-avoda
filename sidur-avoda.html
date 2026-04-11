@@ -4169,10 +4169,9 @@ function renderDeptShiftSettings(){
           <input type="checkbox" ${checked?'checked':''} onchange="toggleDeptShift('${dept.id}','${shift.id}',this.checked)" style="display:none" />
           ${shift.name}
         </label>
-        <label title="${weekActive?'לחץ לכיבוי השבוע':'לחץ להפעלה השבוע'}" style="display:inline-flex;align-items:center;gap:4px;background:${weekActive?'#dcfce7':'#fee2e2'};border:1.5px solid ${weekActive?'#22c55e':'#fca5a5'};border-radius:12px;padding:2px 8px;cursor:pointer;font-size:10px;font-weight:700;color:${weekActive?'#15803d':'#dc2626'}">
-          <input type="checkbox" ${weekActive?'checked':''} onchange="toggleDeptShiftWeek('${dept.id}','${shift.id}',!this.checked)" style="display:none" />
+        <button onclick="toggleDeptShiftWeek('${dept.id}','${shift.id}',${weekActive})" style="display:inline-flex;align-items:center;gap:4px;background:${weekActive?'#dcfce7':'#fee2e2'};border:1.5px solid ${weekActive?'#22c55e':'#fca5a5'};border-radius:12px;padding:2px 8px;cursor:pointer;font-size:10px;font-weight:700;color:${weekActive?'#15803d':'#dc2626'};font-family:inherit">
           ⚡ ${weekActive?'השבוע ✓':'השבוע ✗'}
-        </label>
+        </button>
       </div>`;
     });
     html+=`</div></div>`;
