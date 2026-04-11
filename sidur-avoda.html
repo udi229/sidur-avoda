@@ -2425,10 +2425,12 @@ async function loadWeekData(){
   (cvPub2||[]).forEach(p=>{ window._cvWeeklyPub[p.cv_id]=p.published; });
   combinedViews.forEach(cv=>{ cv.published=window._cvWeeklyPub[cv.id]||false; });
   const ws=weekStartStr();
-  // Load weekly disabled shifts
-  const {data:dswd}=await sb.from('dept_shift_week_disabled').select('*').eq('week_start',ws).catch(()=>({data:[]}));
+  // Load weekly disabled shifts (safe — table may not exist yet)
   deptShiftWeekDisabled={};
-  (dswd||[]).forEach(r=>{ deptShiftWeekDisabled[r.department_id+'_'+r.shift_id]=true; });
+  try{
+    const {data:dswd,error:dswdErr}=await sb.from('dept_shift_week_disabled').select('*').eq('week_start',ws);
+    if(!dswdErr)(dswd||[]).forEach(r=>{ deptShiftWeekDisabled[r.department_id+'_'+r.shift_id]=true; });
+  }catch(e){}
   const {data:sc}=await sb.from('schedules').select('*').eq('week_start',ws);
   schedules={};(sc||[]).forEach(s=>{schedules[s.department_id]=s;});
   const ids=Object.values(schedules).map(s=>s.id);
