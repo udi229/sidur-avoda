@@ -1901,22 +1901,49 @@ function getIsraeliHoliday(day, month, year){
   };
   return holidays[`${day}-${month}-${year}`] || null;
 }
+function getMuslimHoliday(day, month, year){
+  const holidays = {
+    // עיד אל-פיטר (סוף רמדאן) — 2025: 30/3-1/4, 2026: 20/3, 2027: 9/3, 2028: 26/2
+    '30-3-2025':'עיד אל-פיטר','31-3-2025':'עיד אל-פיטר','1-4-2025':'עיד אל-פיטר',
+    '20-3-2026':'עיד אל-פיטר','21-3-2026':'עיד אל-פיטר',
+    '9-3-2027':'עיד אל-פיטר','10-3-2027':'עיד אל-פיטר',
+    '26-2-2028':'עיד אל-פיטר','27-2-2028':'עיד אל-פיטר',
+    // עיד אל-אדחא — 2025: 6/6, 2026: 27/5, 2027: 16/5, 2028: 5/5
+    '6-6-2025':'עיד אל-אדחא','7-6-2025':'עיד אל-אדחא','8-6-2025':'עיד אל-אדחא',
+    '27-5-2026':'עיד אל-אדחא','28-5-2026':'עיד אל-אדחא','29-5-2026':'עיד אל-אדחא',
+    '16-5-2027':'עיד אל-אדחא','17-5-2027':'עיד אל-אדחא','18-5-2027':'עיד אל-אדחא',
+    '5-5-2028':'עיד אל-אדחא','6-5-2028':'עיד אל-אדחא','7-5-2028':'עיד אל-אדחא',
+    // ראס אל-סנה (ראש שנה אסלאמית) — 2025: 27/6, 2026: 17/6, 2027: 6/6, 2028: 25/5
+    '27-6-2025':'ראס אל-סנה','17-6-2026':'ראס אל-סנה','6-6-2027':'ראס אל-סנה','25-5-2028':'ראס אל-סנה',
+    // מולד הנביא — 2025: 5/9, 2026: 25/8, 2027: 14/8, 2028: 2/8
+    '5-9-2025':'מולד הנביא','25-8-2026':'מולד הנביא','14-8-2027':'מולד הנביא','2-8-2028':'מולד הנביא',
+    // תחילת רמדאן — 2025: 1/3, 2026: 18/2, 2027: 8/2, 2028: 28/1
+    '1-3-2025':'תחילת רמדאן','18-2-2026':'תחילת רמדאן','8-2-2027':'תחילת רמדאן','28-1-2028':'תחילת רמדאן',
+  };
+  return holidays[`${day}-${month}-${year}`] || null;
+}
 function getHolidayForDate(dateStr){
   const [d,m] = dateStr.split('.').map(Number);
   const ws = weekStart();
   const yr = ws.getFullYear();
   const guessYear = ws.getMonth()===11 && m===1 ? yr+1 : yr;
-  return getIsraeliHoliday(d, m, guessYear);
+  const jewish = getIsraeliHoliday(d, m, guessYear);
+  const muslim = getMuslimHoliday(d, m, guessYear);
+  return {jewish, muslim};
 }
 function holidayBadge(dateStr){
-  const hol = getHolidayForDate(dateStr);
-  if(!hol) return '';
-  return `<div style="font-size:9px;font-weight:800;color:#1d4ed8;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">✡️ ${hol}</div>`;
+  const {jewish, muslim} = getHolidayForDate(dateStr);
+  let html = '';
+  if(jewish) html += `<div style="font-size:9px;font-weight:800;color:#1d4ed8;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">✡️ ${jewish}</div>`;
+  if(muslim) html += `<div style="font-size:9px;font-weight:800;color:#15803d;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">☪️ ${muslim}</div>`;
+  return html;
 }
 function holidayThStyle(dateStr){
-  const hol = getHolidayForDate(dateStr);
-  if(!hol) return '';
-  return 'border:2px solid #3b82f6!important;animation:neonPulseBlue 1.4s ease-in-out infinite;background:#eff6ff;';
+  const {jewish, muslim} = getHolidayForDate(dateStr);
+  if(jewish && muslim) return 'border:2px solid #3b82f6!important;animation:neonPulseBlue 1.4s ease-in-out infinite;background:#eff6ff;';
+  if(jewish) return 'border:2px solid #3b82f6!important;animation:neonPulseBlue 1.4s ease-in-out infinite;background:#eff6ff;';
+  if(muslim) return 'border:2px solid #22c55e!important;animation:neonPulseGreen 1.4s ease-in-out infinite;background:#f0fdf4;';
+  return '';
 }
 const ROLE_HEB={employee:'עובד',team_lead:'ראש צוות',manager:'מנהל'};
 
