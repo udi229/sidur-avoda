@@ -3382,15 +3382,29 @@ function renderCombinedView(){
     bHtml+=`<table style="border-collapse:collapse;direction:rtl;min-width:500px;width:100%">`;
     bHtml+=`<colgroup><col style="width:80px;min-width:80px"><col style="width:75px;min-width:65px">${DAYS_DISPLAY.map(()=>'<col style="min-width:65px">').join('')}</colgroup>`;
     if(showDates){
-    bHtml+=`<thead><tr style="background:#f1f5f9">`;
-    bHtml+=`<th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">משמרת</th>`;
-    bHtml+=`<th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">תפקיד</th>`;
-    bHtml+=dates.map((date,i)=>`<th style="${B};padding:6px 4px;text-align:center;${holidayThStyle(date)}">
-      ${holidayBadge(date)}
-      <div style="font-size:14px;font-weight:900;color:#0f172a;letter-spacing:0.3px">${DAYS_DISPLAY[i]}</div>
-      <div style="font-size:12px;font-weight:700;color:#334155;margin-top:1px">${date}</div>
-    </th>`).join('');
-    bHtml+=`</tr></thead>`;
+    // Inject spark keyframe once
+    if(!window._sparkInjected){
+      const s=document.createElement('style');
+      s.textContent='@keyframes sparkRun{0%{left:-20%}100%{left:120%}}';
+      document.head.appendChild(s);
+      window._sparkInjected=true;
+    }
+    bHtml+=`<thead>
+      <tr style="position:relative;overflow:hidden">
+        <th colspan="9" style="padding:0;border:none;background:#1e293b;height:0;position:relative">
+          <div style="position:absolute;top:0;left:-20%;width:15%;height:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),white,rgba(255,255,255,0.2),transparent);animation:sparkRun 5s linear infinite;z-index:10;pointer-events:none"></div>
+        </th>
+      </tr>
+      <tr style="background:#1e293b">
+        <th style="padding:8px 10px;text-align:right;font-size:11px;color:#94a3b8;border-left:0.5px solid #334155;border-bottom:1px solid #334155">משמרת</th>
+        <th style="padding:8px 8px;text-align:right;font-size:11px;color:#94a3b8;border-left:0.5px solid #334155;border-bottom:1px solid #334155">תפקיד</th>
+        ${dates.map((date,i)=>{
+          const hol=getHolidayForDate(date);
+          const holBadge=hol.jewish?`<div style="font-size:8px;color:#93c5fd;font-weight:700">✡️ ${hol.jewish}</div>`:hol.muslim?`<div style="font-size:8px;color:#86efac;font-weight:700">☪️ ${hol.muslim}</div>`:'';
+          return `<th style="padding:6px 4px;text-align:center;border-left:0.5px solid #334155;border-bottom:1px solid #334155">${holBadge}<div style="font-size:14px;font-weight:900;color:white">${DAYS_DISPLAY[i]}</div><div style="font-size:11px;font-weight:700;color:#94a3b8;margin-top:2px">${date}</div></th>`;
+        }).join('')}
+      </tr>
+    </thead>`;
     }
     bHtml+=`<tbody>`;
     // Render rows for this shift — for night, only depts with night active this week
