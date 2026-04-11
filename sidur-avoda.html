@@ -1351,9 +1351,10 @@
       </div>
       <div id="sched-toolbar" style="display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:nowrap;overflow:hidden">
         <button id="my-shifts-btn" onclick="toggleMyShifts()"
-          style="display:none;padding:5px 10px;border:1.5px solid #00ff88;border-radius:20px;font-size:11px;
-          font-weight:700;cursor:pointer;font-family:inherit;background:white;color:#047857;
-          white-space:nowrap;box-shadow:0 0 8px #00ff8866;flex-shrink:0;transition:all 0.2s">המשמרות שלי</button>
+          style="display:none;padding:5px 10px;border:2px solid #00ff88;border-radius:20px;font-size:11px;
+          font-weight:700;cursor:pointer;font-family:inherit;background:#16a34a;color:white;
+          white-space:nowrap;box-shadow:0 0 10px #00ff88,0 0 20px #00ff8844;flex-shrink:0;transition:all 0.2s;
+          animation:neonPulseGreen 2s ease-in-out infinite">המשמרות שלי</button>
         <button id="freelance-toggle" onclick="toggleFreelanceHighlight()"
           style="display:none;padding:5px 10px;border:1.5px solid #f59e0b;border-radius:20px;
           font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;background:white;
@@ -2328,11 +2329,11 @@ function toggleMyShifts(){
       btn.style.animation='neonPulseGreen 1.2s ease-in-out infinite';
       btn.textContent='✓ המשמרות שלי';
     } else {
-      btn.style.background='white';
-      btn.style.color='#047857';
-      btn.style.border='1.5px solid #00ff88';
-      btn.style.boxShadow='0 0 8px #00ff8844';
-      btn.style.animation='none';
+      btn.style.background='#16a34a';
+      btn.style.color='white';
+      btn.style.border='2px solid #00ff88';
+      btn.style.boxShadow='0 0 10px #00ff88,0 0 20px #00ff8844';
+      btn.style.animation='neonPulseGreen 2s ease-in-out infinite';
       btn.textContent='המשמרות שלי';
     }
   }
@@ -2478,7 +2479,7 @@ function setDept(id){
   const si=document.getElementById('sched-search');
   if(si) si.value='';
   const btn=document.getElementById('my-shifts-btn');
-  if(btn){btn.style.background='#f1f5f9';btn.style.color='#64748b';btn.style.borderColor='transparent';btn.textContent='המשמרות שלי';}
+  if(btn){btn.style.background='#16a34a';btn.style.color='white';btn.style.border='2px solid #00ff88';btn.style.boxShadow='0 0 10px #00ff88,0 0 20px #00ff8844';btn.style.animation='neonPulseGreen 2s ease-in-out infinite';btn.textContent='המשמרות שלי';}
   renderDeptTabs();
   renderSchedule();
 }
@@ -3189,9 +3190,19 @@ function renderCombinedView(){
             const nameCount2=names2.length;
             const fs2=nameCount2>=2?'13px':'18px';
             const isMe2=currentEmp&&currentEmp.full_name===name&&!isMgr;
-            const col2=isMe2&&showMyShifts?'#15803d':'#0f172a';
-            const bg2=isMe2&&showMyShifts?'#dcfce7':'transparent';
-            bHtml+=`<span style="font-size:${fs2};font-weight:700;color:${col2};background:${bg2};border-radius:8px;padding:2px 5px;display:inline-block;width:calc(100% - 4px);text-align:center">${name.split(' ')[0]}</span>`;
+            const firstName2=name.split(' ')[0];
+            const isFree2=freelancers.some(f=>f.name===name);
+            const isSearch2=searchQuery&&name.toLowerCase().includes(searchQuery.toLowerCase());
+            const isHighlightedFree2=_highlightedFree&&(name===_highlightedFree||firstName2===_highlightedFree);
+            const isHighlightedEmp2=_highlightedEmp&&(name===_highlightedEmp||firstName2===_highlightedEmp);
+            let col2,bg2,extra2='';
+            if(isSearch2){col2='#dc2626';bg2='#fee2e2';}
+            else if(isMe2&&showMyShifts){col2='#00cc44';bg2='white';extra2='box-shadow:0 0 10px #00ff88,0 0 20px #00ff8866;animation:neonPulseGreen 1.2s ease-in-out infinite;border:2px solid #00ff88;';}
+            else if(isHighlightedFree2){col2='#d97706';bg2='white';extra2='box-shadow:0 0 10px #fbbf24,0 0 20px #fbbf2466;animation:neonPulseYellow 1.2s ease-in-out infinite;border:2px solid #fbbf24;';}
+            else if(showFreelancers&&isFree2){col2='#d97706';bg2='white';extra2='box-shadow:0 0 10px #fbbf24,0 0 20px #fbbf2466;animation:neonPulseYellow 1.2s ease-in-out infinite;border:2px solid #fbbf24;';}
+            else if(isHighlightedEmp2){col2='#ff2200';bg2='#fff0f0';extra2='box-shadow:0 0 8px #ff220088;border:2px solid #ff2200;';}
+            else{col2='#0f172a';bg2='transparent';}
+            bHtml+=`<span style="font-size:${fs2};font-weight:700;color:${col2};background:${bg2};${extra2}border-radius:8px;padding:2px 5px;display:inline-block;width:calc(100% - 4px);text-align:center">${firstName2}</span>`;
           });
         } else {
           bHtml+=`<span style="color:#d1d5db;font-size:12px">—</span>`;
