@@ -2709,90 +2709,47 @@ function setDept(id){
   renderSchedule();
 }
 function previewCombined(cvId){
-  // Find the sched-block for this cv and show it in a fullscreen overlay
-  const overlay = document.getElementById('cv-preview-overlay');
-  if(overlay){
-    overlay.remove();
-  }
-  // Clone the combined view block
-  const blocks = document.querySelectorAll('.sched-block');
-  let targetBlock = null;
-  // Find block by cv id stored in publish button
-  document.querySelectorAll('[onclick*="toggleCVPublish"]').forEach(btn=>{
-    if(btn.getAttribute('onclick')&&btn.getAttribute('onclick').includes(cvId)){
-      targetBlock = btn.closest('.sched-block');
-    }
-  });
-  if(!targetBlock){
-    // fallback: use last rendered combined block
-    targetBlock = blocks[blocks.length-1];
-  }
+  document.getElementById('cv-preview-overlay')?.remove();
+
   const div = document.createElement('div');
   div.id = 'cv-preview-overlay';
   div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:white;overflow:auto;padding:8px;direction:rtl';
-  
+
   const toolbar = document.createElement('div');
   toolbar.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 4px';
   toolbar.innerHTML = `
     <button onclick="document.getElementById('cv-preview-overlay').remove()"
-      style="background:#dc2626;color:white;border:none;border-radius:10px;padding:8px 18px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">
-      ✕ סגור
-    </button>
+      style="background:#dc2626;color:white;border:none;border-radius:10px;padding:8px 18px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">✕ סגור</button>
     <button onclick="window.print()"
-      style="background:#1e293b;color:white;border:none;border-radius:10px;padding:8px 18px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">
-      🖨 הדפסה
-    </button>
+      style="background:#1e293b;color:white;border:none;border-radius:10px;padding:8px 18px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">🖨 הדפסה</button>
   `;
   div.appendChild(toolbar);
 
-  if(targetBlock){
-    const clone = targetBlock.cloneNode(true);
+  // Clone the entire sched-wrap content (all blocks)
+  const schedWrap = document.getElementById('sched-wrap');
+  if(schedWrap){
+    const clone = schedWrap.cloneNode(true);
+    // Remove interactive buttons (publish, preview, edit etc)
     clone.querySelectorAll('button').forEach(b=>b.remove());
-    // Apply same zoom as the schedule
-    const zoomWrap = document.getElementById('sched-zoom-wrap');
-    const currentZoom = zoomWrap ? (zoomWrap.style.zoom || '1') : '1';
-    clone.style.zoom = currentZoom;
-    // Shrink shift and role columns to content, keep day columns equal
-    const tableWrap = clone.querySelector('div[style*="overflow-x"]');
-    if(tableWrap){ tableWrap.style.overflow='visible'; tableWrap.style.width='100%'; }
-    const table = clone.querySelector('table');
-    if(table){
-      table.setAttribute('style', 'border-collapse:collapse;direction:rtl;width:100%;table-layout:auto');
-    }
-    clone.querySelectorAll('colgroup').forEach(cg=>cg.remove());
-    // Shrink only shift and role columns, keep day columns equal
-    // Use colgroup for precise control
-    const cols = clone.querySelectorAll('colgroup');
-    cols.forEach(cg=>cg.remove());
-    const newCg = document.createElement('colgroup');
-    // Col 1: shift name - shrink
-    const c1=document.createElement('col'); c1.style.width='1px'; newCg.appendChild(c1);
-    // Col 2: role/dept - shrink  
-    const c2=document.createElement('col'); c2.style.width='1px'; newCg.appendChild(c2);
-    // Cols 3-9: days - equal
-    for(let i=0;i<7;i++){
-      const c=document.createElement('col'); c.style.width=''; newCg.appendChild(c);
-    }
-    if(table) table.prepend(newCg);
-    // Nowrap only on shift and role cells
-    clone.querySelectorAll('td[rowspan]').forEach(cell=>{
-      cell.style.whiteSpace='nowrap'; cell.style.width='1px';
+    clone.querySelectorAll('input,textarea').forEach(el=>el.remove());
+    // Fix table overflow
+    clone.querySelectorAll('div[style*="overflow-x"]').forEach(d=>{
+      d.style.overflow='visible'; d.style.width='100%';
     });
-    // th first two
-    const ths=clone.querySelectorAll('th');
-    if(ths[0]){ ths[0].style.whiteSpace='nowrap'; ths[0].style.width='1px'; }
-    if(ths[1]){ ths[1].style.whiteSpace='nowrap'; ths[1].style.width='1px'; }
-    // Role td (second col, no rowspan)
-    clone.querySelectorAll('tr').forEach(tr=>{
-      const tds=[...tr.querySelectorAll('td')];
-      const firstNoRowspan=tds.find(td=>!td.hasAttribute('rowspan'));
-      if(firstNoRowspan){ firstNoRowspan.style.whiteSpace='nowrap'; firstNoRowspan.style.width='1px'; }
+    clone.querySelectorAll('table').forEach(table=>{
+      table.style.cssText='border-collapse:collapse;direction:rtl;width:100%;table-layout:auto';
+      table.querySelectorAll('colgroup').forEach(cg=>cg.remove());
+      const newCg=document.createElement('colgroup');
+      const c1=document.createElement('col'); c1.style.width='1px'; newCg.appendChild(c1);
+      const c2=document.createElement('col'); c2.style.width='1px'; newCg.appendChild(c2);
+      for(let i=0;i<7;i++){const c=document.createElement('col');newCg.appendChild(c);}
+      table.prepend(newCg);
     });
-    // Name spans: no fixed width
+    clone.querySelectorAll('td[rowspan],th:nth-child(-n+2)').forEach(el=>{
+      el.style.whiteSpace='nowrap'; el.style.width='1px';
+    });
     clone.querySelectorAll('span').forEach(s=>{
-      if(s.style.width&&s.style.width.includes('calc')){
-        s.style.width='auto'; s.style.whiteSpace='nowrap';
-      }
+      if(s.style.width&&s.style.width.includes('calc')){s.style.width='auto';s.style.whiteSpace='nowrap';}
     });
     div.appendChild(clone);
   }
@@ -3253,8 +3210,10 @@ function renderCombinedView(){
   }
 
   const regularBorderStyle=buildCVBlock(regularShifts,'');
-  let html=`<div class="sched-block" style="${regularBorderStyle}">
-    ${(isMgr||currentEmp?.role==='manager')?`<div style="text-align:center;padding:6px 0;display:flex;gap:10px;justify-content:center;align-items:center">
+  // Buttons and header are standalone (outside sched-block), then morning, then main table
+  let html=``;
+  html+=`<div style="text-align:center;padding:6px 0;margin-bottom:6px;display:flex;gap:10px;justify-content:center;align-items:center">
+    ${(isMgr||currentEmp?.role==='manager')?`
       <button onclick="event.stopPropagation();toggleCVPublish('${cv.id}')"
         title="${cv.published?'לחץ לעצירת הפרסום':'לחץ לפרסום הסידור'}"
         style="background:${cv.published?'#dc2626':'#16a34a'};color:white;
@@ -3271,11 +3230,15 @@ function renderCombinedView(){
         onmouseover="this.style.background='#00d4ff';this.style.color='#0f172a'"
         onmouseout="this.style.background='#1e293b';this.style.color='#00d4ff'">
         👁 תצוגה מקדימה
-      </button>
-    </div>`:''}
-    <div class="sched-hdr" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);text-align:center;position:relative">
-      <span class="sched-hdr-title" style="flex:1;text-align:center;font-size:17px">🎬 ${cv.name} — ${weekDates()[6]} - ${weekDates()[0]} 🎬</span>
-    </div>
+      </button>`:''}
+  </div>`;
+  html+=`<div class="sched-hdr cv-main-hdr" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);text-align:center;position:relative;border-radius:10px;margin-bottom:6px">
+    <span class="sched-hdr-title" style="flex:1;text-align:center;font-size:17px">🎬 ${cv.name} — ${weekDates()[6]} - ${weekDates()[0]} 🎬</span>
+  </div>`;
+  // Main table block (regularShifts)
+  // morning block inserted after header, before main table
+  html+=buildSpecialBlock(morningShift);
+  html+=`<div class="sched-block cv-main-block" style="${regularBorderStyle}">
     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
     <table style="border-collapse:collapse;direction:rtl;min-width:500px;width:100%">
     <colgroup>
@@ -3460,7 +3423,7 @@ function renderCombinedView(){
   html+=buildSpecialBlock(nightShift);
   html+=buildSpecialBlock(eveningShift);
 
-  wrap.innerHTML=buildSpecialBlock(morningShift)+html;
+  wrap.innerHTML=html;
   if(window.innerWidth<600) setTimeout(()=>autoFitMobile(true),60);
 }
 
