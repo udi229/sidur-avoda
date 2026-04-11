@@ -227,6 +227,7 @@
   @keyframes neonPulseRed{0%,100%{box-shadow:0 0 8px #ff003c,0 0 16px #ff003c66}50%{box-shadow:0 0 20px #ff003c,0 0 40px #ff003caa}}
   @keyframes neonPulseBlue{0%,100%{box-shadow:0 0 8px #3b82f6,0 0 16px #3b82f666,inset 0 0 4px #3b82f622}50%{box-shadow:0 0 18px #3b82f6,0 0 36px #3b82f6aa,inset 0 0 8px #3b82f644}}
   @keyframes neonPulsePurple{0%,100%{box-shadow:0 0 8px #7c3aed,0 0 16px #7c3aed66}50%{box-shadow:0 0 18px #a78bfa,0 0 36px #7c3aedaa}}
+  #night-modal::backdrop{background:rgba(0,0,0,0.6)}
   @keyframes onair{0%,100%{background:#cc0000;box-shadow:0 0 12px #ff000077}50%{background:#ff1111;box-shadow:0 0 28px #ff0000aa}}
   @keyframes musicnote{0%,100%{transform:translate(-50%,-50%) scale(1) rotate(-5deg)}50%{transform:translate(-50%,-52%) scale(1.05) rotate(5deg)}}
   @keyframes toastIn{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -1340,15 +1341,13 @@
       </div>
     </div>
 
-    <!-- Night shift modal -->
-    <div id="night-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.6);align-items:center;justify-content:center">
-      <div id="night-modal-inner" style="background:#0f172a;border:2px solid #7c3aed;border-radius:16px;padding:20px;min-width:300px;max-width:90vw;direction:rtl;font-family:inherit;box-shadow:0 0 30px #7c3aed88;max-height:80vh;overflow-y:auto">
-        <div style="font-weight:800;color:white;margin-bottom:4px;font-size:15px">🌙 לילה — שבוע זה בלבד</div>
-        <div style="font-size:11px;color:#94a3b8;margin-bottom:12px">ברירת מחדל: כבוי. מתאפס בכל שבוע.</div>
-        <div id="night-modal-body"></div>
-        <button id="night-modal-close" style="margin-top:12px;width:100%;padding:8px;background:#1e293b;border:1px solid #334155;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;color:#94a3b8">סגור</button>
-      </div>
-    </div>
+    <!-- Night shift dialog -->
+    <dialog id="night-modal" style="background:#0f172a;border:2px solid #7c3aed;border-radius:16px;padding:20px;min-width:300px;max-width:90vw;direction:rtl;font-family:inherit;box-shadow:0 0 30px #7c3aed88;max-height:80vh;overflow-y:auto;color:white">
+      <div style="font-weight:800;margin-bottom:4px;font-size:15px">🌙 לילה — שבוע זה בלבד</div>
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:12px">ברירת מחדל: כבוי. מתאפס בכל שבוע.</div>
+      <div id="night-modal-body"></div>
+      <button id="night-modal-close" style="margin-top:12px;width:100%;padding:8px;background:#1e293b;border:1px solid #334155;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;color:#94a3b8">סגור</button>
+    </dialog>
     <div id="view-schedule">
 
       <div id="mgr-note" class="notice" style="display:none;background:#fef3c7;border:1px solid #fcd34d;color:#92400e">
@@ -4222,14 +4221,10 @@ function isNightWeekActive(deptId){ return nightWeekDepts.has(deptId); }
 function addNightShiftToWeek(){
   const m=document.getElementById('night-modal');
   if(!m) return;
-  if(m.style.display==='flex'){ m.style.display='none'; return; }
-  m.style.display='flex';
+  if(m.open){ m.close(); return; }
   renderNightModal();
-  // Wire close button
-  const closeBtn=document.getElementById('night-modal-close');
-  if(closeBtn) closeBtn.onclick=()=>{ m.style.display='none'; };
-  // Click outside to close
-  m.onclick=(e)=>{ if(e.target===m) m.style.display='none'; };
+  document.getElementById('night-modal-close').onclick=()=>m.close();
+  m.showModal();
 }
 
 function renderNightModal(){
