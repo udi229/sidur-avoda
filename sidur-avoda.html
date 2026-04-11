@@ -1792,6 +1792,14 @@ const SUPABASE_URL = 'https://efkcnuzbmwnslhgvpxws.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_c_45pz-jdrrfTlVkf_Pi1Q_nzZ_MSjE';
 const MANAGER_PIN  = '2209';
 const MANAGER_PIN2 = '1612';
+// Secondary manager (אפרת) acts as team_lead for these dept names
+const SECONDARY_LEAD_DEPTS = ['נתב', 'ע.במאי'];
+function isSecondaryLead(dId){
+  if(window._mgrType!=='secondary') return false;
+  const dept=departments.find(d=>d.id===dId);
+  if(!dept) return false;
+  return SECONDARY_LEAD_DEPTS.some(n=>dept.name.includes(n));
+}
 let pinTarget = 'primary'; // 'primary' or 'secondary'
 
 const { createClient } = supabase;
@@ -2467,10 +2475,13 @@ function renderDeptTabs(){
     const approved=sc?.status==='approved';
     const submitted=sc?.team_submitted&&!approved;
     const returned=sc?.returned_to_edit&&!approved;
+    const dotGreen='<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px #22c55e,0 0 12px #22c55e88;animation:neonPulseGreen 1s ease-in-out infinite;margin-left:5px;flex-shrink:0"></span>';
+    const dotRed='<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#ef4444;margin-left:5px;flex-shrink:0"></span>';
     let indicator='';
     if(approved) indicator='<span style="font-size:11px;margin-right:4px">✅</span>';
     else if(returned) indicator='<span style="font-size:11px;margin-right:4px">↩️</span>';
-    else if(submitted) indicator='<span style="font-size:11px;margin-right:4px">📬</span>';
+    else if(submitted) indicator=dotGreen;
+    else indicator=dotRed;
     const isActive=!activeCombinedId&&activeDeptId===d.id;
     const isMgrView2=isMgr||currentEmp?.role==='manager';
     const nameHtml=(submitted&&isMgrView2)
@@ -2482,7 +2493,7 @@ function renderDeptTabs(){
     const activeStyle=isActive?`background:${d.color};color:white;`:`color:${d.color};`;
     const tabStyle=submitted&&!approved&&!isActive?submittedStyle:(`border-color:${d.color};`+activeStyle);
     return `<button class="dept-tab${isActive?' active':''}${submitted&&!approved?' no-neon':''}"
-      style="${tabStyle}"
+      style="${tabStyle}display:inline-flex;align-items:center;gap:2px"
       onclick="setDept('${d.id}')">${indicator}${nameHtml}</button>`;
   }).join('');
 
@@ -3582,7 +3593,7 @@ function renderSchedule(){
   noteDiv.style.cssText='background:white;border-radius:14px;padding:16px 20px;box-shadow:0 1px 8px rgba(0,0,0,0.07);margin-top:14px';
   const deptSchedNote=schedules[activeDeptId];
   const role3=currentEmp?.role||'employee';
-  const isTeamLead3=role3==='team_lead'&&currentEmp?.department_id===activeDeptId;
+  const isTeamLead3=(role3==='team_lead'&&currentEmp?.department_id===activeDeptId)||isSecondaryLead(activeDeptId);
   const isMgrView=isMgr||role3==='manager';
   // last updated
   const lastUpdated=deptSchedNote?.updated_at?new Date(deptSchedNote.updated_at).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
@@ -3648,7 +3659,7 @@ function renderSchedule(){
   // ── STATS PANEL ──
   // Remove any previous stats panel first
   wrap.querySelectorAll('.inline-stats-panel').forEach(el=>el.remove());
-  if((isMgr||currentEmp?.role==='manager'||(currentEmp?.role==='team_lead'&&currentEmp?.department_id===activeDeptId))&&activeDeptId){
+  if((isMgr||currentEmp?.role==='manager'||(currentEmp?.role==='team_lead'&&currentEmp?.department_id===activeDeptId)||isSecondaryLead(activeDeptId))&&activeDeptId){
     const statDiv=document.createElement('div');
     statDiv.className='inline-stats-panel';
     statDiv.style.cssText='background:white;border-radius:14px;padding:16px 20px;box-shadow:0 1px 8px rgba(0,0,0,0.07);margin-top:14px';
