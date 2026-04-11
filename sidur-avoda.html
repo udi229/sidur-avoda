@@ -1346,11 +1346,7 @@
       </div>
       <div id="lock-notice" style="display:none"></div>
       <div id="dept-tabs" class="dept-tabs"></div>
-      <div id="mgr-broadcast-bar" style="display:none;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
-        <input id="broadcast-msg" type="text" placeholder="✍️ כתוב הודעה לעובדים..." style="flex:1;min-width:200px;padding:7px 12px;border:1.5px solid #7c3aed;border-radius:20px;font-size:13px;outline:none;font-family:inherit" />
-        <button onclick="sendBroadcastNotif()" style="padding:7px 16px;background:#7c3aed;color:white;border:none;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">📤 שלח לכולם</button>
-        <span id="broadcast-status" style="font-size:12px;color:#16a34a;white-space:nowrap"></span>
-      </div>
+
       <div id="sched-toolbar" style="display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:nowrap;overflow:hidden">
         <button id="my-shifts-btn" onclick="toggleMyShifts()"
           style="display:none;padding:5px 10px;border:2px solid #00ff88;border-radius:20px;font-size:11px;
@@ -1384,6 +1380,16 @@
 
     <div id="view-settings" style="display:none">
       <div class="sec-title">הגדרות מערכת</div>
+      <div id="broadcast-set-sec" class="set-sec collapsed" style="display:none">
+        <h3 onclick="toggleSetSec(this)">📢 שליחת הודעה לעובדים</h3>
+        <div class="set-sec-body" style="padding-top:10px">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input id="broadcast-msg" type="text" placeholder="✍️ כתוב הודעה לעובדים..." style="flex:1;min-width:200px;padding:7px 12px;border:1.5px solid #7c3aed;border-radius:20px;font-size:13px;outline:none;font-family:inherit" />
+            <button onclick="sendBroadcastNotif()" style="padding:7px 16px;background:#7c3aed;color:white;border:none;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">📤 שלח לכולם</button>
+            <span id="broadcast-status" style="font-size:12px;color:#16a34a;white-space:nowrap"></span>
+          </div>
+        </div>
+      </div>
       <div class="set-sec collapsed">
         <h3 onclick="toggleSetSec(this)">מחלקות</h3>
         <div class="set-sec-body">
@@ -1985,8 +1991,7 @@ function enterMgr(label='מנהל',type='primary'){
     const _li=document.getElementById('hdr-logo-icon');if(_li)_li.style.display='none';
   document.getElementById('nav-vacation').style.display='inline-block';
   const _navloz=document.getElementById('nav-loz');if(_navloz)_navloz.style.display='inline-block';
-  const bcBar=document.getElementById('mgr-broadcast-bar');
-  if(bcBar) bcBar.style.display='flex';
+
   loadAll().then(()=>loadWeekData()).then(()=>{
     activeDeptId=departments[0]?.id||null;
     const ftBtn=document.getElementById('freelance-toggle');
@@ -4071,6 +4076,9 @@ async function lozRenderEditorsListSettings(){
 
 function renderSettings(){
   const isSecondary = window._mgrType === 'secondary';
+  // Show broadcast section only for primary manager (אודי)
+  const bcastSec = document.getElementById('broadcast-set-sec');
+  if(bcastSec) bcastSec.style.display = isSecondary ? 'none' : '';
   // For secondary manager: show only freelancers + employees sections
   document.querySelectorAll('#view-settings .set-sec').forEach((sec,i) => {
     if(isSecondary){
