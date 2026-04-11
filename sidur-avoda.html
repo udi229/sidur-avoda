@@ -4253,13 +4253,15 @@ function renderNightModal(){
 async function nightToggleDept(deptId, shiftId){
   const ws=weekStartStr();
   const active=nightWeekDepts.has(deptId);
-  if(active){
-    nightWeekDepts.delete(deptId);
-    await sb.from('night_week_active').delete().eq('department_id',deptId).eq('week_start',ws).catch(()=>{});
-  } else {
-    nightWeekDepts.add(deptId);
-    await sb.from('night_week_active').upsert({department_id:deptId,shift_id:shiftId,week_start:ws},{onConflict:'department_id,week_start'}).catch(()=>{});
-  }
+  try{
+    if(active){
+      nightWeekDepts.delete(deptId);
+      await sb.from('night_week_active').delete().eq('department_id',deptId).eq('week_start',ws);
+    } else {
+      nightWeekDepts.add(deptId);
+      await sb.from('night_week_active').upsert({department_id:deptId,shift_id:shiftId,week_start:ws},{onConflict:'department_id,week_start'});
+    }
+  }catch(e){ console.warn('nightToggleDept:',e); }
   renderNightModal();
   renderSchedule();
 }
@@ -4268,15 +4270,17 @@ async function nightToggleAll(enable){
   const nightShift=shiftTypes.find(s=>s.name==='לילה');
   if(!nightShift) return;
   const ws=weekStartStr();
-  for(const dept of departments){
-    if(enable){
-      nightWeekDepts.add(dept.id);
-      await sb.from('night_week_active').upsert({department_id:dept.id,shift_id:nightShift.id,week_start:ws},{onConflict:'department_id,week_start'}).catch(()=>{});
-    } else {
-      nightWeekDepts.delete(dept.id);
-      await sb.from('night_week_active').delete().eq('department_id',dept.id).eq('week_start',ws).catch(()=>{});
+  try{
+    for(const dept of departments){
+      if(enable){
+        nightWeekDepts.add(dept.id);
+        await sb.from('night_week_active').upsert({department_id:dept.id,shift_id:nightShift.id,week_start:ws},{onConflict:'department_id,week_start'});
+      } else {
+        nightWeekDepts.delete(dept.id);
+        await sb.from('night_week_active').delete().eq('department_id',dept.id).eq('week_start',ws);
+      }
     }
-  }
+  }catch(e){ console.warn('nightToggleAll:',e); }
   renderNightModal();
   renderSchedule();
 }
