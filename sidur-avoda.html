@@ -2880,36 +2880,30 @@ function renderDropdownItems(dId,shiftId,dayIdx,q=''){
 function countEmpShifts(name, deptId){
   const sched=schedules[deptId];
   if(!sched) return 0;
-  // Count unique (shiftId, dayIdx) combinations to avoid double-counting
-  // when person appears in both shift and role cells
+  // Count unique (parentShiftId, dayIdx) to avoid double-counting roles+shifts
   const seen=new Set();
   Object.entries(cellData).forEach(([key,cell])=>{
     if(cell.schedule_id!==sched.id||!cell.content) return;
+    if(cell.shift_type&&cell.shift_type.startsWith('note_')) return;
     const names=cell.content.split('|').filter(Boolean);
     if(!names.includes(name)) return;
-    // Extract dayIdx from shift_type
-    const dayIdx=cell.day_index;
-    // Get base shiftId (strip r_ prefix for roles)
     const shiftType=cell.shift_type||'';
-    const baseShift=shiftType.startsWith('r_')?'role':shiftType;
-    const uniqKey=`${baseShift}_${dayIdx}`;
-    if(!seen.has(uniqKey)){
-      seen.add(uniqKey);
-      // But for role shifts: find parent shiftId
-      // Actually just count per unique day+shiftBase
+    // For role shifts (r_roleId), find parent shift via shiftRoles
+    let parentShift=shiftType;
+    if(shiftType.startsWith('r_')){
+      const roleId=shiftType.slice(2);
+      // Find which shift this role belongs to
+      for(const [k,roles] of Object.entries(shiftRoles)){
+        const role=roles.find(r=>r.id===roleId);
+        if(role){
+          parentShift=k.split('_').slice(1).join('_'); // deptId_shiftId -> shiftId
+          break;
+        }
+      }
     }
+    seen.add(`${parentShift}_${cell.day_index}`);
   });
-  // Simpler: count per unique dayIdx (one per day max per dept)
-  const days=new Set();
-  Object.entries(cellData).forEach(([key,cell])=>{
-    if(cell.schedule_id!==sched.id||!cell.content) return;
-    const names=cell.content.split('|').filter(Boolean);
-    if(!names.includes(name)) return;
-    if(key.includes('note_')) return;
-    // Use shiftType+dayIdx as unique key
-    days.add(`${cell.shift_type}_${cell.day_index}`);
-  });
-  return days.size;
+  return seen.size;
 }
 
 async function saveNote(dId,shiftId,dayIdx,note){
@@ -3678,7 +3672,10 @@ function highlightEmp(firstName){
     _highlightedEmp = firstName;
     renderSchedule();
     setTimeout(()=>{
-      document.querySelectorAll(`.stat-tile[data-emp="${firstName}"]`).forEach(el=>el.classList.add('selected'));
+      // Use attribute selector safely (handle apostrophes)
+      document.querySelectorAll('.stat-tile').forEach(el=>{
+        if(el.dataset.emp===firstName) el.classList.add('selected');
+      });
     }, 50);
   } else {
     _highlightedEmp = null;
