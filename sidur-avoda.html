@@ -2185,29 +2185,56 @@ async function initApp(user){
       }).catch(()=>{});
     })
     .subscribe((status)=>{
-      console.log('realtime status:', status);
-      if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
-        console.warn('Realtime failed, falling back to polling');
-        startPolling();
+      console.log('%c[Realtime] status: '+status, 'color:'+(status==='SUBSCRIBED'?'green':'orange')+';font-weight:bold');
+      if(status==='SUBSCRIBED'){
+        // Realtime connected — do an immediate sync to catch anything missed
+        loadWeekData().then(()=>renderSchedule());
+      }
+      if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){
+        console.warn('[Realtime] failed — polling will cover updates every 5s');
       }
     });
 
-  // Polling fallback — fires every 20s if realtime is broken
+  // Polling — fires every 5s, checks for real changes before reloading
   let _pollInterval=null;
-  let _lastCellHash='';
+  let _lastHash='';
   function startPolling(){
     if(_pollInterval) return;
     _pollInterval=setInterval(async()=>{
-      const ws=weekStartStr();
-      const {data:sc}=await sb.from('schedules').select('id,updated_at').eq('week_start',ws);
-      const hash=(sc||[]).map(s=>s.id+'@'+s.updated_at).sort().join('|');
-      if(hash!==_lastCellHash){
-        _lastCellHash=hash;
-        loadWeekData().then(()=>renderSchedule());
-      }
-    },20000);
+      try{
+        const ws=weekStartStr();
+        // Check schedules updated_at
+        const {data:sc}=await sb.from('schedules').select('id,updated_at,team_submitted,status,team_note').eq('week_start',ws);
+        if(!sc) return;
+        const schedIds=sc.map(s=>s.id);
+        // Check schedule_cells updated_at
+        let cellsHash='';
+        if(schedIds.length){
+          const {data:cells}=await sb.from('schedule_cells').select('id,content,schedule_id').in('schedule_id',schedIds);
+          cellsHash=(cells||[]).map(c=>c.id+':'+c.content).sort().join('|');
+        }
+        // Check cv_weekly_publish
+        const {data:cvp}=await sb.from('cv_weekly_publish').select('cv_id,published').eq('week_start',ws);
+        const cvHash=(cvp||[]).map(p=>p.cv_id+':'+p.published).sort().join('|');
+        const hash=(sc||[]).map(s=>s.id+'@'+s.updated_at+'@'+s.team_submitted+'@'+s.status).sort().join('|')+'||'+cellsHash+'||'+cvHash;
+        if(hash!==_lastHash){
+          if(_lastHash!==''){
+            // Something changed — reload
+            loadWeekData().then(()=>{
+              renderSchedule();
+              // Update cv publish state
+              window._cvWeeklyPub={};
+              (cvp||[]).forEach(p=>{ window._cvWeeklyPub[p.cv_id]=p.published; });
+              combinedViews.forEach(cv=>{ cv.published=window._cvWeeklyPub[cv.id]||false; });
+              renderDeptTabs();
+            });
+          }
+          _lastHash=hash;
+        }
+      }catch(e){}
+    },5000);
   }
-  // Always start polling as safety net (light — only reloads on actual change)
+  // Always poll as safety net
   startPolling();
 
   // presence channel
