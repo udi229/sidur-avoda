@@ -4221,7 +4221,6 @@ function addNightShiftToWeek(){
   overlay.onclick=()=>overlay.remove();
   const popup=document.createElement('div');
   popup.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#0f172a;border:2px solid #7c3aed;border-radius:16px;padding:20px;min-width:300px;direction:rtl;font-family:inherit;box-shadow:0 0 30px #7c3aed88;max-height:80vh;overflow-y:auto';
-  popup.onclick=e=>e.stopPropagation(); // keep — prevents overlay close
   const render=()=>{
     const allActive=departments.every(d=>nightWeekDepts.has(d.id));
     let h=`<div style="font-weight:800;color:white;margin-bottom:4px;font-size:15px">🌙 לילה — שבוע זה בלבד</div>`;
@@ -4239,8 +4238,9 @@ function addNightShiftToWeek(){
     h+=`</div><button data-action="close" style="margin-top:12px;width:100%;padding:8px;background:#1e293b;border:1px solid #334155;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;color:#94a3b8">סגור</button>`;
     popup.innerHTML=h;
   };
-  // Event delegation — handle all clicks on popup
+  // Event delegation — stopPropagation here prevents overlay close
   popup.addEventListener('click', async e=>{
+    e.stopPropagation();
     const btn=e.target.closest('[data-action]');
     if(!btn) return;
     const action=btn.dataset.action;
