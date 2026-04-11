@@ -3405,7 +3405,7 @@ function renderCombinedView(){
           const innerContent=isJewish||isMuslim
             ?`<div class="hol-wrap ${isJewish?'jewish':'muslim'}"><div class="hol-spark"></div><div class="hol-inner">${dayContent}</div></div>`
             :dayContent;
-          return `<th style="padding:${isJewish||isMuslim?'2px':'6px'} 4px;text-align:center;border-bottom:2px solid #0f172a;border-left:0.5px solid #e2e8f0">${innerContent}</th>`;
+          return `<th style="padding:${isJewish||isMuslim?'2px':'6px'} 4px;text-align:center;border-bottom:2px solid #0f172a;border-left:0.5px solid #e2e8f0;background:white">${innerContent}</th>`;
         }).join('')}
       </tr>
     </thead>`;
