@@ -1825,6 +1825,7 @@ let activeView='schedule', activeDeptId=null;
 let openDropdown=null;
 let editMode=false;
 let deptShifts={};
+let deptShiftWeekDisabled={}; // {deptId_shiftId: true} for current week
 let searchQuery='';
 let showFreelancers=false;
 let shiftRoles={}; // {deptId_shiftId: [{id,role_name,sort_order}]}
@@ -2424,6 +2425,10 @@ async function loadWeekData(){
   (cvPub2||[]).forEach(p=>{ window._cvWeeklyPub[p.cv_id]=p.published; });
   combinedViews.forEach(cv=>{ cv.published=window._cvWeeklyPub[cv.id]||false; });
   const ws=weekStartStr();
+  // Load weekly disabled shifts
+  const {data:dswd}=await sb.from('dept_shift_week_disabled').select('*').eq('week_start',ws).catch(()=>({data:[]}));
+  deptShiftWeekDisabled={};
+  (dswd||[]).forEach(r=>{ deptShiftWeekDisabled[r.department_id+'_'+r.shift_id]=true; });
   const {data:sc}=await sb.from('schedules').select('*').eq('week_start',ws);
   schedules={};(sc||[]).forEach(s=>{schedules[s.department_id]=s;});
   const ids=Object.values(schedules).map(s=>s.id);
@@ -3500,9 +3505,9 @@ function renderSchedule(){
 
   const isSoundDept=dept.name.toLowerCase().includes('סאונד')||dept.name.toLowerCase().includes('שמע');
   const deptShiftIds2=deptShifts[dept.id];
-  const activeShifts2=deptShiftIds2&&deptShiftIds2.length>0
+  const activeShifts2=(deptShiftIds2&&deptShiftIds2.length>0
     ? shiftTypes.filter(s=>deptShiftIds2.includes(s.id))
-    : shiftTypes;
+    : shiftTypes).filter(s=>!deptShiftWeekDisabled[dept.id+'_'+s.id]);
   const shiftNames2=activeShifts2.map(s=>s.name);
   const singleSpecial=activeShifts2.length===1&&(shiftNames2[0]==="ערבית"||shiftNames2[0]==="לילה");
   let blockStyle="position:relative;overflow:hidden;border-radius:12px;";
@@ -3545,10 +3550,23 @@ function renderSchedule(){
     </tr></thead><tbody>`;
 
   // get shifts for this dept (fallback to all if none configured)
+  // In edit mode: show all configured shifts. In view mode: hide weekly-disabled shifts
   const deptShiftIds=deptShifts[dept.id];
-  const activeShifts=deptShiftIds&&deptShiftIds.length>0
+  const allDeptShifts=deptShiftIds&&deptShiftIds.length>0
     ? shiftTypes.filter(s=>deptShiftIds.includes(s.id))
     : shiftTypes;
+  const canEditDept=canEdit(dept.id);
+  const activeShifts=allDeptShifts.filter(s=>{
+    const disabled=deptShiftWeekDisabled[dept.id+'_'+s.id];
+    if(!disabled) return true;
+    // In edit mode (team_lead/manager): still show disabled shifts if they have data
+    if(canEditDept) return true;
+    // In view mode: hide disabled shifts only if empty
+    const sched=schedules[dept.id];
+    if(!sched) return false;
+    const hasData=[0,1,2,3,4,5,6].some(d=>getCellNames(sched.id,s.id,d).length>0);
+    return hasData;
+  });
 
   for(const shift of activeShifts){
     const roles=shiftRoles[dept.id+'_'+shift.id]||[];
@@ -4129,19 +4147,31 @@ function renderDeptShiftSettings(){
   let html='';
   departments.forEach(dept=>{
     const active=deptShifts[dept.id]||[];
+    const shiftsForDept=active.length>0?shiftTypes.filter(s=>active.includes(s.id)):shiftTypes;
     html+=`<div style="background:#f8fafc;border-radius:10px;padding:12px 16px;margin-bottom:10px">
-      <div style="font-weight:700;color:#0f172a;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+      <div style="font-weight:700;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:8px">
         <div style="width:12px;height:12px;border-radius:50%;background:${dept.color}"></div>
         ${dept.name}
       </div>
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:8px">✅ = פעיל תמיד &nbsp;|&nbsp; ⚡ = פעיל השבוע</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px">`;
     shiftTypes.forEach(shift=>{
-      const isActive=active.includes(shift.id)||active.length===0;
       const checked=active.includes(shift.id);
-      html+=`<label style="display:inline-flex;align-items:center;gap:5px;background:${checked?shift.color+'33':'white'};border:1.5px solid ${checked?shift.color:'#e2e8f0'};border-radius:20px;padding:4px 10px;cursor:pointer;font-size:12px;font-weight:600;color:${checked?'#0f172a':'#64748b'}">
-        <input type="checkbox" ${checked?'checked':''} onchange="toggleDeptShift('${dept.id}','${shift.id}',this.checked)" style="display:none" />
-        ${shift.name}
-      </label>`;
+      const weekKey=dept.id+'_'+shift.id;
+      const weekDisabled=!!deptShiftWeekDisabled[weekKey];
+      const inDept=active.length===0||checked; // is this shift relevant to dept
+      if(!inDept) return; // don't show shifts not configured for this dept
+      const weekActive=inDept&&!weekDisabled;
+      html+=`<div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+        <label title="פעיל תמיד" style="display:inline-flex;align-items:center;gap:5px;background:${checked?shift.color+'33':'white'};border:1.5px solid ${checked?shift.color:'#e2e8f0'};border-radius:20px;padding:4px 10px;cursor:pointer;font-size:12px;font-weight:600;color:${checked?'#0f172a':'#64748b'}">
+          <input type="checkbox" ${checked?'checked':''} onchange="toggleDeptShift('${dept.id}','${shift.id}',this.checked)" style="display:none" />
+          ${shift.name}
+        </label>
+        <label title="${weekActive?'לחץ לכיבוי השבוע':'לחץ להפעלה השבוע'}" style="display:inline-flex;align-items:center;gap:4px;background:${weekActive?'#dcfce7':'#fee2e2'};border:1.5px solid ${weekActive?'#22c55e':'#fca5a5'};border-radius:12px;padding:2px 8px;cursor:pointer;font-size:10px;font-weight:700;color:${weekActive?'#15803d':'#dc2626'}">
+          <input type="checkbox" ${weekActive?'checked':''} onchange="toggleDeptShiftWeek('${dept.id}','${shift.id}',!this.checked)" style="display:none" />
+          ⚡ ${weekActive?'השבוע ✓':'השבוע ✗'}
+        </label>
+      </div>`;
     });
     html+=`</div></div>`;
   });
@@ -4164,6 +4194,20 @@ async function toggleDeptShift(deptId, shiftId, enable){
     // remove
     await sb.from('department_shifts').delete().eq('department_id',deptId).eq('shift_id',shiftId);
     if(deptShifts[deptId]) deptShifts[deptId]=deptShifts[deptId].filter(s=>s!==shiftId);
+  }
+  renderDeptShiftSettings();
+  if(activeView==='schedule') renderSchedule();
+}
+
+async function toggleDeptShiftWeek(deptId, shiftId, disable){
+  const ws=weekStartStr();
+  const key=deptId+'_'+shiftId;
+  if(disable){
+    deptShiftWeekDisabled[key]=true;
+    await sb.from('dept_shift_week_disabled').upsert({department_id:deptId,shift_id:shiftId,week_start:ws},{onConflict:'department_id,shift_id,week_start'}).catch(()=>{});
+  } else {
+    delete deptShiftWeekDisabled[key];
+    await sb.from('dept_shift_week_disabled').delete().eq('department_id',deptId).eq('shift_id',shiftId).eq('week_start',ws).catch(()=>{});
   }
   renderDeptShiftSettings();
   if(activeView==='schedule') renderSchedule();
