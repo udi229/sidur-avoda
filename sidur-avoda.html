@@ -1874,6 +1874,16 @@ async function handleAuth(){
   if(authMode==='login'){
     const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
     if(error){setMsg('אימייל או סיסמה שגויים');return;}
+    // Check if employee exists with email as name - show fix prompt
+    await loadAll();
+    const existingEmpLogin=employees.find(e=>e.email.toLowerCase()===email.toLowerCase());
+    if(existingEmpLogin && existingEmpLogin.full_name===email){
+      // Name is email - need to fix
+      const realName=prompt('שם המשתמש שלך לא נשמר. אנא הכנס את שמך המלא:','');
+      if(realName && realName.trim()){
+        await sb.from('employees').update({full_name:realName.trim()}).eq('email',email);
+      }
+    }
     await initApp(data.user);
   } else {
     const name=document.getElementById('a-name').value.trim();
@@ -1914,12 +1924,15 @@ async function handleAuth(){
         deptName=dept;
       }catch(e){}
     }
+    // Store reg data for initApp fallback
+    try{ sessionStorage.setItem('reg-data', JSON.stringify({name, dept:deptId})); }catch(e){}
     // Check if employee already exists - preserve role and position
     const {data:existingEmp}=await sb.from('employees').select('role,position_percent').eq('email',email).single().catch(()=>({data:null}));
     const preservedRole=existingEmp?.role||'employee';
     const preservedPos=existingEmp?.position_percent||100;
     await sb.from('employees').delete().eq('email',email);
     await sb.from('employees').insert({full_name:name,email,role:preservedRole,department_id:deptId||null,position_percent:preservedPos});
+    sessionStorage.removeItem('reg-data');
     await initApp(authData.user);
   }
 }
@@ -2040,7 +2053,24 @@ function playWelcome(name, role, deptTitle){
 async function initApp(user){
   currentUser=user;
   await loadAll();
-  currentEmp=employees.find(e=>e.email.toLowerCase()===user.email.toLowerCase())||{id:null,full_name:user.email,email:user.email,role:'employee',department_id:null,position_percent:100};
+  currentEmp=employees.find(e=>e.email.toLowerCase()===user.email.toLowerCase())||null;
+  if(!currentEmp){
+    // Employee missing from DB - try to create from stored reg data
+    const regData=(() => { try{ return JSON.parse(sessionStorage.getItem('reg-data')||'null'); }catch(e){return null;} })();
+    const name=regData?.name || (user.user_metadata?.full_name) || user.email;
+    const deptId=regData?.dept || null;
+    try{
+      const {data:newEmp}=await sb.from('employees').insert({
+        full_name:name, email:user.email, role:'employee',
+        department_id:deptId, position_percent:100
+      }).select().single();
+      if(newEmp){ employees.push(newEmp); currentEmp=newEmp; }
+      sessionStorage.removeItem('reg-data');
+    }catch(e){ console.error('auto-create employee failed',e); }
+    if(!currentEmp){
+      currentEmp={id:null,full_name:name,email:user.email,role:'employee',department_id:null,position_percent:100};
+    }
+  }
   // Auto-register in vacation app Firebase
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('hub-screen').classList.add('active');
