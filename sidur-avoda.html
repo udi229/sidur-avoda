@@ -4229,18 +4229,23 @@ function renderNightModal(){
   const nightShift=shiftTypes.find(s=>s.name==='לילה');
   const el=document.getElementById('night-modal-body');
   if(!el||!nightShift) return;
+  el.innerHTML='';
   const allActive=departments.every(d=>nightWeekDepts.has(d.id));
-  let h='';
-  h+=`<button id="night-all-btn" style="width:100%;padding:8px;margin-bottom:10px;background:${allActive?'#14532d':'#1e293b'};color:${allActive?'#86efac':'#a78bfa'};border:1.5px solid ${allActive?'#22c55e':'#7c3aed'};border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700" onclick="nightToggleAll(${!allActive})">${allActive?'✓ כולם פעילים — כבה הכל':'הפעל לכולם'}</button>`;
+  // "הפעל לכולם" button
+  const allBtn=document.createElement('button');
+  allBtn.style.cssText=`width:100%;padding:8px;margin-bottom:10px;background:${allActive?'#14532d':'#1e293b'};color:${allActive?'#86efac':'#a78bfa'};border:1.5px solid ${allActive?'#22c55e':'#7c3aed'};border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700`;
+  allBtn.textContent=allActive?'✓ כולם פעילים — כבה הכל':'הפעל לכולם';
+  allBtn.addEventListener('click',()=>nightToggleAll(!allActive));
+  el.appendChild(allBtn);
+  // Per-dept buttons
   departments.forEach(dept=>{
     const active=nightWeekDepts.has(dept.id);
-    h+=`<button style="display:flex;align-items:center;gap:10px;padding:8px 14px;margin-bottom:6px;border:1.5px solid ${active?'#22c55e':'#334155'};border-radius:10px;background:${active?'#14532d':'#1e293b'};cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:${active?'#86efac':'#94a3b8'};width:100%" onclick="nightToggleDept('${dept.id}','${nightShift.id}')">
-      <div style="width:10px;height:10px;border-radius:50%;background:${dept.color};flex-shrink:0"></div>
-      ${dept.name}
-      <span style="margin-right:auto">${active?'✓':''}</span>
-    </button>`;
+    const btn=document.createElement('button');
+    btn.style.cssText=`display:flex;align-items:center;gap:10px;padding:8px 14px;margin-bottom:6px;border:1.5px solid ${active?'#22c55e':'#334155'};border-radius:10px;background:${active?'#14532d':'#1e293b'};cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:${active?'#86efac':'#94a3b8'};width:100%`;
+    btn.innerHTML=`<div style="width:10px;height:10px;border-radius:50%;background:${dept.color};flex-shrink:0;pointer-events:none"></div><span style="pointer-events:none">${dept.name}</span><span style="margin-right:auto;pointer-events:none">${active?'✓':''}</span>`;
+    btn.addEventListener('click',()=>nightToggleDept(dept.id, nightShift.id));
+    el.appendChild(btn);
   });
-  el.innerHTML=h;
 }
 
 async function nightToggleDept(deptId, shiftId){
