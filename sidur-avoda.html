@@ -3210,16 +3210,27 @@ function renderCombinedView(){
   const wrap=document.getElementById('sched-wrap');
   document.getElementById('lock-notice').style.display='none';
 
-  const allShiftIds=new Set();
   const nightIdCV=shiftTypes.find(s=>s.name==='לילה')?.id;
+  const allShiftIds=new Set();
   depts.forEach(dept=>{
     const ds=deptShifts[dept.id];
     const baseIds=ds&&ds.length>0 ? ds : shiftTypes.filter(s=>s.id!==nightIdCV).map(s=>s.id);
     baseIds.forEach(s=>allShiftIds.add(s));
-    // Add night if active this week for this dept
     if(nightIdCV&&isNightWeekActive(dept.id)) allShiftIds.add(nightIdCV);
   });
-  const activeShifts=shiftTypes.filter(s=>allShiftIds.has(s.id));
+  // Build ordered list: night inserted before ערבית, only if at least one dept has it active
+  const anyNightActive=nightIdCV&&depts.some(d=>isNightWeekActive(d.id));
+  const baseActive=shiftTypes.filter(s=>allShiftIds.has(s.id)&&s.id!==nightIdCV);
+  let activeShifts;
+  if(anyNightActive){
+    const nightShiftCV=shiftTypes.find(s=>s.id===nightIdCV);
+    const arabIdx=baseActive.findIndex(s=>s.name==='ערבית');
+    activeShifts=[...baseActive];
+    if(arabIdx>=0) activeShifts.splice(arabIdx,0,nightShiftCV);
+    else activeShifts.push(nightShiftCV);
+  } else {
+    activeShifts=baseActive;
+  }
   const B='border:1px solid #e2e8f0';
 
   // Split shifts into groups
@@ -3527,12 +3538,13 @@ function renderSchedule(){
   const isSoundDept=dept.name.toLowerCase().includes('סאונד')||dept.name.toLowerCase().includes('שמע');
   const deptShiftIds2=deptShifts[dept.id];
   const nightId2=shiftTypes.find(s=>s.name==='לילה')?.id;
+  const nightShiftObj2=nightId2?shiftTypes.find(s=>s.id===nightId2):null;
   const baseShifts2=deptShiftIds2&&deptShiftIds2.length>0
     ? shiftTypes.filter(s=>deptShiftIds2.includes(s.id))
     : shiftTypes.filter(s=>s.id!==nightId2);
-  const activeShifts2=nightId2
-    ? (isNightWeekActive(dept.id) ? [...baseShifts2.filter(s=>s.id!==nightId2), shiftTypes.find(s=>s.id===nightId2)].filter(Boolean) : baseShifts2.filter(s=>s.id!==nightId2))
-    : baseShifts2;
+  const activeShifts2=nightShiftObj2&&isNightWeekActive(dept.id)
+    ? (()=>{const w=baseShifts2.filter(s=>s.id!==nightId2);const ai=w.findIndex(s=>s.name==='ערבית');if(ai>=0){w.splice(ai,0,nightShiftObj2);return w;}return[...w,nightShiftObj2];})()
+    : baseShifts2.filter(s=>s.id!==nightId2);
   const shiftNames2=activeShifts2.map(s=>s.name);
   const singleSpecial=activeShifts2.length===1&&(shiftNames2[0]==="ערבית"||shiftNames2[0]==="לילה");
   let blockStyle="position:relative;overflow:hidden;border-radius:12px;";
@@ -3580,9 +3592,18 @@ function renderSchedule(){
   const baseShifts=deptShiftIds&&deptShiftIds.length>0
     ? shiftTypes.filter(s=>deptShiftIds.includes(s.id))
     : shiftTypes.filter(s=>s.id!==nightId);
-  const activeShifts=nightId
-    ? (isNightWeekActive(dept.id) ? [...baseShifts.filter(s=>s.id!==nightId), shiftTypes.find(s=>s.id===nightId)].filter(Boolean) : baseShifts.filter(s=>s.id!==nightId))
-    : baseShifts;
+  function insertNightBeforeAravit(shifts, nightShift){
+    if(!nightShift) return shifts;
+    const without=shifts.filter(s=>s.id!==nightShift.id);
+    const arabIdx=without.findIndex(s=>s.name==='ערבית');
+    if(arabIdx>=0){ without.splice(arabIdx,0,nightShift); return without; }
+    // fallback: before לילה or at end
+    return [...without, nightShift];
+  }
+  const nightShiftObj=nightId?shiftTypes.find(s=>s.id===nightId):null;
+  const activeShifts=nightShiftObj&&isNightWeekActive(dept.id)
+    ? insertNightBeforeAravit(baseShifts.filter(s=>s.id!==nightId), nightShiftObj)
+    : baseShifts.filter(s=>s.id!==nightId);
 
   for(const shift of activeShifts){
     const roles=shiftRoles[dept.id+'_'+shift.id]||[];
