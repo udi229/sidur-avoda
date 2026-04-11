@@ -269,8 +269,8 @@
   @keyframes neonPulsePurple{0%,100%{box-shadow:0 0 8px #7c3aed,0 0 16px #7c3aed66}50%{box-shadow:0 0 18px #a78bfa,0 0 36px #7c3aedaa}}
   @keyframes orbitSpark{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
   @keyframes breatheShadow{0%,100%{text-shadow:0 1px 2px rgba(0,0,0,0.08)}50%{text-shadow:0 2px 12px rgba(0,0,0,0.45),0 1px 4px rgba(0,0,0,0.25)}}
-  @keyframes breatheBorder{0%,100%{box-shadow:0 2px 4px rgba(15,23,42,0.12)}50%{box-shadow:0 4px 18px rgba(15,23,42,0.4),0 1px 6px rgba(15,23,42,0.2)}}
-  .cv-hdr-row th { animation:breatheBorder 3s ease-in-out infinite; }
+  @keyframes breatheBorder{0%,100%{filter:drop-shadow(0 1px 3px rgba(15,23,42,0.1))}50%{filter:drop-shadow(0 3px 14px rgba(15,23,42,0.45))}}
+  .cv-hdr-row { animation:breatheBorder 3s ease-in-out infinite; }
   .hol-spark-el{position:absolute;inset:-100%;width:300%;height:300%;pointer-events:none;z-index:0}
   .th-jewish .hol-spark-el{background:conic-gradient(from 0deg,#3b82f6 0%,#3b82f6 80%,rgba(255,255,255,0.3) 88%,white 92%,rgba(255,255,255,0.3) 96%,#3b82f6 100%);animation:orbitSpark 7s linear infinite}
   .th-muslim .hol-spark-el{background:conic-gradient(from 0deg,#22c55e 0%,#22c55e 80%,rgba(255,255,255,0.3) 88%,white 92%,rgba(255,255,255,0.3) 96%,#22c55e 100%);animation:orbitSpark 7s linear infinite}
@@ -3390,7 +3390,7 @@ function renderCombinedView(){
     const isMorning=shift.name==='בוקר';
     let bHtml=`<div class="sched-block" style="border:${isMorning?'2px solid #0f172a':`3px solid ${col}`};border-radius:12px;margin-top:8px">`;
     bHtml+=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">`;
-    bHtml+=`<table style="border-collapse:collapse;direction:rtl;min-width:500px;width:100%">`;
+    bHtml+=`<table style="border-collapse:${showDates?'separate':'collapse'};border-spacing:0;direction:rtl;min-width:500px;width:100%">`;
     bHtml+=`<colgroup><col style="width:80px;min-width:80px"><col style="width:75px;min-width:65px">${DAYS_DISPLAY.map(()=>'<col style="min-width:65px">').join('')}</colgroup>`;
     if(showDates){
     bHtml+=`<thead>
