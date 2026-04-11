@@ -3091,18 +3091,22 @@ function renderCombinedView(){
           names.forEach(name=>{
             const isMe=currentEmp&&currentEmp.full_name===name&&!isMgr;
             const isSearch=searchQuery&&name.toLowerCase().includes(searchQuery.toLowerCase());
-            let col,bg;
+            const isFree=freelancers.some(f=>f.name===name);
+            const firstName=name.split(' ')[0];
+            const isHighlightedFree=_highlightedFree&&(name===_highlightedFree||firstName===_highlightedFree);
+            const isHighlightedEmp=_highlightedEmp&&(name===_highlightedEmp||firstName===_highlightedEmp);
+            let col,bg,extraStyle='';
             if(isSearch){col='#dc2626';bg='#fee2e2';}
-            else if(isMe&&showMyShifts){col='#15803d';bg='#dcfce7';}
+            else if(isMe&&showMyShifts){col='#00cc44';bg='white';extraStyle='box-shadow:0 0 10px #00ff88,0 0 20px #00ff8866;animation:neonPulseGreen 1.2s ease-in-out infinite;';}
             else if(showMyShifts&&!isMe){col='#94a3b8';bg='transparent';}
-            else if(showFreelancers&&freelancers.some(f=>f.name===name)){col='#854d0e';bg='#fef9c3';}
+            else if(isHighlightedFree){col='#d97706';bg='white';extraStyle='box-shadow:0 0 10px #fbbf24,0 0 20px #fbbf2466;animation:neonPulseYellow 1.2s ease-in-out infinite;border:2px solid #fbbf24;';}
+            else if(showFreelancers&&isFree){col='#854d0e';bg='#fef9c3';}
+            else if(isHighlightedEmp){col='#ff2200';bg='#fff0f0';extraStyle='box-shadow:0 0 8px #ff220088;border:2px solid #ff2200;';}
             else{col='#0f172a';bg='transparent';}
             const nameCount=names.length;
             const combinedFontSize=nameCount>=2?'13px':'18px';
-            const combinedBg=(isMe&&showMyShifts)||isSearch?bg:'transparent';
-            const combinedCol=(isMe&&showMyShifts)||isSearch?col:'#0f172a';
-            html+=`<span style="font-size:${combinedFontSize};font-weight:700;color:${combinedCol};background:${combinedBg};
-              border-radius:8px;padding:2px 5px;white-space:nowrap;display:inline-block;width:calc(100% - 4px);text-align:center">${name.split(' ')[0]}</span>`;
+            html+=`<span style="font-size:${combinedFontSize};font-weight:700;color:${col};background:${bg};${extraStyle}
+              border-radius:8px;padding:2px 5px;white-space:nowrap;display:inline-block;width:calc(100% - 4px);text-align:center">${firstName}</span>`;
           });
         } else {
           html+=`<span style="color:#d1d5db;font-size:12px">—</span>`;
@@ -3657,7 +3661,7 @@ function highlightFreelancer(firstName){
   _highlightedFree = on ? firstName : null;
   _highlightedEmp = null;
   if(on){
-    document.querySelectorAll('.stat-tile[data-emp="'+firstName+'"]').forEach(el=>el.classList.add('selected-free'));
+    document.querySelectorAll('.stat-tile').forEach(el=>{ if(el.dataset.emp===firstName||el.dataset.emp===_highlightedFree) el.classList.add('selected-free'); });
     if(activeView !== 'schedule') showView('schedule');
     setTimeout(()=>{ renderSchedule(); },50);
   } else {
