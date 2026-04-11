@@ -2141,7 +2141,7 @@ async function initApp(user){
     },120);
   }
 
-  sb.channel('rt')
+  const _rtCh = sb.channel('rt', {config:{broadcast:{self:false}}})
     .on('postgres_changes',{event:'*',schema:'public',table:'schedule_cells'},()=>{
       rtReload(()=>{
         if(!isMgr&&currentEmp) showNotification('עדכון בסידור','הסידור שלך עודכן');
@@ -2185,13 +2185,10 @@ async function initApp(user){
       }).catch(()=>{});
     })
     .subscribe((status)=>{
-      console.log('%c[Realtime] status: '+status, 'color:'+(status==='SUBSCRIBED'?'green':'orange')+';font-weight:bold');
+      console.log('%c[Realtime] '+status,'color:'+(status==='SUBSCRIBED'?'#16a34a':'#dc2626')+';font-weight:bold;font-size:14px');
+      window._rtStatus=status;
       if(status==='SUBSCRIBED'){
-        // Realtime connected — do an immediate sync to catch anything missed
         loadWeekData().then(()=>renderSchedule());
-      }
-      if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){
-        console.warn('[Realtime] failed — polling will cover updates every 5s');
       }
     });
 
@@ -2232,7 +2229,7 @@ async function initApp(user){
           _lastHash=hash;
         }
       }catch(e){}
-    },5000);
+    },3000);
   }
   // Always poll as safety net
   startPolling();
