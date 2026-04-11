@@ -3097,10 +3097,9 @@ function renderCombinedView(){
             const isHighlightedEmp=_highlightedEmp&&(name===_highlightedEmp||firstName===_highlightedEmp);
             let col,bg,extraStyle='';
             if(isSearch){col='#dc2626';bg='#fee2e2';}
-            else if(isMe&&showMyShifts){col='#00cc44';bg='white';extraStyle='box-shadow:0 0 10px #00ff88,0 0 20px #00ff8866;animation:neonPulseGreen 1.2s ease-in-out infinite;';}
-            else if(showMyShifts&&!isMe){col='#94a3b8';bg='transparent';}
+            else if(isMe&&showMyShifts){col='#00cc44';bg='white';extraStyle='box-shadow:0 0 10px #00ff88,0 0 20px #00ff8866;animation:neonPulseGreen 1.2s ease-in-out infinite;border:2px solid #00ff88;';}
             else if(isHighlightedFree){col='#d97706';bg='white';extraStyle='box-shadow:0 0 10px #fbbf24,0 0 20px #fbbf2466;animation:neonPulseYellow 1.2s ease-in-out infinite;border:2px solid #fbbf24;';}
-            else if(showFreelancers&&isFree){col='#854d0e';bg='#fef9c3';}
+            else if(showFreelancers&&isFree){col='#d97706';bg='white';extraStyle='box-shadow:0 0 10px #fbbf24,0 0 20px #fbbf2466;animation:neonPulseYellow 1.2s ease-in-out infinite;border:2px solid #fbbf24;';}
             else if(isHighlightedEmp){col='#ff2200';bg='#fff0f0';extraStyle='box-shadow:0 0 8px #ff220088;border:2px solid #ff2200;';}
             else{col='#0f172a';bg='transparent';}
             const nameCount=names.length;
@@ -3357,12 +3356,11 @@ function renderSchedule(){
         let tagBg,tagColor,tagBorder;
         if(isSearchMatch){tagBg='#fee2e2';tagColor='#dc2626';tagBorder='#fca5a5';}
         else if(isCurrentUser&&showMyShifts){tagBg='white';tagColor='#00cc44';tagBorder='#00ff88';}
-        else if(showMyShifts&&!isCurrentUser){tagBg='#f8fafc';tagColor='#cbd5e1';tagBorder='#f1f5f9';}
         else if(showFreelancers&&isFreelance){tagBg='#fef9c3';tagColor='#854d0e';tagBorder='#fcd34d';}
         else{tagBg='transparent';tagColor='#0f172a';tagBorder='transparent';}
         const firstName=name.split(' ')[0];
         const isCurrentNeon=(isCurrentUser&&showMyShifts);
-        const isFreelanceNeon=(_highlightedFree&&firstName===_highlightedFree);
+        const isFreelanceNeon=(_highlightedFree&&(name===_highlightedFree||firstName===_highlightedFree));
         // Override tagBg if this specific freelancer is highlighted
         if(isFreelanceNeon){tagBg='white';tagColor='#d97706';tagBorder='#fbbf24';}
         const isEmpHighlighted=_highlightedEmp&&(name===_highlightedEmp||firstName===_highlightedEmp);
@@ -3606,8 +3604,8 @@ function renderSchedule(){
     }
     Object.entries(freeCnts).forEach(([name,cnt])=>{
       const firstName5=name.split(' ')[0];
-      statsHtml+=`<div class="stat-tile" data-emp="${firstName5}"
-        onclick="highlightFreelancer('${firstName5}')"
+      statsHtml+=`<div class="stat-tile" data-emp="${name}"
+        onclick="highlightFreelancer('${name.replace(/'/g,"\\'")}')"
         style="background:#fefce8;border-radius:8px;padding:3px 7px;border:2.5px solid #fbbf24;cursor:pointer;transition:all 0.15s;text-align:center;min-width:44px">
         <div style="font-weight:700;color:#854d0e;font-size:9px">${firstName5}</div>
         <div style="color:#d97706;font-weight:900;font-size:12px;line-height:1.2">${cnt}</div>
