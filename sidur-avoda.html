@@ -3316,7 +3316,7 @@ function renderCombinedView(){
   html+=buildSpecialBlock(eveningShift);
 
   wrap.innerHTML=html;
-  if(window.innerWidth<600) setTimeout(autoFitMobile,60);
+  if(window.innerWidth<600) setTimeout(()=>autoFitMobile(true),60);
 }
 
 
@@ -6191,9 +6191,9 @@ function applySchedZoom(){
   if(pct) pct.textContent = _schedZoom+'%';
 }
 // Auto-fit on mobile after render
-function autoFitMobile(){
+function autoFitMobile(isCombined){
   if(window.innerWidth >= 600) return;
-  _schedZoom = calcMobileZoom();
+  _schedZoom = calcMobileZoom() - (isCombined ? 1 : 0);
   applySchedZoom();
 }
 
