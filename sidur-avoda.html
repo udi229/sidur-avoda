@@ -62,6 +62,13 @@
   .btn-today { background:white; border:1.5px solid #00ff88; color:#00aa55; padding:6px 14px; border-radius:20px; cursor:pointer; font-size:12px; font-weight:700; font-family:inherit; box-shadow:0 0 8px #00ff8833; transition:all 0.2s; }
   .btn-today:hover { background:#00ff88; color:white; box-shadow:0 0 16px #00ff88; }
 
+  /* ── SWIPE WEEK ANIMATION ── */
+  #view-schedule { transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease; }
+  #view-schedule.swipe-exit-left  { transform: translateX(-70px); opacity: 0; pointer-events: none; }
+  #view-schedule.swipe-exit-right { transform: translateX(70px);  opacity: 0; pointer-events: none; }
+  #view-schedule.swipe-enter-left  { transform: translateX(70px);  opacity: 0; transition: none !important; }
+  #view-schedule.swipe-enter-right { transform: translateX(-70px); opacity: 0; transition: none !important; }
+
   /* DEPT TABS */
   .dept-tabs { display:flex; gap:6px; flex-wrap:nowrap; margin-bottom:18px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
   .dept-tabs::-webkit-scrollbar { display:none; }
@@ -4652,10 +4659,35 @@ function showView(v,e){
 function changeWeek(d){
   const role=currentEmp?.role||'employee';
   const newOffset=weekOffset+d;
-  // Employees can go back freely, but forward only up to 2 weeks
   if(role==='employee'&&!isMgr&&newOffset>2) return;
-  weekOffset=newOffset;openDropdown=null;editingShiftTime=null;editMode=false;
-  loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});
+
+  const view=document.getElementById('view-schedule');
+  // Only animate on mobile
+  if(!view||window.innerWidth>768){
+    weekOffset=newOffset;openDropdown=null;editingShiftTime=null;editMode=false;
+    loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});
+    return;
+  }
+
+  if(view._swipeAnimating) return;
+  view._swipeAnimating=true;
+
+  const exitClass =d>0?'swipe-exit-left':'swipe-exit-right';
+  const enterClass=d>0?'swipe-enter-left':'swipe-enter-right';
+
+  view.classList.add(exitClass);
+  setTimeout(()=>{
+    weekOffset=newOffset;openDropdown=null;editingShiftTime=null;editMode=false;
+    loadWeekData().then(()=>{
+      renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();
+      view.classList.remove(exitClass);
+      view.classList.add(enterClass);
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        view.classList.remove(enterClass);
+        setTimeout(()=>{view._swipeAnimating=false;},370);
+      }));
+    });
+  },300);
 }
 function goToday(){weekOffset=0;openDropdown=null;editingShiftTime=null;loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});}
 
@@ -7145,6 +7177,29 @@ function lozInjectSaveButtons(){
 
 }
 // ===== END LOZ APP =====
+
+// ── MOBILE SWIPE BETWEEN WEEKS ──
+(function(){
+  let tx=null;
+  const THRESH=55;
+  function onStart(e){
+    // התעלם מ-dropdowns, buttons, inputs
+    if(e.target.closest('button,select,input,textarea,.cell-inner,[onclick]')) return;
+    tx=e.touches?e.touches[0].clientX:e.clientX;
+  }
+  function onEnd(e){
+    if(tx===null) return;
+    const ex=e.changedTouches?e.changedTouches[0].clientX:e.clientX;
+    const dx=ex-tx; tx=null;
+    if(Math.abs(dx)<THRESH) return;
+    if(activeView!=='schedule'&&activeView!=='stats') return;
+    changeWeek(dx<0?1:-1);
+  }
+  const el=document.getElementById('view-schedule');
+  if(!el) return;
+  el.addEventListener('touchstart',onStart,{passive:true});
+  el.addEventListener('touchend',onEnd);
+})();
 
 // Start splash on load
 window.addEventListener('DOMContentLoaded', ()=>{
