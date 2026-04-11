@@ -2391,10 +2391,12 @@ async function loadAll(){
   combinedViews=(cv.data||[]).map(v=>({...v, dept_ids: v.dept_ids.split(','), published: false}));
   // Load weekly publish status
   const ws=weekStartStr();
-  const {data:cvPub}=await sb.from('cv_weekly_publish').select('*').eq('week_start',ws);
-  window._cvWeeklyPub={};
-  (cvPub||[]).forEach(p=>{ window._cvWeeklyPub[p.cv_id]=p.published; });
-  combinedViews.forEach(cv=>{ cv.published=window._cvWeeklyPub[cv.id]||false; });
+  try{
+    const {data:cvPub}=await sb.from('cv_weekly_publish').select('*').eq('week_start',ws);
+    window._cvWeeklyPub={};
+    (cvPub||[]).forEach(p=>{ window._cvWeeklyPub[p.cv_id]=p.published; });
+    combinedViews.forEach(cv=>{ cv.published=window._cvWeeklyPub[cv.id]||false; });
+  }catch(e){ console.warn('cv_weekly_publish error:',e); }
   if(st.data&&st.data.length>0){
     shiftTypes=st.data.map(s=>({id:s.id,name:s.name,time:s.time||'',color:s.color||'#94a3b8'}));
   } else {
@@ -2404,13 +2406,15 @@ async function loadAll(){
     ));
   }
   // load shift roles
-  const {data:srData}=await sb.from('shift_roles').select('*').order('sort_order');
   shiftRoles={};
-  (srData||[]).forEach(r=>{
-    const key=r.department_id+'_'+r.shift_id;
-    if(!shiftRoles[key]) shiftRoles[key]=[];
-    shiftRoles[key].push(r);
-  });
+  try{
+    const {data:srData}=await sb.from('shift_roles').select('*').order('sort_order');
+    (srData||[]).forEach(r=>{
+      const key=r.department_id+'_'+r.shift_id;
+      if(!shiftRoles[key]) shiftRoles[key]=[];
+      shiftRoles[key].push(r);
+    });
+  }catch(e){ console.warn('shift_roles load error:',e); }
   // build deptShifts map
   deptShifts={};
   (ds.data||[]).forEach(r=>{
@@ -2427,14 +2431,15 @@ function weekDates(o=weekOffset){const s=weekStart(o);return DAYS_DISPLAY.map((_
 async function loadWeekData(){
   // Reload weekly publish status for new week
   const ws2=weekStartStr();
-  const {data:cvPub2}=await sb.from('cv_weekly_publish').select('*').eq('week_start',ws2);
-  window._cvWeeklyPub={};
-  (cvPub2||[]).forEach(p=>{ window._cvWeeklyPub[p.cv_id]=p.published; });
-  combinedViews.forEach(cv=>{ cv.published=window._cvWeeklyPub[cv.id]||false; });
+  try{
+    const {data:cvPub2}=await sb.from('cv_weekly_publish').select('*').eq('week_start',ws2);
+    window._cvWeeklyPub={};
+    (cvPub2||[]).forEach(p=>{ window._cvWeeklyPub[p.cv_id]=p.published; });
+    combinedViews.forEach(cv=>{ cv.published=window._cvWeeklyPub[cv.id]||false; });
+  }catch(e){ console.warn('cv_weekly_publish loadWeek error:',e); }
   const ws=weekStartStr();
   // Load weekly disabled shifts (safe — table may not exist yet)
 
-  await loadNightWeekActive();
   const {data:sc}=await sb.from('schedules').select('*').eq('week_start',ws);
   schedules={};(sc||[]).forEach(s=>{schedules[s.department_id]=s;});
   const ids=Object.values(schedules).map(s=>s.id);
@@ -3199,15 +3204,12 @@ function renderCombinedView(){
   document.getElementById('lock-notice').style.display='none';
 
   const allShiftIds=new Set();
-  const nightShiftIdCV=shiftTypes.find(s=>s.name==='לילה')?.id;
   depts.forEach(dept=>{
     const ds=deptShifts[dept.id];
     if(ds&&ds.length>0) ds.forEach(s=>allShiftIds.add(s));
     else shiftTypes.forEach(s=>allShiftIds.add(s.id));
   });
-  // Night: include only if at least one dept has it active this week
-  const nightActiveAny=depts.some(d=>isNightActiveThisWeek(d.id));
-  const activeShifts=shiftTypes.filter(s=>allShiftIds.has(s.id)&&(s.id!==nightShiftIdCV||nightActiveAny));
+  const activeShifts=shiftTypes.filter(s=>allShiftIds.has(s.id));
   const B='border:1px solid #e2e8f0';
 
   // Split shifts into groups
@@ -3514,10 +3516,9 @@ function renderSchedule(){
 
   const isSoundDept=dept.name.toLowerCase().includes('סאונד')||dept.name.toLowerCase().includes('שמע');
   const deptShiftIds2=deptShifts[dept.id];
-  const nightShiftId2=shiftTypes.find(s=>s.name==='לילה')?.id;
-  const activeShifts2=(deptShiftIds2&&deptShiftIds2.length>0
+  const activeShifts2=deptShiftIds2&&deptShiftIds2.length>0
     ? shiftTypes.filter(s=>deptShiftIds2.includes(s.id))
-    : shiftTypes).filter(s=>s.id!==nightShiftId2||isNightActiveThisWeek(dept.id));
+    : shiftTypes;
   const shiftNames2=activeShifts2.map(s=>s.name);
   const singleSpecial=activeShifts2.length===1&&(shiftNames2[0]==="ערבית"||shiftNames2[0]==="לילה");
   let blockStyle="position:relative;overflow:hidden;border-radius:12px;";
@@ -3561,15 +3562,9 @@ function renderSchedule(){
 
   // get shifts for this dept (fallback to all if none configured)
   const deptShiftIds=deptShifts[dept.id];
-  const nightShiftId=shiftTypes.find(s=>s.name==='לילה')?.id;
-  const allForDept=deptShiftIds&&deptShiftIds.length>0
+  const activeShifts=deptShiftIds&&deptShiftIds.length>0
     ? shiftTypes.filter(s=>deptShiftIds.includes(s.id))
     : shiftTypes;
-  // Night shift: only show if explicitly activated this week
-  const activeShifts=allForDept.filter(s=>{
-    if(s.id===nightShiftId) return isNightActiveThisWeek(dept.id);
-    return true;
-  });
 
   for(const shift of activeShifts){
     const roles=shiftRoles[dept.id+'_'+shift.id]||[];
