@@ -2152,9 +2152,48 @@ async function initApp(user){
         renderSchedule();
       });
     })
+    .on('postgres_changes',{event:'*',schema:'public',table:'loz_daily'},(payload)=>{
+      const changedDate=payload?.new?.date||payload?.old?.date;
+      if(!changedDate) return;
+      const currentKey=(typeof dKey==='function'&&typeof getD==='function'&&typeof offset!=='undefined')?dKey(getD(offset)):null;
+      if(changedDate===currentKey){
+        sb.from('loz_daily').select('*').eq('date',changedDate).single().then(({data})=>{
+          if(data){ dailyData[changedDate]=data.data; window._lozPub=window._lozPub||{}; window._lozPub[changedDate]=data.published; }
+          if(activeView==='loz'&&typeof lozRenderRole==='function') lozRenderRole();
+        }).catch(()=>{});
+      }
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'loz_default'},()=>{
+      sb.from('loz_default').select('data').single().then(({data})=>{
+        if(data?.data?.length) defSections=data.data;
+        if(activeView==='loz'&&typeof lozRenderRole==='function') lozRenderRole();
+      }).catch(()=>{});
+    })
     .subscribe((status)=>{
       console.log('realtime status:', status);
+      if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
+        console.warn('Realtime failed, falling back to polling');
+        startPolling();
+      }
     });
+
+  // Polling fallback — fires every 20s if realtime is broken
+  let _pollInterval=null;
+  let _lastCellHash='';
+  function startPolling(){
+    if(_pollInterval) return;
+    _pollInterval=setInterval(async()=>{
+      const ws=weekStartStr();
+      const {data:sc}=await sb.from('schedules').select('id,updated_at').eq('week_start',ws);
+      const hash=(sc||[]).map(s=>s.id+'@'+s.updated_at).sort().join('|');
+      if(hash!==_lastCellHash){
+        _lastCellHash=hash;
+        loadWeekData().then(()=>renderSchedule());
+      }
+    },20000);
+  }
+  // Always start polling as safety net (light — only reloads on actual change)
+  startPolling();
 
   // presence channel
   const presenceCh=sb.channel('online-users',{config:{presence:{key:currentUser.email}}});
