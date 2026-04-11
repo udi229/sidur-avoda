@@ -3361,7 +3361,7 @@ function renderSchedule(){
         const isFreelanceNeon=(_highlightedFree&&firstName===_highlightedFree);
         // Override tagBg if this specific freelancer is highlighted
         if(isFreelanceNeon){tagBg='white';tagColor='#d97706';tagBorder='#fbbf24';}
-        const isEmpHighlighted=_highlightedEmp&&firstName===_highlightedEmp;
+        const isEmpHighlighted=_highlightedEmp&&(name===_highlightedEmp||firstName===_highlightedEmp);
         const neonStyle=isCurrentNeon
           ?'background:white!important;color:#00cc44!important;border:2px solid #00ff88!important;box-shadow:0 0 10px #00ff88,0 0 20px #00ff8866;font-weight:900;text-shadow:0 0 6px #00cc44;animation:neonPulseGreen 1.2s ease-in-out infinite;'
           :isFreelanceNeon
@@ -3370,7 +3370,7 @@ function renderSchedule(){
           ?'background:#fff0f0!important;color:#ff2200!important;border:2px solid #ff2200!important;box-shadow:0 0 8px #ff220088,0 0 14px #ff220044;font-weight:900;text-shadow:0 0 6px #ff220088;'
           :'';
         const tagFontSize = uniqueNames.length >= 2 ? '13px' : '18px';
-        html+=`<span class="emp-tag" data-emp="${firstName}" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder};font-size:${tagFontSize};${neonStyle}">
+        html+=`<span class="emp-tag" data-emp="${name}" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder};font-size:${tagFontSize};${neonStyle}">
           ${firstName}
           ${ed?`<span class="remove-tag" onclick="removeName('${dept.id}','${shift.id}',${d},'${escapedName}')">×</span>`:''}
         </span>`;
@@ -3430,7 +3430,7 @@ function renderSchedule(){
           else{tagBg='transparent';tagColor='#0f172a';tagBorder='transparent';}
           const firstName=name.split(' ')[0];
           const isHighlightedFree=_highlightedFree&&name.split(' ')[0]===_highlightedFree;
-        const isEmpHighlighted2=_highlightedEmp&&name.split(' ')[0]===_highlightedEmp;
+        const isEmpHighlighted2=_highlightedEmp&&(name===_highlightedEmp||name.split(' ')[0]===_highlightedEmp);
         const neonStyle2=(isCurrentUser&&showMyShifts)
             ?'background:white!important;color:#00cc44!important;border:2px solid #00ff88!important;box-shadow:0 0 10px #00ff88,0 0 20px #00ff8866;font-weight:900;animation:neonPulseGreen 1.2s ease-in-out infinite;'
             :isHighlightedFree
@@ -3571,8 +3571,9 @@ function renderSchedule(){
       const color=cnt<req?'#dc2626':cnt>req?'#1d4ed8':'#15803d';
       const bg=cnt<req?'#fff5f5':cnt>req?'#eff6ff':'#f0fdf4';
       const firstName4=emp.full_name.split(' ')[0];
-      statsHtml+=`<div class="stat-tile" data-emp="${firstName4}"
-        onclick="highlightEmp('${firstName4}')"
+      const empFullName4=emp.full_name;
+      statsHtml+=`<div class="stat-tile" data-emp="${empFullName4}"
+        onclick="highlightEmp('${empFullName4.replace(/'/g,"\\'")}')" 
         style="background:${bg};border-radius:8px;padding:3px 7px;border:2.5px solid ${color};cursor:pointer;transition:all 0.15s;text-align:center;min-width:44px">
         <div style="font-weight:700;color:#0f172a;font-size:9px">${firstName4}</div>
         <div style="color:${color};font-weight:900;font-size:12px;line-height:1.2">${cnt}/${req}</div>
@@ -3674,7 +3675,7 @@ function highlightEmp(firstName){
     setTimeout(()=>{
       // Use attribute selector safely (handle apostrophes)
       document.querySelectorAll('.stat-tile').forEach(el=>{
-        if(el.dataset.emp===firstName) el.classList.add('selected');
+        if(el.dataset.emp===firstName||el.dataset.emp===_highlightedEmp) el.classList.add('selected');
       });
     }, 50);
   } else {
