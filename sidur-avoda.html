@@ -4233,7 +4233,7 @@ function buildNightPopupHtml(){
       <span style="margin-right:auto">${active?'🌙 פעיל':'—'}</span>
     </button>`;
   });
-  h+=`</div><button onclick="document.getElementById('night-dept-popup').remove()" style="margin-top:12px;width:100%;padding:8px;background:#1e293b;border:1px solid #334155;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:#94a3b8">סגור</button>`;
+  h+=`</div><button onclick="closeNightPopup()" style="margin-top:12px;width:100%;padding:8px;background:#1e293b;border:1px solid #334155;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:#94a3b8">סגור</button>`;
   return h;
 }
 
@@ -4241,18 +4241,30 @@ function refreshNightPopup(){
   const popup=document.getElementById('night-dept-popup');
   if(popup) popup.innerHTML=buildNightPopupHtml();
 }
+function closeNightPopup(){
+  const overlay=document.getElementById('night-overlay');
+  if(overlay) overlay.remove();
+}
 
 function addNightShiftToWeek(){
   const nightShift=shiftTypes.find(s=>s.name==='לילה');
   if(!nightShift){alert('לא נמצאה משמרת לילה בהגדרות');return;}
-  const existing=document.getElementById('night-dept-popup');
+  // Remove if already open
+  const existing=document.getElementById('night-overlay');
   if(existing){existing.remove();return;}
+  // Overlay (click outside to close)
+  const overlay=document.createElement('div');
+  overlay.id='night-overlay';
+  overlay.style.cssText='position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.4)';
+  overlay.onclick=()=>overlay.remove();
+  // Popup inside overlay
   const popup=document.createElement('div');
   popup.id='night-dept-popup';
-  popup.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#0f172a;border:2px solid #7c3aed;border-radius:16px;padding:20px;z-index:9999;box-shadow:0 0 30px #7c3aed88;min-width:280px;direction:rtl;font-family:inherit';
+  popup.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#0f172a;border:2px solid #7c3aed;border-radius:16px;padding:20px;z-index:9999;box-shadow:0 0 30px #7c3aed88;min-width:280px;direction:rtl;font-family:inherit';
+  popup.onclick=e=>e.stopPropagation();
   popup.innerHTML=buildNightPopupHtml();
-  document.body.appendChild(popup);
-  setTimeout(()=>document.addEventListener('click',function h(e){if(!popup.contains(e.target)){popup.remove();document.removeEventListener('click',h);}},true),100);
+  overlay.appendChild(popup);
+  document.body.appendChild(overlay);
 }
 
 async function toggleNightDeptWeek(deptId, shiftId){
