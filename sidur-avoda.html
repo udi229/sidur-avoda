@@ -2116,23 +2116,44 @@ async function initApp(user){
   renderDeptTabs();
   renderSchedule();
   requestNotifications();
+  // Debounce to avoid double-renders (self-triggered events)
+  let _rtDebounce=null;
+  function rtReload(onDone){
+    clearTimeout(_rtDebounce);
+    _rtDebounce=setTimeout(()=>{
+      loadWeekData().then(()=>{ renderSchedule(); onDone&&onDone(); });
+    },120);
+  }
+
   sb.channel('rt')
     .on('postgres_changes',{event:'*',schema:'public',table:'schedule_cells'},()=>{
-      loadWeekData().then(()=>{
-        renderSchedule();
+      rtReload(()=>{
         if(!isMgr&&currentEmp) showNotification('עדכון בסידור','הסידור שלך עודכן');
       });
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'schedules'},(payload)=>{
       const wasApproved=payload?.new?.status==='approved'&&payload?.old?.status!=='approved';
-      loadWeekData().then(()=>{
-        updateWeekUI();renderSchedule();
+      rtReload(()=>{
+        updateWeekUI();
         if(wasApproved&&!isMgr&&currentEmp){
           showNotification('הסידור אושר! ✅','המנהל אישר את הסידור שלך — ניתן לצפות בו');
         }
       });
     })
-    .subscribe();
+    .on('postgres_changes',{event:'*',schema:'public',table:'cv_weekly_publish'},()=>{
+      // Reload combined view publish state for all users
+      const ws=weekStartStr();
+      sb.from('cv_weekly_publish').select('*').eq('week_start',ws).then(({data})=>{
+        window._cvWeeklyPub={};
+        (data||[]).forEach(p=>{ window._cvWeeklyPub[p.cv_id]=p.published; });
+        combinedViews.forEach(cv=>{ cv.published=window._cvWeeklyPub[cv.id]||false; });
+        renderDeptTabs();
+        renderSchedule();
+      });
+    })
+    .subscribe((status)=>{
+      console.log('realtime status:', status);
+    });
 
   // presence channel
   const presenceCh=sb.channel('online-users',{config:{presence:{key:currentUser.email}}});
