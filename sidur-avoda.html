@@ -63,11 +63,11 @@
   .btn-today:hover { background:#00ff88; color:white; box-shadow:0 0 16px #00ff88; }
 
   /* ── SWIPE WEEK ANIMATION ── */
-  #view-schedule { transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease; }
-  #view-schedule.swipe-exit-left  { transform: translateX(-70px); opacity: 0; pointer-events: none; }
-  #view-schedule.swipe-exit-right { transform: translateX(70px);  opacity: 0; pointer-events: none; }
-  #view-schedule.swipe-enter-left  { transform: translateX(70px);  opacity: 0; transition: none !important; }
-  #view-schedule.swipe-enter-right { transform: translateX(-70px); opacity: 0; transition: none !important; }
+  #view-schedule { transition: transform 0.18s cubic-bezier(0.4,0,0.2,1), opacity 0.18s ease; }
+  #view-schedule.swipe-exit-left  { transform: translateX(-55px); opacity: 0; pointer-events: none; }
+  #view-schedule.swipe-exit-right { transform: translateX(55px);  opacity: 0; pointer-events: none; }
+  #view-schedule.swipe-enter-left  { transform: translateX(-55px); opacity: 0; transition: none !important; }
+  #view-schedule.swipe-enter-right { transform: translateX(55px);  opacity: 0; transition: none !important; }
 
   /* DEPT TABS */
   .dept-tabs { display:flex; gap:6px; flex-wrap:nowrap; margin-bottom:18px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
@@ -4661,6 +4661,9 @@ function changeWeek(d){
   const newOffset=weekOffset+d;
   if(role==='employee'&&!isMgr&&newOffset>2) return;
 
+  // סידור משולב — אסור לעובד לדפדף קדימה (שבוע לא מפורסם)
+  if(activeCombinedId&&!isMgr&&role==='employee'&&d>0) return;
+
   const view=document.getElementById('view-schedule');
   // Only animate on mobile
   if(!view||window.innerWidth>768){
@@ -4672,8 +4675,9 @@ function changeWeek(d){
   if(view._swipeAnimating) return;
   view._swipeAnimating=true;
 
+  // RTL: שבוע הבא (d>0) = תוכן ישן יוצא שמאלה, חדש נכנס מימין
   const exitClass =d>0?'swipe-exit-left':'swipe-exit-right';
-  const enterClass=d>0?'swipe-enter-left':'swipe-enter-right';
+  const enterClass=d>0?'swipe-enter-right':'swipe-enter-left';
 
   view.classList.add(exitClass);
   setTimeout(()=>{
@@ -4684,10 +4688,10 @@ function changeWeek(d){
       view.classList.add(enterClass);
       requestAnimationFrame(()=>requestAnimationFrame(()=>{
         view.classList.remove(enterClass);
-        setTimeout(()=>{view._swipeAnimating=false;},370);
+        setTimeout(()=>{view._swipeAnimating=false;},220);
       }));
     });
-  },300);
+  },180);
 }
 function goToday(){weekOffset=0;openDropdown=null;editingShiftTime=null;loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});}
 
