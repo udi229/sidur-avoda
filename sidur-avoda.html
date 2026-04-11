@@ -3284,13 +3284,7 @@ function renderCombinedView(){
       <col style="width:75px;min-width:65px">
       ${DAYS_DISPLAY.map(()=>'<col style="min-width:65px">').join('')}
     </colgroup>
-    <thead>
-      <tr style="background:#f1f5f9">
-        <th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">משמרת</th>
-        <th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">תפקיד</th>
-        ${DAYS_DISPLAY.map((d,i)=>`<th style="${B};padding:4px 4px;text-align:center;font-size:13px;color:#94a3b8;font-weight:600"></th>`).join('')}
-      </tr>
-    </thead>
+
     <tbody>`;
 
   regularShifts.forEach(shift=>{
@@ -3387,15 +3381,14 @@ function renderCombinedView(){
     bHtml+=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">`;
     bHtml+=`<table style="border-collapse:collapse;direction:rtl;min-width:500px;width:100%">`;
     bHtml+=`<colgroup><col style="width:80px;min-width:80px"><col style="width:75px;min-width:65px">${DAYS_DISPLAY.map(()=>'<col style="min-width:65px">').join('')}</colgroup>`;
+    if(showDates){
     bHtml+=`<thead><tr style="background:#f1f5f9">`;
     bHtml+=`<th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">משמרת</th>`;
     bHtml+=`<th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">תפקיד</th>`;
-    if(showDates){
       bHtml+=dates.map((date,i)=>`<th style="${B};padding:4px 4px;text-align:center;font-size:15px;color:#475569;font-weight:700;${holidayThStyle(date)}">${holidayBadge(date)}${DAYS_DISPLAY[i]}<br><span style="font-size:13px;font-weight:700;color:#0f172a">${date}</span></th>`).join('');
-    } else {
-      bHtml+=DAYS_DISPLAY.map(()=>`<th style="${B};padding:4px 4px"></th>`).join('');
+      bHtml+=`</tr></thead>`;
     }
-    bHtml+=`</tr></thead><tbody>`;
+    bHtml+=`<tbody>`;
     // Render rows for this shift — for night, only depts with night active this week
     const isNightShift=shift.name==='לילה';
     const allRows2=[];
