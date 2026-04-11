@@ -1840,6 +1840,77 @@ let shiftTypes=[
 ];
 
 const DAYS_DISPLAY=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+
+// ── חגי ישראל (תאריכים לועזיים קבועים לשנים 2024-2030) ──
+function getIsraeliHoliday(day, month, year){
+  // Returns holiday name or null. day=1-31, month=1-12
+  const holidays = {
+    // ראש השנה (משתנה) — 2024:10/2-3, 2025:9/22-23, 2026:9/11-12, 2027:10/1-2, 2028:9/20-21, 2029:9/9-10, 2030:9/27-28
+    '2-10-2024':'ראש השנה','3-10-2024':'ראש השנה',
+    '22-9-2025':'ראש השנה','23-9-2025':'ראש השנה',
+    '11-9-2026':'ראש השנה','12-9-2026':'ראש השנה',
+    '1-10-2027':'ראש השנה','2-10-2027':'ראש השנה',
+    '20-9-2028':'ראש השנה','21-9-2028':'ראש השנה',
+    '9-9-2029':'ראש השנה','10-9-2029':'ראש השנה',
+    '27-9-2030':'ראש השנה','28-9-2030':'ראש השנה',
+    // יום כיפור
+    '11-10-2024':'יום כיפור','1-10-2025':'יום כיפור','20-9-2026':'יום כיפור',
+    '10-10-2027':'יום כיפור','29-9-2028':'יום כיפור','18-9-2029':'יום כיפור','7-10-2030':'יום כיפור',
+    // סוכות
+    '16-10-2024':'סוכות','6-10-2025':'סוכות','25-9-2026':'סוכות',
+    '15-10-2027':'סוכות','4-10-2028':'סוכות','23-9-2029':'סוכות','12-10-2030':'סוכות',
+    // שמחת תורה / שמיני עצרת
+    '23-10-2024':'שמחת תורה','13-10-2025':'שמחת תורה','2-10-2026':'שמחת תורה',
+    '22-10-2027':'שמחת תורה','11-10-2028':'שמחת תורה','30-9-2029':'שמחת תורה','19-10-2030':'שמחת תורה',
+    // פסח (ראשון ואחרון)
+    '13-4-2025':'פסח','14-4-2025':'פסח','15-4-2025':'פסח','16-4-2025':'פסח',
+    '17-4-2025':'פסח','18-4-2025':'פסח','19-4-2025':'פסח','20-4-2025':'פסח',
+    '1-4-2026':'פסח','2-4-2026':'פסח','3-4-2026':'פסח','4-4-2026':'פסח',
+    '5-4-2026':'פסח','6-4-2026':'פסח','7-4-2026':'פסח','8-4-2026':'פסח',
+    '22-4-2027':'פסח','23-4-2027':'פסח','24-4-2027':'פסח','25-4-2027':'פסח',
+    '26-4-2027':'פסח','27-4-2027':'פסח','28-4-2027':'פסח','29-4-2027':'פסח',
+    // שבועות
+    '2-6-2025':'שבועות','3-6-2025':'שבועות',
+    '22-5-2026':'שבועות','23-5-2026':'שבועות',
+    '12-6-2027':'שבועות','13-6-2027':'שבועות',
+    '1-6-2028':'שבועות','2-6-2028':'שבועות',
+    // חנוכה (8 ימים) — 2024: 25/12-1/1/2025, 2025: 14-22/12, 2026: 4-12/12, 2027: 24-31/12
+    '25-12-2024':'חנוכה','26-12-2024':'חנוכה','27-12-2024':'חנוכה','28-12-2024':'חנוכה',
+    '29-12-2024':'חנוכה','30-12-2024':'חנוכה','31-12-2024':'חנוכה','1-1-2025':'חנוכה',
+    '14-12-2025':'חנוכה','15-12-2025':'חנוכה','16-12-2025':'חנוכה','17-12-2025':'חנוכה',
+    '18-12-2025':'חנוכה','19-12-2025':'חנוכה','20-12-2025':'חנוכה','21-12-2025':'חנוכה',
+    '4-12-2026':'חנוכה','5-12-2026':'חנוכה','6-12-2026':'חנוכה','7-12-2026':'חנוכה',
+    '8-12-2026':'חנוכה','9-12-2026':'חנוכה','10-12-2026':'חנוכה','11-12-2026':'חנוכה',
+    '24-12-2027':'חנוכה','25-12-2027':'חנוכה','26-12-2027':'חנוכה','27-12-2027':'חנוכה',
+    '28-12-2027':'חנוכה','29-12-2027':'חנוכה','30-12-2027':'חנוכה','31-12-2027':'חנוכה',
+    // פורים
+    '13-3-2025':'פורים','14-3-2025':'פורים',
+    '3-3-2026':'פורים','4-3-2026':'פורים',
+    '23-3-2027':'פורים','24-3-2027':'פורים',
+    '12-3-2028':'פורים','13-3-2028':'פורים',
+    // יום העצמאות
+    '1-5-2025':'יום העצמאות','22-4-2026':'יום העצמאות',
+    '12-5-2027':'יום העצמאות','30-4-2028':'יום העצמאות',
+    // יום ירושלים
+    '28-5-2025':'יום ירושלים','18-5-2026':'יום ירושלים',
+    '7-6-2027':'יום ירושלים','26-5-2028':'יום ירושלים',
+    // ל"ג בעומר
+    '16-5-2025':'ל"ג בעומר','5-5-2026':'ל"ג בעומר',
+    '25-5-2027':'ל"ג בעומר','14-5-2028':'ל"ג בעומר',
+  };
+  return holidays[`${day}-${month}-${year}`] || null;
+}
+function holidayBadge(dateStr){
+  // dateStr format: "D.M" e.g. "3.4"
+  const [d,m] = dateStr.split('.').map(Number);
+  const yr = weekStart().getFullYear();
+  // adjust year: if month is Jan and week starts in Dec
+  const ws = weekStart();
+  const guessYear = ws.getMonth()===11 && m===1 ? yr+1 : yr;
+  const hol = getIsraeliHoliday(d, m, guessYear);
+  if(!hol) return '';
+  return `<div style="font-size:9px;font-weight:800;color:#1d4ed8;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">✡️ ${hol}</div>`;
+}
 const ROLE_HEB={employee:'עובד',team_lead:'ראש צוות',manager:'מנהל'};
 
 // ── AUTH ──
@@ -3144,8 +3215,8 @@ function renderCombinedView(){
       <tr style="background:#f1f5f9">
         <th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">משמרת</th>
         <th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">תפקיד</th>
-        ${DAYS_DISPLAY.map((d,i)=>`<th style="${B};padding:8px 4px;text-align:center;font-size:15px;color:#475569;font-weight:700">
-          ${d}<br><span style="font-size:13px;font-weight:700;color:#0f172a">${dates[i]}</span>
+        ${DAYS_DISPLAY.map((d,i)=>`<th style="${B};padding:4px 4px;text-align:center;font-size:15px;color:#475569;font-weight:700">
+          ${holidayBadge(dates[i])}${d}<br><span style="font-size:13px;font-weight:700;color:#0f172a">${dates[i]}</span>
         </th>`).join('')}
       </tr>
     </thead>
@@ -3248,7 +3319,7 @@ function renderCombinedView(){
     bHtml+=`<thead><tr style="background:#f1f5f9">`;
     bHtml+=`<th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">משמרת</th>`;
     bHtml+=`<th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">תפקיד</th>`;
-    bHtml+=dates.map((date,i)=>`<th style="${B};padding:8px 4px;text-align:center;font-size:15px;color:#475569;font-weight:700">${DAYS_DISPLAY[i]}<br><span style="font-size:13px;font-weight:700;color:#0f172a">${date}</span></th>`).join('');
+    bHtml+=dates.map((date,i)=>`<th style="${B};padding:4px 4px;text-align:center;font-size:15px;color:#475569;font-weight:700">${holidayBadge(date)}${DAYS_DISPLAY[i]}<br><span style="font-size:13px;font-weight:700;color:#0f172a">${date}</span></th>`).join('');
     bHtml+=`</tr></thead><tbody>`;
     // Render rows for this shift
     const allRows2=[];
@@ -3436,7 +3507,7 @@ function renderSchedule(){
     <div class="tbl-wrap"><table>
     <thead><tr>
       <th class="shift-col">משמרת</th>
-      ${DAYS_DISPLAY.map((d,i)=>`<th style="text-align:center;font-size:15px;color:#475569;font-weight:700;padding:8px 4px">${d}<br><span style="font-size:13px;font-weight:700;color:#0f172a">${dates[i]}</span></th>`).join('')}
+      ${DAYS_DISPLAY.map((d,i)=>`<th style="text-align:center;font-size:15px;color:#475569;font-weight:700;padding:4px 4px">${holidayBadge(dates[i])}${d}<br><span style="font-size:13px;font-weight:700;color:#0f172a">${dates[i]}</span></th>`).join('')}
     </tr></thead><tbody>`;
 
   // get shifts for this dept (fallback to all if none configured)
