@@ -2438,8 +2438,7 @@ async function loadWeekData(){
     combinedViews.forEach(cv=>{ cv.published=window._cvWeeklyPub[cv.id]||false; });
   }catch(e){ console.warn('cv_weekly_publish loadWeek error:',e); }
   const ws=weekStartStr();
-  // Load weekly disabled shifts (safe — table may not exist yet)
-
+  await loadNightWeek();
   const {data:sc}=await sb.from('schedules').select('*').eq('week_start',ws);
   schedules={};(sc||[]).forEach(s=>{schedules[s.department_id]=s;});
   const ids=Object.values(schedules).map(s=>s.id);
@@ -3204,10 +3203,13 @@ function renderCombinedView(){
   document.getElementById('lock-notice').style.display='none';
 
   const allShiftIds=new Set();
+  const nightIdCV=shiftTypes.find(s=>s.name==='לילה')?.id;
   depts.forEach(dept=>{
     const ds=deptShifts[dept.id];
-    if(ds&&ds.length>0) ds.forEach(s=>allShiftIds.add(s));
-    else shiftTypes.forEach(s=>allShiftIds.add(s.id));
+    const baseIds=ds&&ds.length>0 ? ds : shiftTypes.filter(s=>s.id!==nightIdCV).map(s=>s.id);
+    baseIds.forEach(s=>allShiftIds.add(s));
+    // Add night if active this week for this dept
+    if(nightIdCV&&isNightWeekActive(dept.id)) allShiftIds.add(nightIdCV);
   });
   const activeShifts=shiftTypes.filter(s=>allShiftIds.has(s.id));
   const B='border:1px solid #e2e8f0';
@@ -3516,9 +3518,13 @@ function renderSchedule(){
 
   const isSoundDept=dept.name.toLowerCase().includes('סאונד')||dept.name.toLowerCase().includes('שמע');
   const deptShiftIds2=deptShifts[dept.id];
-  const activeShifts2=deptShiftIds2&&deptShiftIds2.length>0
+  const nightId2=shiftTypes.find(s=>s.name==='לילה')?.id;
+  const baseShifts2=deptShiftIds2&&deptShiftIds2.length>0
     ? shiftTypes.filter(s=>deptShiftIds2.includes(s.id))
-    : shiftTypes;
+    : shiftTypes.filter(s=>s.id!==nightId2);
+  const activeShifts2=nightId2
+    ? (isNightWeekActive(dept.id) ? [...baseShifts2.filter(s=>s.id!==nightId2), shiftTypes.find(s=>s.id===nightId2)].filter(Boolean) : baseShifts2.filter(s=>s.id!==nightId2))
+    : baseShifts2;
   const shiftNames2=activeShifts2.map(s=>s.name);
   const singleSpecial=activeShifts2.length===1&&(shiftNames2[0]==="ערבית"||shiftNames2[0]==="לילה");
   let blockStyle="position:relative;overflow:hidden;border-radius:12px;";
@@ -3560,11 +3566,15 @@ function renderSchedule(){
       ${DAYS_DISPLAY.map((d,i)=>`<th style="text-align:center;font-size:15px;color:#475569;font-weight:700;padding:4px 4px;${holidayThStyle(dates[i])}">${holidayBadge(dates[i])}${d}<br><span style="font-size:13px;font-weight:700;color:#0f172a">${dates[i]}</span></th>`).join('')}
     </tr></thead><tbody>`;
 
-  // get shifts for this dept (fallback to all if none configured)
+  // get shifts for this dept — night shift only shown if active this week
   const deptShiftIds=deptShifts[dept.id];
-  const activeShifts=deptShiftIds&&deptShiftIds.length>0
+  const nightId=shiftTypes.find(s=>s.name==='לילה')?.id;
+  const baseShifts=deptShiftIds&&deptShiftIds.length>0
     ? shiftTypes.filter(s=>deptShiftIds.includes(s.id))
-    : shiftTypes;
+    : shiftTypes.filter(s=>s.id!==nightId);
+  const activeShifts=nightId
+    ? (isNightWeekActive(dept.id) ? [...baseShifts.filter(s=>s.id!==nightId), shiftTypes.find(s=>s.id===nightId)].filter(Boolean) : baseShifts.filter(s=>s.id!==nightId))
+    : baseShifts;
 
   for(const shift of activeShifts){
     const roles=shiftRoles[dept.id+'_'+shift.id]||[];
@@ -4184,10 +4194,25 @@ async function toggleDeptShift(deptId, shiftId, enable){
   if(activeView==='schedule') renderSchedule();
 }
 
+// nightWeekDepts: Set of deptIds that have night shift active THIS week
+let nightWeekDepts=new Set();
+
+async function loadNightWeek(){
+  nightWeekDepts=new Set();
+  const ws=weekStartStr();
+  try{
+    const nightShift=shiftTypes.find(s=>s.name==='לילה');
+    if(!nightShift) return;
+    const {data}=await sb.from('night_week_active').select('department_id').eq('week_start',ws).eq('shift_id',nightShift.id);
+    (data||[]).forEach(r=>nightWeekDepts.add(r.department_id));
+  }catch(e){}
+}
+
+function isNightWeekActive(deptId){ return nightWeekDepts.has(deptId); }
+
 function addNightShiftToWeek(){
   const nightShift=shiftTypes.find(s=>s.name==='לילה');
   if(!nightShift){alert('לא נמצאה משמרת לילה בהגדרות');return;}
-  // Toggle overlay
   const existing=document.getElementById('night-overlay');
   if(existing){existing.remove();return;}
   const overlay=document.createElement('div');
@@ -4195,19 +4220,23 @@ function addNightShiftToWeek(){
   overlay.style.cssText='position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.5)';
   overlay.onclick=()=>overlay.remove();
   const popup=document.createElement('div');
-  popup.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#0f172a;border:2px solid #7c3aed;border-radius:16px;padding:20px;min-width:280px;direction:rtl;font-family:inherit;box-shadow:0 0 30px #7c3aed88';
+  popup.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#0f172a;border:2px solid #7c3aed;border-radius:16px;padding:20px;min-width:300px;direction:rtl;font-family:inherit;box-shadow:0 0 30px #7c3aed88;max-height:80vh;overflow-y:auto';
   popup.onclick=e=>e.stopPropagation();
   const render=()=>{
-    let h=`<div style="font-weight:800;color:white;margin-bottom:14px;font-size:15px">🌙 משמרת לילה — לפי מחלקה</div><div style="display:flex;flex-direction:column;gap:8px">`;
+    const allActive=departments.every(d=>nightWeekDepts.has(d.id));
+    let h=`<div style="font-weight:800;color:white;margin-bottom:4px;font-size:15px">🌙 לילה — שבוע זה בלבד</div>`;
+    h+=`<div style="font-size:11px;color:#94a3b8;margin-bottom:12px">ברירת מחדל: כבוי. מתאפס בכל שבוע.</div>`;
+    h+=`<button onclick="nightToggleAll(${!allActive})" style="width:100%;padding:8px;margin-bottom:10px;background:${allActive?'#14532d':'#1e293b'};color:${allActive?'#86efac':'#a78bfa'};border:1.5px solid ${allActive?'#22c55e':'#7c3aed'};border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700">${allActive?'✓ כולם פעילים — לחץ לכיבוי כולם':'הפעל לכולם'}</button>`;
+    h+=`<div style="display:flex;flex-direction:column;gap:8px">`;
     departments.forEach(dept=>{
-      const has=(deptShifts[dept.id]||[]).includes(nightShift.id);
-      h+=`<button data-dept="${dept.id}" onclick="nightToggleDept('${dept.id}','${nightShift.id}',this)" style="display:flex;align-items:center;gap:10px;padding:8px 14px;border:1.5px solid ${has?'#22c55e':'#334155'};border-radius:10px;background:${has?'#14532d':'#1e293b'};cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:${has?'#86efac':'#94a3b8'};width:100%;text-align:right">
+      const active=nightWeekDepts.has(dept.id);
+      h+=`<button onclick="nightToggleDept('${dept.id}','${nightShift.id}')" style="display:flex;align-items:center;gap:10px;padding:8px 14px;border:1.5px solid ${active?'#22c55e':'#334155'};border-radius:10px;background:${active?'#14532d':'#1e293b'};cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:${active?'#86efac':'#94a3b8'};width:100%;text-align:right">
         <div style="width:10px;height:10px;border-radius:50%;background:${dept.color};flex-shrink:0"></div>
         ${dept.name}
-        <span style="margin-right:auto">${has?'✓':'—'}</span>
+        <span style="margin-right:auto">${active?'✓ פעיל':'—'}</span>
       </button>`;
     });
-    h+=`</div><button onclick="document.getElementById('night-overlay').remove()" style="margin-top:14px;width:100%;padding:8px;background:#1e293b;border:1px solid #334155;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:#94a3b8">סגור</button>`;
+    h+=`</div><button onclick="document.getElementById('night-overlay').remove()" style="margin-top:12px;width:100%;padding:8px;background:#1e293b;border:1px solid #334155;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;color:#94a3b8">סגור</button>`;
     popup.innerHTML=h;
   };
   window._renderNightPopup=render;
@@ -4216,17 +4245,32 @@ function addNightShiftToWeek(){
   document.body.appendChild(overlay);
 }
 
-async function nightToggleDept(deptId, shiftId, btn){
-  const has=(deptShifts[deptId]||[]).includes(shiftId);
-  if(has){
-    await sb.from('department_shifts').delete().eq('department_id',deptId).eq('shift_id',shiftId);
-    if(deptShifts[deptId]) deptShifts[deptId]=deptShifts[deptId].filter(s=>s!==shiftId);
+async function nightToggleDept(deptId, shiftId){
+  const ws=weekStartStr();
+  const active=nightWeekDepts.has(deptId);
+  if(active){
+    nightWeekDepts.delete(deptId);
+    await sb.from('night_week_active').delete().eq('department_id',deptId).eq('week_start',ws).catch(()=>{});
   } else {
-    const order=shiftTypes.findIndex(s=>s.id===shiftId);
-    await sb.from('department_shifts').insert({department_id:deptId,shift_id:shiftId,sort_order:order});
-    if(!deptShifts[deptId]) deptShifts[deptId]=[];
-    deptShifts[deptId].push(shiftId);
-    deptShifts[deptId].sort((a,b)=>shiftTypes.findIndex(s=>s.id===a)-shiftTypes.findIndex(s=>s.id===b));
+    nightWeekDepts.add(deptId);
+    await sb.from('night_week_active').upsert({department_id:deptId,shift_id:shiftId,week_start:ws},{onConflict:'department_id,week_start'}).catch(()=>{});
+  }
+  if(window._renderNightPopup) window._renderNightPopup();
+  renderSchedule();
+}
+
+async function nightToggleAll(enable){
+  const nightShift=shiftTypes.find(s=>s.name==='לילה');
+  if(!nightShift) return;
+  const ws=weekStartStr();
+  for(const dept of departments){
+    if(enable){
+      nightWeekDepts.add(dept.id);
+      await sb.from('night_week_active').upsert({department_id:dept.id,shift_id:nightShift.id,week_start:ws},{onConflict:'department_id,week_start'}).catch(()=>{});
+    } else {
+      nightWeekDepts.delete(dept.id);
+      await sb.from('night_week_active').delete().eq('department_id',dept.id).eq('week_start',ws).catch(()=>{});
+    }
   }
   if(window._renderNightPopup) window._renderNightPopup();
   renderSchedule();
