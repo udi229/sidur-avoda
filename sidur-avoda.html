@@ -224,13 +224,17 @@
   @keyframes neonPulseYellow{0%,100%{box-shadow:0 0 8px #f59e0b,0 0 16px #f59e0b66}50%{box-shadow:0 0 20px #f59e0b,0 0 40px #f59e0baa}}
   @keyframes neonPulseYellow{0%,100%{box-shadow:0 0 8px #f59e0b,0 0 16px #f59e0b66}50%{box-shadow:0 0 20px #f59e0b,0 0 40px #f59e0baa}}
   @keyframes neonPulseGreen{0%,100%{box-shadow:0 0 8px #00ff88,0 0 16px #00ff8866}50%{box-shadow:0 0 20px #00ff88,0 0 40px #00ff88aa}}
-  @keyframes myShiftsBreathe{
-    0%,100%{transform:scale(1);box-shadow:0 0 8px #00ff88,0 0 18px #00ff8855,inset 0 0 6px #00ff8822}
-    50%{transform:scale(1.04);box-shadow:0 0 18px #00ff88,0 0 36px #00ff8888,0 0 60px #00ff8833,inset 0 0 12px #00ff8844}
+  @keyframes myShiftsBreatheOut{
+    0%,100%{transform:scale(1);box-shadow:0 0 6px #00cc6644,0 0 12px #00cc6622}
+    50%{transform:scale(1.035);box-shadow:0 0 14px #00cc6666,0 0 24px #00cc6633}
   }
-  @keyframes borderRun{
+  @keyframes myShiftsBreatheIn{
+    0%,100%{transform:scale(1)}
+    50%{transform:scale(0.94)}
+  }
+  @keyframes borderRunSmooth{
     0%{background-position:0% 50%}
-    100%{background-position:300% 50%}
+    100%{background-position:200% 50%}
   }
   #my-shifts-btn {
     position:relative;
@@ -239,17 +243,18 @@
   #my-shifts-btn::before {
     content:'';
     position:absolute;
-    inset:-2px;
+    inset:-1.5px;
     border-radius:22px;
-    background:linear-gradient(90deg,#00ff88,#00cc44,#00ffcc,#00ff88,#00cc44,#00ffcc,#00ff88);
-    background-size:300% 100%;
-    animation:borderRun 2.5s linear infinite;
+    background:linear-gradient(90deg,#00cc55,#00ff88,#00aa44,#00ff88,#00cc55);
+    background-size:200% 100%;
+    animation:borderRunSmooth 3s linear infinite;
     z-index:0;
+    opacity:0.7;
   }
   #my-shifts-btn::after {
     content:'';
     position:absolute;
-    inset:2px;
+    inset:1.5px;
     border-radius:18px;
     background:#16a34a;
     z-index:1;
@@ -257,6 +262,7 @@
   #my-shifts-btn span.btn-text {
     position:relative;
     z-index:2;
+    color:white;
   }
   @keyframes neonPulseRed{0%,100%{box-shadow:0 0 8px #ff003c,0 0 16px #ff003c66}50%{box-shadow:0 0 20px #ff003c,0 0 40px #ff003caa}}
   @keyframes neonPulseBlue{0%,100%{box-shadow:0 0 8px #3b82f6,0 0 16px #3b82f666,inset 0 0 4px #3b82f622}50%{box-shadow:0 0 18px #3b82f6,0 0 36px #3b82f6aa,inset 0 0 8px #3b82f644}}
@@ -1395,8 +1401,8 @@
         <button id="my-shifts-btn" onclick="toggleMyShifts()"
           style="display:none;padding:5px 10px;border:none;border-radius:20px;font-size:11px;
           font-weight:700;cursor:pointer;font-family:inherit;background:#16a34a;color:white;
-          white-space:nowrap;flex-shrink:0;transition:transform 0.2s;
-          animation:myShiftsBreathe 2.8s ease-in-out infinite"><span class="btn-text">המשמרות שלי</span></button>
+          white-space:nowrap;flex-shrink:0;transition:transform 0.15s;
+          animation:myShiftsBreatheOut 3s ease-in-out infinite"><span class="btn-text">המשמרות שלי</span></button>
         <button id="freelance-toggle" onclick="toggleFreelanceHighlight()"
           style="display:none;padding:5px 10px;border:1.5px solid #f59e0b;border-radius:20px;
           font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;background:white;
@@ -2573,16 +2579,16 @@ function toggleMyShifts(){
   const btn=document.getElementById('my-shifts-btn');
   if(btn){
     if(showMyShifts){
-      btn.style.background='white';
-      btn.style.color='#15803d';
+      btn.style.background='#16a34a';
+      btn.style.color='white';
       btn.style.border='none';
-      btn.style.animation='myShiftsBreathe 1.4s ease-in-out infinite';
+      btn.style.animation='myShiftsBreatheIn 3s ease-in-out infinite';
       btn.innerHTML='<span class="btn-text">✓ המשמרות שלי</span>';
     } else {
       btn.style.background='#16a34a';
       btn.style.color='white';
       btn.style.border='none';
-      btn.style.animation='myShiftsBreathe 2.8s ease-in-out infinite';
+      btn.style.animation='myShiftsBreatheOut 3s ease-in-out infinite';
       btn.innerHTML='<span class="btn-text">המשמרות שלי</span>';
     }
   }
@@ -2736,7 +2742,7 @@ function setDept(id){
   const si=document.getElementById('sched-search');
   if(si) si.value='';
   const btn=document.getElementById('my-shifts-btn');
-  if(btn){btn.style.background='#16a34a';btn.style.color='white';btn.style.border='none';btn.style.animation='myShiftsBreathe 2.8s ease-in-out infinite';btn.innerHTML='<span class="btn-text">המשמרות שלי</span>';}
+  if(btn){btn.style.background='#16a34a';btn.style.color='white';btn.style.border='none';btn.style.animation='myShiftsBreatheOut 3s ease-in-out infinite';btn.innerHTML='<span class="btn-text">המשמרות שלי</span>';}
   renderDeptTabs();
   renderSchedule();
 }
