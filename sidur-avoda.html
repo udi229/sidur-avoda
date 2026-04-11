@@ -3234,8 +3234,9 @@ function renderCombinedView(){
   const B='border:1px solid #e2e8f0';
 
   // Split shifts into groups
-  const specialNames=['ערבית','לילה'];
+  const specialNames=['ערבית','לילה','בוקר'];
   const regularShifts=activeShifts.filter(s=>!specialNames.includes(s.name));
+  const morningShift=activeShifts.find(s=>s.name==='בוקר');
   const eveningShift=activeShifts.find(s=>s.name==='ערבית');
   const nightShift=activeShifts.find(s=>s.name==='לילה');
 
@@ -3392,11 +3393,13 @@ function renderCombinedView(){
     bHtml+=`<th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">תפקיד</th>`;
     bHtml+=dates.map((date,i)=>`<th style="${B};padding:4px 4px;text-align:center;font-size:15px;color:#475569;font-weight:700;${holidayThStyle(date)}">${holidayBadge(date)}${DAYS_DISPLAY[i]}<br><span style="font-size:13px;font-weight:700;color:#0f172a">${date}</span></th>`).join('');
     bHtml+=`</tr></thead><tbody>`;
-    // Render rows for this shift
+    // Render rows for this shift — for night, only depts with night active this week
+    const isNightShift=shift.name==='לילה';
     const allRows2=[];
     depts.forEach(dept=>{
+      if(isNightShift&&!isNightWeekActive(dept.id)) return;
       const ds=deptShifts[dept.id];
-      if(ds&&ds.length>0&&!ds.includes(shift.id)) return;
+      if(!isNightShift&&ds&&ds.length>0&&!ds.includes(shift.id)) return;
       const roles=shiftRoles[dept.id+'_'+shift.id]||[];
       if(roles.length>0){
         roles.forEach(role=>{ allRows2.push({dept,role,key:'r_'+role.id,label:role.role_name}); });
@@ -3454,6 +3457,7 @@ function renderCombinedView(){
     return bHtml;
   }
 
+  html+=buildSpecialBlock(morningShift);
   html+=buildSpecialBlock(nightShift);
   html+=buildSpecialBlock(eveningShift);
 
