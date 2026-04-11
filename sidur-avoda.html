@@ -68,6 +68,8 @@
   .dept-tab { padding:7px 16px; border-radius:20px; border:2px solid; cursor:pointer; font-size:12px; font-weight:700; font-family:inherit; transition:all 0.2s; background:white; white-space:nowrap; }
   .dept-tab:hover { box-shadow:0 0 12px currentColor; }
   .dept-tab.active { box-shadow:0 0 16px currentColor; }
+  .dept-tab.no-neon { box-shadow:none!important; animation:none!important; }
+  .dept-tab.no-neon.active { box-shadow:none!important; }
 
   /* TOOLBAR */
   .sched-toolbar { display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
@@ -2222,6 +2224,17 @@ async function loadAll(){
     sb.from('shift_types').select('*').order('sort_order'),
   ]);
   departments=d.data||[];
+  // Sort: ע.במאי right after במאים
+  departments.sort((a,b)=>{
+    const order=n=>{
+      if(/במאי/i.test(n)&&!/ע\./.test(n)) return 10;
+      if(/ע\..*במאי/i.test(n)||/ע\. *במאי/i.test(n)) return 11;
+      return 99;
+    };
+    const oa=order(a.name),ob=order(b.name);
+    if(oa!==ob) return oa-ob;
+    return a.name.localeCompare(b.name,'he');
+  });
   window.departments=departments;
   employees=e.data||[]; window.employees=employees;
   freelancers=f.data||[];
@@ -2308,7 +2321,7 @@ function updateWeekUI(){
   sb2.style.display='none';
   const tb=document.getElementById('wk-tp');
   if(weekOffset<0){tb.style.display='inline-block';tb.className='badge b-arc';tb.textContent='🗂 ארכיון';}
-  else if(weekOffset>0){tb.style.display='inline-block';tb.className='badge b-fut';tb.textContent='📅 תכנון עתידי';}
+  else if(weekOffset>0){tb.style.display='none';}
   else tb.style.display='none';
   // global approve button removed - approval per dept in notes panel
 
@@ -2461,10 +2474,15 @@ function renderDeptTabs(){
     const isActive=!activeCombinedId&&activeDeptId===d.id;
     const isMgrView2=isMgr||currentEmp?.role==='manager';
     const nameHtml=(submitted&&isMgrView2)
-      ?`<span style="animation:neonPulseGreen 1s ease-in-out infinite;color:#15803d">${d.name}</span>`
+      ?`✓ ${d.name}`
       :d.name;
-    return `<button class="dept-tab${isActive?' active':''}"
-      style="border-color:${d.color};${isActive?`background:${d.color};color:white`:`color:${d.color}`}"
+    const submittedStyle=submitted&&!approved
+      ?`border-color:${d.color};color:${d.color};background:white;box-shadow:none!important;animation:none!important;`
+      :'';
+    const activeStyle=isActive?`background:${d.color};color:white;`:`color:${d.color};`;
+    const tabStyle=submitted&&!approved&&!isActive?submittedStyle:(`border-color:${d.color};`+activeStyle);
+    return `<button class="dept-tab${isActive?' active':''}${submitted&&!approved?' no-neon':''}"
+      style="${tabStyle}"
       onclick="setDept('${d.id}')">${indicator}${nameHtml}</button>`;
   }).join('');
 
