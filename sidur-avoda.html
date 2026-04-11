@@ -3382,28 +3382,14 @@ function renderCombinedView(){
     bHtml+=`<table style="border-collapse:collapse;direction:rtl;min-width:500px;width:100%">`;
     bHtml+=`<colgroup><col style="width:80px;min-width:80px"><col style="width:75px;min-width:65px">${DAYS_DISPLAY.map(()=>'<col style="min-width:65px">').join('')}</colgroup>`;
     if(showDates){
-    bHtml+=`<thead>`;
-    // Date cards row — full width spanning shift+role cols too
-    bHtml+=`<tr style="background:#1e293b">`;
-    bHtml+=`<th style="border:none;padding:0" colspan="2"></th>`;
-    bHtml+=dates.map((date,i)=>{
-      const hol=getHolidayForDate(date);
-      const isHolJ=hol.jewish, isHolM=hol.muslim;
-      const holBadge=isHolJ?`<div style="font-size:8px;color:#93c5fd;font-weight:700;line-height:1.1">✡️ ${isHolJ}</div>`
-        :isHolM?`<div style="font-size:8px;color:#86efac;font-weight:700;line-height:1.1">☪️ ${isHolM}</div>`:'';
-      const holBorder=isHolJ?'border-bottom:2px solid #3b82f6;':isHolM?'border-bottom:2px solid #22c55e;':'';
-      return `<th style="padding:6px 4px;text-align:center;border:none;${holBorder}">
-        ${holBadge}
-        <div style="font-size:13px;font-weight:800;color:white;letter-spacing:0.3px">${DAYS_DISPLAY[i]}</div>
-        <div style="font-size:12px;font-weight:600;color:#38bdf8;margin-top:1px">${date}</div>
-      </th>`;
-    }).join('');
-    bHtml+=`</tr>`;
-    // משמרת/תפקיד subheader
-    bHtml+=`<tr style="background:#f8fafc">`;
-    bHtml+=`<th style="${B};padding:6px 8px;text-align:right;font-size:11px;color:#64748b;font-weight:700">משמרת</th>`;
-    bHtml+=`<th style="${B};padding:6px 8px;text-align:right;font-size:11px;color:#64748b;font-weight:700">תפקיד</th>`;
-    bHtml+=DAYS_DISPLAY.map(()=>`<th style="${B};padding:0"></th>`).join('');
+    bHtml+=`<thead><tr style="background:#f1f5f9">`;
+    bHtml+=`<th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">משמרת</th>`;
+    bHtml+=`<th style="${B};padding:8px 6px;text-align:right;font-size:12px;color:#475569">תפקיד</th>`;
+    bHtml+=dates.map((date,i)=>`<th style="${B};padding:6px 4px;text-align:center;${holidayThStyle(date)}">
+      ${holidayBadge(date)}
+      <div style="font-size:14px;font-weight:900;color:#0f172a;letter-spacing:0.3px">${DAYS_DISPLAY[i]}</div>
+      <div style="font-size:12px;font-weight:700;color:#334155;margin-top:1px">${date}</div>
+    </th>`).join('');
     bHtml+=`</tr></thead>`;
     }
     bHtml+=`<tbody>`;
