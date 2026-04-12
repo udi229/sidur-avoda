@@ -3338,7 +3338,7 @@ function renderCombinedView(){
     allRows.forEach((row,ri)=>{
       const isFirst=ri===0;
       const isLast=ri===allRows.length-1;
-      const rowBg=ri%2===0?'#fdf6ee':'white';
+      const rowBg=ri%2===0?'#f0e6d3':'white';
       if(!isFirst) html+=`<tr style="background:${rowBg}">`;
 
       // shift name cell (rowspan, first row only)
@@ -3364,7 +3364,7 @@ function renderCombinedView(){
 
       // role/dept name cell
       html+=`<td style="${B};padding:5px 8px;text-align:right;vertical-align:middle;
-        font-size:11px;font-weight:700;color:${row.dept.color};background:${isFirst?'#fafafa':'white'};
+        font-size:11px;font-weight:700;color:${row.dept.color};background:${rowBg};
         border-bottom:1px solid #e2e8f0">${row.label}</td>`;
 
       // day cells
@@ -3451,7 +3451,7 @@ function renderCombinedView(){
     allRows2.forEach((row,ri)=>{
       const isFirst2=ri===0;
       const isLast2=ri===allRows2.length-1;
-      const rowBg2=ri%2===0?'#fdf6ee':'white';
+      const rowBg2=ri%2===0?'#f0e6d3':'white';
       bHtml+=`<tr style="background:${rowBg2}">`;
       if(isFirst2){
         const deptsInShift2=new Set(allRows2.map(r=>r.dept.id)).size;
@@ -3462,7 +3462,7 @@ function renderCombinedView(){
         bHtml+=shift.time?`<div style="font-size:${timeSize2};font-weight:400;color:${timeColor2};margin-top:2px">${shift.time}</div>`:'';
         bHtml+=`</td>`;
       }
-      bHtml+=`<td style="${B};padding:5px 8px;text-align:right;vertical-align:middle;font-size:11px;font-weight:700;color:${row.dept.color};background:${isFirst2?'#fafafa':'white'};border-bottom:1px solid #e2e8f0">${row.label}</td>`;
+      bHtml+=`<td style="${B};padding:5px 8px;text-align:right;vertical-align:middle;font-size:11px;font-weight:700;color:${row.dept.color};background:${rowBg2};border-bottom:1px solid #e2e8f0">${row.label}</td>`;
       for(let d=0;d<7;d++){
         const sched=schedules[row.dept.id];
         const names2=sched?getCellNames(sched.id,row.key,d):[];
