@@ -3338,7 +3338,7 @@ function renderCombinedView(){
     allRows.forEach((row,ri)=>{
       const isFirst=ri===0;
       const isLast=ri===allRows.length-1;
-      const rowBg=ri%2===0?'white':'#fdf6ee';
+      const rowBg=ri%2===0?'#fdf6ee':'white';
       if(!isFirst) html+=`<tr style="background:${rowBg}">`;
 
       // shift name cell (rowspan, first row only)
@@ -3451,7 +3451,7 @@ function renderCombinedView(){
     allRows2.forEach((row,ri)=>{
       const isFirst2=ri===0;
       const isLast2=ri===allRows2.length-1;
-      const rowBg2=ri%2===0?'white':'#fdf6ee';
+      const rowBg2=ri%2===0?'#fdf6ee':'white';
       bHtml+=`<tr style="background:${rowBg2}">`;
       if(isFirst2){
         const deptsInShift2=new Set(allRows2.map(r=>r.dept.id)).size;
