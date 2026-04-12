@@ -4483,6 +4483,9 @@ function renderSettings(){
           </div>
         </div>
         <div class="item-btns">
+          <select class="role-sel" title="העבר מחלקה" onchange="updateEmpDept('${emp.id}',this.value)">
+            ${departments.map(dd=>`<option value="${dd.id}" ${dd.id===emp.department_id?'selected':''}>${dd.name}</option>`).join('')}
+          </select>
           <select class="role-sel" onchange="updateRole('${emp.id}',this.value)">
             <option value="employee" ${emp.role==='employee'?'selected':''}>עובד</option>
             <option value="team_lead" ${emp.role==='team_lead'?'selected':''}>ראש צוות</option>
