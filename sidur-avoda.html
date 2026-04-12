@@ -6513,7 +6513,7 @@ function applySchedZoom(){
 // Auto-fit on mobile after render
 function autoFitMobile(isCombined){
   if(window.innerWidth >= 600) return;
-  _schedZoom = calcMobileZoom() - (isCombined ? 7 : 0);
+  _schedZoom = Math.round(calcMobileZoom() * (isCombined ? 0.89 : 1));
   applySchedZoom();
 }
 
