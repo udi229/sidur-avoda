@@ -7226,7 +7226,7 @@ function lozInjectSaveButtons(){
       v.style.transform=''; v.style.opacity=''; return;
     }
     // ימינה = שבוע קודם (d=-1), שמאלה = שבוע הבא (d=1)
-    const d=dx>0?-1:1;
+    const d=dx>0?1:-1;
     // snap החוצה
     const snapX=dx>0?'120px':'-120px';
     v.style.transition='transform 0.12s ease-out, opacity 0.12s ease-out';
