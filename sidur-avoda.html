@@ -185,11 +185,12 @@
 
   /* AUTH */
   #auth-screen { min-height:100vh; display:none; align-items:center; justify-content:center; background:#111520; padding:16px; position:fixed; inset:0; overflow:hidden; z-index:9995; }
-  .auth-box { background:rgba(255,255,255,0.97); border:1px solid #d0dcf0; border-radius:20px; padding:36px; width:100%; max-width:400px; box-shadow:0 0 80px rgba(255,230,100,0.35),0 8px 40px rgba(0,0,0,0.4); animation:cardflicker 3.5s ease-in-out infinite; }
-  .auth-logo { font-size:38px; text-align:center; margin-bottom:6px; }
-  .auth-title { font-size:26px; font-weight:900; text-align:center; margin-bottom:4px; color:#1a2030; }
+  .auth-box { background:rgba(255,255,255,0.97); border:2px solid #fff; border-radius:20px; padding:22px 26px; width:100%; max-width:400px; }
+  .auth-logo { font-size:28px; text-align:center; margin-bottom:2px; }
+  .auth-title { font-size:22px; font-weight:900; text-align:center; margin-bottom:2px; color:#1a2030; }
   .auth-sub { font-size:13px; color:#6a7890; text-align:center; margin-bottom:20px; }
-  .fg { margin-bottom:14px; }
+  .fg { margin-bottom:10px; }
+  .auth-sub { font-size:13px; color:#6a7890; text-align:center; margin-bottom:12px; }
   .fg label { display:block; font-size:12px; font-weight:600; color:#5a6880; margin-bottom:5px; }
   .fg input, .fg select { width:100%; padding:10px 14px; background:white; border:1.5px solid #c0cce0; border-radius:10px; color:#1a2030; font-family:inherit; font-size:14px; outline:none; transition:border 0.2s; }
   .fg input:focus, .fg select:focus { border-color:#6366f1; box-shadow:0 0 8px #6366f122; }
@@ -1364,40 +1365,11 @@
 
 <style>
 @keyframes onair{0%,100%{background:#cc0000;box-shadow:0 0 12px #ff000077}50%{background:#ff1111;box-shadow:0 0 28px #ff0000aa}}
-@keyframes musicnote{0%,100%{transform:translate(-50%,-50%) scale(1) rotate(-5deg)}50%{transform:translate(-50%,-52%) scale(1.05) rotate(5deg)}}
-@keyframes flicker{0%,89%,91%,96%,100%{opacity:1;filter:brightness(1)}90%{opacity:0.4;filter:brightness(0.4)}97%{opacity:0.7;filter:brightness(0.7)}}
-@keyframes coneflicker{0%,89%,91%,96%,100%{opacity:1}90%{opacity:0.3}97%{opacity:0.6}}
-@keyframes cardflicker{0%,89%,91%,96%,100%{box-shadow:0 0 90px rgba(255,230,100,0.4),0 8px 40px rgba(0,0,0,0.4)}90%{box-shadow:0 0 20px rgba(255,230,100,0.1),0 8px 40px rgba(0,0,0,0.4)}97%{box-shadow:0 0 50px rgba(255,230,100,0.25),0 8px 40px rgba(0,0,0,0.4)}}
+@keyframes neonWhite{0%,100%{box-shadow:0 0 8px #fff,0 0 20px #fff8,0 0 40px #fff4}50%{box-shadow:0 0 14px #fff,0 0 32px #fffc,0 0 60px #fff6}}
 </style>
 
-<!-- studio light fixture -->
-<div style="position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:4;display:flex;flex-direction:column;align-items:center;pointer-events:none">
-  <div style="width:6px;height:55px;background:#2a3050"></div>
-  <div style="width:100px;height:40px;background:#1e2540;border:2px solid #2a3560;border-radius:4px;position:relative;display:flex;align-items:center;justify-content:center">
-    <div style="position:absolute;top:-16px;left:-2px;width:50px;height:16px;background:#1a2040;border:1px solid #2a3050;border-radius:2px 0 0 0;transform-origin:bottom right;transform:rotate(-20deg)"></div>
-    <div style="position:absolute;top:-16px;right:-2px;width:50px;height:16px;background:#1a2040;border:1px solid #2a3050;border-radius:0 2px 0 0;transform-origin:bottom left;transform:rotate(20deg)"></div>
-    <div style="width:50px;height:26px;background:#ffe87a;border-radius:3px;animation:flicker 3.5s ease-in-out infinite;box-shadow:0 0 20px #ffee88,0 0 40px #ffcc44"></div>
-  </div>
-</div>
-
-<!-- light cone -->
-<svg style="position:absolute;top:93px;left:50%;transform:translateX(-50%);z-index:1;pointer-events:none;animation:coneflicker 3.5s ease-in-out infinite" width="800" height="600" viewBox="0 0 800 600">
-  <defs>
-    <radialGradient id="lgx" cx="50%" cy="0%" r="80%" fx="50%" fy="0%">
-      <stop offset="0%" stop-color="#fff8d0" stop-opacity="0.6"/>
-      <stop offset="40%" stop-color="#ffe899" stop-opacity="0.28"/>
-      <stop offset="100%" stop-color="#ffd040" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
-  <polygon points="400,0 50,600 750,600" fill="url(#lgx)"/>
-</svg>
-
-<!-- floor glow -->
-<div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:600px;height:160px;background:radial-gradient(ellipse,rgba(255,230,100,0.1) 0%,transparent 70%);z-index:0;pointer-events:none;animation:coneflicker 3.5s ease-in-out infinite"></div>
-
-<div class="auth-box" style="position:relative;z-index:3;background:rgba(255,255,255,0.97);border:1px solid #d0dcf0;border-radius:20px;padding:36px;animation:cardflicker 3.5s ease-in-out infinite">
-  <div class="auth-logo" style="font-size:38px">🎬</div>
-  <div class="auth-title" style="color:#1a2030">אולפנים</div>
+<div class="auth-box" style="position:relative;z-index:3;animation:neonWhite 2.5s ease-in-out infinite;border:2px solid #fff !important;">
+  <div class="auth-title" style="color:#1a2030;font-size:24px;margin-bottom:2px">🎬 אולפנים</div>
   <div class="auth-sub" id="auth-sub" style="color:#6a7890">הרשמה</div>
   <div class="fg"><label style="color:#5a6880">אימייל</label><input type="email" id="a-email" placeholder="your@email.com" style="background:white;border-color:#c0cce0;color:#1a2030" /></div>
   <div class="fg">
@@ -1416,13 +1388,13 @@
     <div class="fg"><label style="color:#5a6880">טלפון <span style="color:#ef4444">*</span></label><input type="tel" id="a-phone" placeholder="050-0000000" dir="ltr" style="background:white;border-color:#c0cce0;color:#1a2030" /></div>
   </div>
   <button class="btn-p" id="a-btn" onclick="primeAudio();handleAuth()" style="animation:onair 1.2s ease-in-out infinite;font-size:20px;font-weight:900;letter-spacing:6px;border:2px solid #ff2200">ON AIR</button>
-  <div id="a-msg" class="auth-err"></div>
-  <div class="auth-tog" style="color:#8090a8"><span id="tog-txt">יש לך חשבון?</span><a onclick="toggleMode()" style="color:#6366f1"> כניסה</a></div>
-  <!-- כניסת מנהל — קטן, בצדדים -->
-  <div style="margin-top:14px;border-top:1px solid #f0f4fa;padding-top:10px;display:flex;justify-content:space-between;align-items:center">
-    <button onclick="showPinFor('primary')" title="אודי" style="width:32px;height:32px;border-radius:50%;background:#f0f4ff;border:1.5px solid #6366f1;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;opacity:0.6">👨‍💼</button>
-    <button onclick="showPinFor('secondary')" title="אפרת" style="width:32px;height:32px;border-radius:50%;background:#fff0f8;border:1.5px solid #ec4899;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;opacity:0.6">👩‍💼</button>
+  <!-- כניסת מנהל — ממש מתחת ל-ON AIR -->
+  <div style="display:flex;justify-content:center;gap:20px;margin-top:8px">
+    <button onclick="showPinFor('primary')" title="אודי" style="width:36px;height:36px;border-radius:50%;background:#f0f4ff;border:1.5px solid #6366f1;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;opacity:0.65">👨‍💼</button>
+    <button onclick="showPinFor('secondary')" title="אפרת" style="width:36px;height:36px;border-radius:50%;background:#fff0f8;border:1.5px solid #ec4899;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;opacity:0.65">👩‍💼</button>
   </div>
+  <div id="a-msg" class="auth-err"></div>
+  <div class="auth-tog" style="color:#8090a8;margin-top:8px"><span id="tog-txt">יש לך חשבון?</span><a onclick="toggleMode()" style="color:#6366f1"> כניסה</a></div>
 </div>
 </div>
 
