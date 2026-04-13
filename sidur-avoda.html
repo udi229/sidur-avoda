@@ -111,7 +111,7 @@
   #sched-wrap td:first-child, #sched-wrap th:first-child { border-right:none; }
   .cell-rel { position:relative; }
   .cell-tags { display:flex; flex-wrap:wrap; gap:3px; }
-  .emp-tag { display:inline-flex; align-items:center; justify-content:center; gap:3px; padding:4px 8px; border-radius:12px; font-size:18px; font-weight:700; cursor:default; white-space:nowrap; transition: all 0.15s; width:calc(100% - 4px); text-align:center; }
+  .emp-tag { display:inline-flex; align-items:center; justify-content:center; gap:3px; padding:4px 8px; border-radius:12px; font-size:20px; font-weight:700; cursor:default; white-space:nowrap; transition: all 0.15s; width:calc(100% - 4px); text-align:center; }
   .my-shifts-active {
     background: white !important;
     color: #15803d !important;
@@ -726,10 +726,10 @@
     top:calc(50% - 49px - 155px); left:calc(50% - 49px - 55px);
     background:radial-gradient(circle at 38% 32%,#2d1450,#0a0420);
     box-shadow:0 0 0 1.5px #cc44ffbb,0 0 22px #cc44ffaa,0 0 50px #cc44ff44; }
-  .hub-p2 { width:84px; height:84px; --pc:#ffaa0066; --ps:3.2s;
+  .hub-p2 { width:84px; height:84px; --pc:#E8550A66; --ps:3.2s;
     top:calc(50% - 42px + 80px); left:calc(50% - 42px - 155px);
-    background:radial-gradient(circle at 38% 32%,#3d2810,#0e0804);
-    box-shadow:0 0 0 1.5px #ffaa00bb,0 0 20px #ffaa00aa,0 0 44px #ffaa0044; }
+    background:radial-gradient(circle at 38% 32%,#3d1a08,#0e0502);
+    box-shadow:0 0 0 1.5px #E8550Abb,0 0 20px #E8550Aaa,0 0 44px #E8550A44; }
   .hub-p3 { width:90px; height:90px; --pc:#ff446666; --ps:3s;
     top:calc(50% - 45px + 80px); left:calc(50% - 45px + 120px);
     background:radial-gradient(circle at 38% 32%,#3a0e1a,#0e0408);
@@ -1321,7 +1321,7 @@
         <filter id="hg3"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
       <line x1="210" y1="210" x2="155" y2="55"  stroke="#cc44ff" stroke-width="1" stroke-opacity="0.7" filter="url(#hg1)"/>
-      <line x1="210" y1="210" x2="55"  y2="290" stroke="#ffaa00" stroke-width="1" stroke-opacity="0.7" filter="url(#hg2)"/>
+      <line x1="210" y1="210" x2="55"  y2="290" stroke="#E8550A" stroke-width="1" stroke-opacity="0.7" filter="url(#hg2)"/>
       <line x1="210" y1="210" x2="330" y2="290" stroke="#ff4466" stroke-width="1" stroke-opacity="0.7" filter="url(#hg3)"/>
     </svg>
 
@@ -1331,9 +1331,9 @@
         <span class="hub-p-icon">🏖</span>
         <span class="hub-p-label" style="color:#cc88ff">חופשות</span>
       </button>
-      <button class="hub-planet hub-p2" onclick="hubGoZoom(event,'loz','#ffaa00')">
+      <button class="hub-planet hub-p2" onclick="hubGoZoom(event,'loz','#E8550A')">
         <span class="hub-p-icon">📋</span>
-        <span class="hub-p-label" style="color:#ffcc44">לוז</span>
+        <span class="hub-p-label" style="color:#E8550A">לוז</span>
       </button>
       <button class="hub-planet hub-p3" id="hub-contact-btn" onclick="hubGoZoom(event,'contact','#ff4466')" style="display:none">
         <span class="hub-p-icon">📞</span>
@@ -1733,8 +1733,8 @@
     </div>
   </header>
   <div class="app-tabs" id="main-tabs">
-    <button class="app-tab active" data-tab="tab-request" onclick="showTab('tab-request',this)">📋 בקשת חופשה</button>
-    <button class="app-tab" data-tab="tab-calendar" onclick="showTab('tab-calendar',this)">📅 לוח שנה שלי</button>
+    <button class="app-tab" data-tab="tab-request" onclick="showTab('tab-request',this)">📋 בקשת חופשה</button>
+    <button class="app-tab active" data-tab="tab-calendar" onclick="showTab('tab-calendar',this)">📅 לוח שנה שלי</button>
     <button class="app-tab" id="tab-rep-btn" style="display:none" data-tab="tab-rep" onclick="showTab('tab-rep',this)">💼 המלצות נציג</button>
     <button class="app-tab" id="tab-admin-cal-btn" style="display:none" data-tab="tab-admin-cal" onclick="showTab('tab-admin-cal',this)">📅 יומן חופשות</button>
     <button class="app-tab" id="tab-admin-req-btn" style="display:none" data-tab="tab-admin-req" onclick="showTab('tab-admin-req',this)">📋 בקשות</button>
@@ -1744,7 +1744,7 @@
   <div class="tab-panels">
 
     <!-- REQUEST -->
-    <div id="tab-request" class="tab-content active">
+    <div id="tab-request" class="tab-content">
       <div class="request-card">
         <div class="card-title">✈️ בקשת חופשה חדשה</div>
         <div class="form-row">
@@ -1765,7 +1765,7 @@
     </div>
 
     <!-- DEPT CALENDAR -->
-    <div id="tab-calendar" class="tab-content">
+    <div id="tab-calendar" class="tab-content active">
       <div class="calendar-container">
         <div class="calendar-header">
           <div class="calendar-title">📅 לוח שנה — המחלקה שלי</div>
@@ -5098,6 +5098,13 @@ async function submitRequest(){
   const reason=document.getElementById('req-reason').value.trim();
   if(!start||!end){showToast('בחר תאריכים','error');return;}
   if(end<start){showToast('תאריך הסיום חייב להיות אחרי ההתחלה','error');return;}
+  if(!reason){
+    showToast('יש למלא סיבת חופשה','error');
+    document.getElementById('req-reason').focus();
+    document.getElementById('req-reason').style.borderColor='#ef4444';
+    setTimeout(()=>{const el=document.getElementById('req-reason');if(el)el.style.borderColor='';},2000);
+    return;
+  }
   
   await loadShared();
   
@@ -6678,7 +6685,7 @@ function hubGoZoom(e, dest, col){
   const bgMap={
     'schedule':'radial-gradient(circle at 38% 32%,#1a3a60,#061228)',
     'vacation':'radial-gradient(circle at 38% 32%,#2d1450,#0a0420)',
-    'loz':'radial-gradient(circle at 38% 32%,#3d2810,#0e0804)',
+    'loz':'radial-gradient(circle at 38% 32%,#3d1a08,#0e0502)',
     'contact':'radial-gradient(circle at 38% 32%,#3a0e1a,#0e0408)',
   };
   const bg=bgMap[dest]||'#030510';
@@ -7007,8 +7014,8 @@ function closePreview(){
   if(lozCanEdit()){
     lozRenderRole();
   } else {
-    // Regular viewer — go back to previous view (schedule)
-    showView('schedule');
+    // Regular viewer — go back to hub
+    goBackToHub();
   }
 }
 
