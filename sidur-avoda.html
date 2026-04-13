@@ -683,6 +683,8 @@
   @keyframes hubSpinR { to{transform:rotate(-360deg);} }
   @keyframes hubOrbit { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
   @keyframes hubCounter { from{transform:rotate(0deg);} to{transform:rotate(-360deg);} }
+  @keyframes morphAppear { from{transform:scale(0.06);opacity:0;} to{transform:scale(1);opacity:1;} }
+  .morph-appear { animation:morphAppear 0.45s cubic-bezier(0.34,1.15,0.64,1) both; }
 
   .hub-sun {
     width:150px; height:150px; border-radius:50%; border:none; cursor:pointer;
@@ -6667,40 +6669,74 @@ function hubGoZoom(e, dest, col){
     if(auth){auth.style.display='flex';setTimeout(initAuthScreen,200);}
     return;
   }
-  if(dest==='contact'){
-    if(!isMgr){showToast('אין הרשאה לדף קשר','error');return;}
-    // zoom then open contact view
-    const rect=e.currentTarget.getBoundingClientRect();
-    const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
-    const sz=Math.max(rect.width,rect.height);
-    const circle=document.getElementById('hub-zoom-circle');
-    circle.style.cssText=`left:${cx}px;top:${cy}px;width:${sz}px;height:${sz}px;background:${col};box-shadow:0 0 40px ${col},0 0 80px ${col}88;`;
-    circle.offsetWidth;
-    circle.classList.add('go');
-    setTimeout(()=>{
-      circle.classList.remove('go');
-      circle.style.transition='none';
-      document.getElementById('hub-screen').classList.remove('active');
-      showContactView();
-    },580);
-    return;
-  }
-  const rect=e.currentTarget.getBoundingClientRect();
-  const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
-  const sz=Math.max(rect.width,rect.height);
-  const circle=document.getElementById('hub-zoom-circle');
-  circle.style.cssText=`left:${cx}px;top:${cy}px;width:${sz}px;height:${sz}px;background:${col};box-shadow:0 0 40px ${col},0 0 80px ${col}88;`;
-  circle.offsetWidth;
-  circle.classList.add('go');
+  if(dest==='contact' && !isMgr){showToast('אין הרשאה לדף קשר','error');return;}
+
+  const btn=e.currentTarget;
+  const rect=btn.getBoundingClientRect();
+
+  // get the button's background style for morph
+  const bgMap={
+    'schedule':'radial-gradient(circle at 38% 32%,#1a3a60,#061228)',
+    'vacation':'radial-gradient(circle at 38% 32%,#2d1450,#0a0420)',
+    'loz':'radial-gradient(circle at 38% 32%,#3d2810,#0e0804)',
+    'contact':'radial-gradient(circle at 38% 32%,#3a0e1a,#0e0408)',
+  };
+  const bg=bgMap[dest]||'#030510';
+
+  // create morph element at exact button position
+  const m=document.createElement('div');
+  m.id='hub-morph-el';
+  m.style.cssText=`
+    position:fixed;
+    left:${rect.left}px;top:${rect.top}px;
+    width:${rect.width}px;height:${rect.height}px;
+    border-radius:50%;
+    background:${bg};
+    border:1.5px solid ${col};
+    box-shadow:0 0 0 2px ${col}cc,0 0 30px ${col}aa,0 0 60px ${col}44;
+    transition:
+      left 0.65s cubic-bezier(0.4,0,0.2,1),
+      top 0.65s cubic-bezier(0.4,0,0.2,1),
+      width 0.65s cubic-bezier(0.4,0,0.2,1),
+      height 0.65s cubic-bezier(0.4,0,0.2,1),
+      border-radius 0.65s cubic-bezier(0.4,0,0.2,1),
+      box-shadow 0.5s ease;
+    z-index:9993;pointer-events:none;`;
+  document.body.appendChild(m);
+
+  m.offsetWidth;
+  m.style.left='0px';
+  m.style.top='0px';
+  m.style.width=window.innerWidth+'px';
+  m.style.height=window.innerHeight+'px';
+  m.style.borderRadius='0px';
+  m.style.boxShadow=`inset 0 0 80px ${col}33`;
+
   setTimeout(()=>{
-    circle.classList.remove('go');
-    circle.style.transition='none';
     document.getElementById('hub-screen').classList.remove('active');
-    document.getElementById('app').style.display='block';
-    if(dest==='vacation') showView('vacation');
-    else if(dest==='loz') showView('loz');
-    else showView('schedule');
-  },580);
+
+    if(dest==='contact'){
+      showContactView();
+    } else {
+      document.getElementById('app').style.display='block';
+      if(dest==='vacation') showView('vacation');
+      else if(dest==='loz') showView('loz');
+      else showView('schedule');
+    }
+
+    // fade out morph overlay smoothly
+    setTimeout(()=>{
+      m.style.transition='opacity 0.4s ease';
+      m.style.opacity='0';
+      // add appear animation to main content
+      const app=document.getElementById('app');
+      if(app && dest!=='contact'){
+        app.classList.add('morph-appear');
+        setTimeout(()=>app.classList.remove('morph-appear'),500);
+      }
+      setTimeout(()=>m.remove(), 420);
+    },120);
+  },600);
 }
 
 function hubGo(dest){
