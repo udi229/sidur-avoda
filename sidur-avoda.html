@@ -2132,6 +2132,14 @@ function togglePassVis(){
 }
 
 async function handleAuth(){
+  const btn=document.getElementById('a-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳';btn.style.animation='none';}
+  try{ await _handleAuth(); }
+  finally{
+    if(btn){btn.disabled=false;btn.textContent='ON AIR';btn.style.animation='onair 1.2s ease-in-out infinite';}
+  }
+}
+async function _handleAuth(){
   const email=document.getElementById('a-email').value.trim();
   const pass=document.getElementById('a-pass').value;
   if(!email||!pass){setMsg('נא למלא אימייל וסיסמה');return;}
@@ -2160,14 +2168,13 @@ async function handleAuth(){
     if(!phone){setMsg('נא למלא מספר טלפון');return;}
     let authData;
 
-    // נסה קודם להתחבר — אם המייל קיים ייכנס, אם לא — נירשם
+    // נסה קודם להתחבר — אם המייל קיים ייכנס
     const trySignIn = await sb.auth.signInWithPassword({email,password:pass});
 
     if(!trySignIn.error && trySignIn.data?.user){
-      // מייל קיים וסיסמה נכונה — נכנס (ומעדכן פרטים)
       authData = trySignIn.data;
     } else {
-      // מייל לא קיים או סיסמה שגויה — נירשם
+      // מייל לא קיים — נירשם
       const signUpRes = await sb.auth.signUp({email,password:pass});
       if(signUpRes.error){
         const msg=signUpRes.error.message||'';
@@ -2180,13 +2187,25 @@ async function handleAuth(){
         }
         return;
       }
-      // נסה להתחבר מיד אחרי הרשמה
-      const signInAfter = await sb.auth.signInWithPassword({email,password:pass});
-      if(signInAfter.error || !signInAfter.data?.user){
-        setMsg('נרשמת! כעת היכנס עם הפרטים שלך.');
-        return;
+
+      // Supabase מחזיר session ישירות ב-signUp (כשאין email confirmation)
+      if(signUpRes.data?.session && signUpRes.data?.user){
+        authData = signUpRes.data;
+      } else {
+        // יש email confirmation — נסה signIn אחד נוסף
+        const signInAfter = await sb.auth.signInWithPassword({email,password:pass});
+        if(!signInAfter.error && signInAfter.data?.user){
+          authData = signInAfter.data;
+        } else {
+          // נשתמש ב-user מה-signUp גם בלי session (refresh יפתור)
+          if(signUpRes.data?.user){
+            authData = signUpRes.data;
+          } else {
+            setMsg('נרשמת! כעת היכנס עם הפרטים שלך.');
+            return;
+          }
+        }
       }
-      authData = signInAfter.data;
     }
 
     if(!authData?.user){
@@ -7506,10 +7525,19 @@ async function renderContactView(el){
     </div>
     <div style="display:flex;gap:8px;justify-content:center;padding:10px;flex-shrink:0;background:#000" id="cv-dots"></div>
     <div id="cv-popup-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.28s;">
-      <div id="cv-popup-sheet" style="width:100%;max-width:440px;border-radius:28px 28px 0 0;background:#050505;padding:20px 18px 50px;transform:translateY(100%);transition:transform 0.36s cubic-bezier(0.4,0,0.2,1);max-height:75vh;overflow-y:auto;border-top:2px solid #fff;">
-        <div id="cv-pill" style="width:38px;height:4px;border-radius:2px;margin:0 auto 20px;"></div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;"><span id="cv-pop-icon" style="font-size:26px"></span><span id="cv-pop-name" style="font-size:18px;font-weight:900;letter-spacing:2px;"></span></div>
-        <div id="cv-pop-contacts"></div>
+      <div id="cv-popup-sheet" style="width:100%;max-width:440px;border-radius:28px 28px 0 0;background:#050505;padding:0 0 50px;transform:translateY(100%);transition:transform 0.36s cubic-bezier(0.4,0,0.2,1);max-height:75vh;overflow-y:auto;border-top:2px solid #fff;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0;position:sticky;top:0;background:#050505;z-index:10;border-bottom:1px solid #111;margin-bottom:4px;">
+          <button id="cv-pop-back" onclick="cvClosePopup()"
+            style="color:#ff2244;border:1.5px solid #ff2244;border-radius:20px;padding:6px 16px;
+                   font-size:12px;font-weight:900;letter-spacing:1px;font-family:inherit;
+                   background:none;cursor:pointer;animation:redpulse 1.4s ease-in-out infinite;">חזרה ←</button>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span id="cv-pop-icon" style="font-size:22px"></span>
+            <span id="cv-pop-name" style="font-size:17px;font-weight:900;letter-spacing:2px;"></span>
+          </div>
+          <div id="cv-pill" style="width:30px;height:4px;border-radius:2px;opacity:0.3;"></div>
+        </div>
+        <div style="padding:14px 18px 0;" id="cv-pop-contacts"></div>
       </div>
     </div>`;
 
@@ -7649,7 +7677,10 @@ async function renderContactView(el){
     if(!sheet||!bg)return;
     sheet.style.borderColor=d.color;
     sheet.style.boxShadow=`0 -20px 60px ${d.color}33`;
-    document.getElementById('cv-pill').style.background=d.color;
+    const pill=document.getElementById('cv-pill');
+    if(pill){pill.style.background=d.color;pill.style.opacity='1';}
+    const backBtn=document.getElementById('cv-pop-back');
+    if(backBtn) backBtn.style.color=d.color;
     document.getElementById('cv-pop-icon').textContent=d.icon;
     const nm=document.getElementById('cv-pop-name');
     nm.textContent=d.name;nm.style.color=d.color;nm.style.textShadow=`0 0 12px ${d.color}88`;
@@ -7728,14 +7759,16 @@ async function renderContactView(el){
     sheet.style.transform='translateY(0)';
   }
 
+  function cvClosePopup(){
+    const sheet=document.getElementById('cv-popup-sheet');
+    const bg=document.getElementById('cv-popup-bg');
+    sheet.style.transform='translateY(100%)';
+    bg.style.opacity='0';bg.style.pointerEvents='none';
+  }
+
   // close popup on bg click
   document.getElementById('cv-popup-bg').addEventListener('click',e=>{
-    if(e.target.id==='cv-popup-bg'){
-      const sheet=document.getElementById('cv-popup-sheet');
-      const bg=document.getElementById('cv-popup-bg');
-      sheet.style.transform='translateY(100%)';
-      bg.style.opacity='0';bg.style.pointerEvents='none';
-    }
+    if(e.target.id==='cv-popup-bg') cvClosePopup();
   });
 
   document.getElementById('cv-arr-l').onclick=()=>cvGo((cur+1)%N);
