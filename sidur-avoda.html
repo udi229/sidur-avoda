@@ -4816,13 +4816,14 @@ function sendDecisionEmail(req, action, ccEmails) {
     ? `שלום ${req.name},\n\nשמחים לעדכן אותך כי בקשת החופשה שלך אושרה ✅\n\nפרטי הבקשה:\n━━━━━━━━━━━━━━━\n👤 שם: ${req.name}\n🏢 מחלקה: ${req.dept}\n📅 תאריך התחלה: ${fmt(req.start)}\n📅 תאריך סיום: ${fmt(req.end)}\n📝 סיבה: ${req.reason}${recSection}\n━━━━━━━━━━━━━━━\n\nחופשה נעימה!\n🎬 צוות האולפן`
     : `שלום ${req.name},\n\nלצערנו, בקשת החופשה שלך נדחתה ❌\n\nפרטי הבקשה:\n━━━━━━━━━━━━━━━\n👤 שם: ${req.name}\n🏢 מחלקה: ${req.dept}\n📅 תאריך התחלה: ${fmt(req.start)}\n📅 תאריך סיום: ${fmt(req.end)}\n📝 סיבה: ${req.reason}${recSection}\n━━━━━━━━━━━━━━━\n\nלשאלות ופניות נוספות, אנא פנה/י למנהל הישיר.\n🎬 צוות האולפן`;
   
-  // Build TO list - include employee + all CC emails (since Outlook deeplink doesn't support CC properly)
-  let allToEmails = [req.email];
+  // Build TO list - include employee + all CC emails
+  const requesterEmail = req.email || req.userId || '';
+  let allToEmails = requesterEmail ? [requesterEmail] : [];
   if(ccEmails && ccEmails.length > 0) {
     allToEmails = allToEmails.concat(ccEmails);
   }
-  // Remove duplicates
-  allToEmails = [...new Set(allToEmails)];
+  // Remove duplicates and empty
+  allToEmails = [...new Set(allToEmails.filter(Boolean))];
   
   const toString = allToEmails.join(';');
   console.log('📧 All TO emails:', toString);
@@ -4888,6 +4889,7 @@ async function loadDB() {
       startDate:r.start_date, endDate:r.end_date,
       start:r.start_date, end:r.end_date,
       name:r.user_name, dept:r.user_dept,
+      email:r.user_id,
       reason:r.reason, status:r.status, adminNote:r.admin_note,
       recommendation:r.recommendation, recommendationReason:r.recommendation_reason,
       recommendedBy:r.recommended_by, createdAt:r.created_at
