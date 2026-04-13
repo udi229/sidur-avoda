@@ -1337,6 +1337,11 @@
         <span class="hub-p-icon">📞</span>
         <span class="hub-p-label" style="color:#ff6688">דף קשר</span>
       </button>
+      <button class="hub-planet hub-p3" id="hub-contact-soon" style="display:none;opacity:0.4;cursor:not-allowed;filter:grayscale(0.5)" disabled>
+        <span class="hub-p-icon">📞</span>
+        <span class="hub-p-label" style="color:#ff6688">דף קשר</span>
+        <span style="font-size:8px;color:#ff446888;position:relative;z-index:2;letter-spacing:0.5px">בקרוב</span>
+      </button>
     </div>
 
     <!-- SUN — סידורים -->
@@ -6620,9 +6625,16 @@ function hubExit(){
 function showHub(){
   document.getElementById('hub-screen').classList.add('active');
   document.getElementById('app').style.display='none';
-  // show contact btn only for אודי/אפרת
+  // show contact btn — managers get full access, employees get disabled "coming soon"
   const contactBtn=document.getElementById('hub-contact-btn');
-  if(contactBtn) contactBtn.style.display=(isMgr)?'flex':'none';
+  const contactSoon=document.getElementById('hub-contact-soon');
+  if(isMgr){
+    if(contactBtn) contactBtn.style.display='flex';
+    if(contactSoon) contactSoon.style.display='none';
+  } else {
+    if(contactBtn) contactBtn.style.display='none';
+    if(contactSoon) contactSoon.style.display='flex';
+  }
   const exitBtn=document.getElementById('hub-exit-btn');
   if(exitBtn) exitBtn.classList.add('show');
   hubInitStars();
