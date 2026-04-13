@@ -7439,7 +7439,7 @@ async function renderContactView(el){
                font-family:inherit;animation:redpulse 1.4s ease-in-out infinite;display:inline-block;">חזרה →</a>
       <span style="font-size:10px;color:#2a2a2a">החלק או לחץ חצים</span>
     </div>
-    <div style="flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;" id="cv-swipe">
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:visible;" id="cv-swipe">
       <button id="cv-arr-r" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);z-index:50;width:38px;height:38px;border-radius:50%;border:1px solid #333;background:rgba(0,0,0,0.85);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#555;font-family:inherit">‹</button>
       <div style="position:relative;width:300px;height:390px;" id="cv-scene"></div>
       <button id="cv-arr-l" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);z-index:50;width:38px;height:38px;border-radius:50%;border:1px solid #333;background:rgba(0,0,0,0.85);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#555;font-family:inherit">›</button>
@@ -7483,7 +7483,7 @@ async function renderContactView(el){
 
   function sparkSVG(color,uid){
     const W=244,H=316,R=26,perim=1100,sLen=90;
-    return`<svg style="position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);" viewBox="-3 -3 ${W} ${H}" fill="none">
+    return`<svg style="position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);pointer-events:none;" viewBox="-3 -3 ${W} ${H}" fill="none">
       <defs><filter id="gfx${uid}"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
       <rect x="0" y="0" width="${W-6}" height="${H-6}" rx="${R}" stroke="${color}" stroke-width="1.5" stroke-opacity="0.45"/>
       <rect x="0" y="0" width="${W-6}" height="${H-6}" rx="${R}" stroke="white" stroke-width="4"
@@ -7539,14 +7539,15 @@ async function renderContactView(el){
         box-shadow:${isFront?glowFront:glowBack};`;
       if(isFront){
         card.innerHTML=`${sparkSVG(d.color,'c'+i)}
-          <div style="font-size:${Math.round(CW*0.18)}px;position:relative;z-index:2">${d.icon}</div>
-          <div style="font-size:${Math.round(CW*0.085)}px;font-weight:900;letter-spacing:3px;color:${d.color};text-shadow:0 0 18px ${d.color},0 0 45px ${d.color}55;position:relative;z-index:2">${d.name}</div>
-          <div style="font-size:${Math.round(CW*0.043)}px;color:#555;letter-spacing:1px;position:relative;z-index:2">${d.members.length} אנשי קשר</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;padding:0 20px;position:relative;z-index:2">
+          <div style="font-size:${Math.round(CW*0.18)}px;position:relative;z-index:2;pointer-events:none">${d.icon}</div>
+          <div style="font-size:${Math.round(CW*0.085)}px;font-weight:900;letter-spacing:3px;color:${d.color};text-shadow:0 0 18px ${d.color},0 0 45px ${d.color}55;position:relative;z-index:2;pointer-events:none">${d.name}</div>
+          <div style="font-size:${Math.round(CW*0.043)}px;color:#555;letter-spacing:1px;position:relative;z-index:2;pointer-events:none">${d.members.length} אנשי קשר</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;padding:0 20px;position:relative;z-index:2;pointer-events:none">
             ${d.members.map(m=>`<div style="font-size:${Math.round(CW*0.04)}px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid ${d.color}55;color:${d.color};background:rgba(${rgb(d.color)},0.12)">${m.lead?'★ ':''}${m.name.split(' ')[0]}</div>`).join('')}
           </div>
-          <div style="font-size:${Math.round(CW*0.038)}px;color:#2a2a2a;letter-spacing:1px;position:relative;z-index:2;margin-top:4px">לחץ לפתיחה</div>`;
-        card.onclick=()=>openCVPopup(i);
+          <div style="font-size:${Math.round(CW*0.038)}px;color:#2a2a2a;letter-spacing:1px;position:relative;z-index:2;margin-top:4px;pointer-events:none">לחץ לפתיחה</div>`;
+        card.style.cursor='pointer';
+        card.addEventListener('click', (ev)=>{ ev.stopPropagation(); openCVPopup(i); });
         // JS float
         let t=0,raf;
         function tick(){t+=0.016;const dy=Math.sin(t*0.8)*8;card.style.transform=`translate(${p.tx}px,${p.ty+dy}px) rotate(${p.rot}deg) scale(${p.scale})`;raf=requestAnimationFrame(tick);}
