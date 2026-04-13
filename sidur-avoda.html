@@ -1412,6 +1412,7 @@
   <div id="reg-f">
     <div class="fg"><label style="color:#5a6880">שם מלא</label><input type="text" id="a-name" placeholder="ישראל ישראלי" style="background:white;border-color:#c0cce0;color:#1a2030" /></div>
     <div class="fg"><label style="color:#5a6880">מחלקה</label><select id="a-dept" style="background:white;border-color:#c0cce0;color:#1a2030"><option value="">-- בחר מחלקה --</option></select></div>
+    <div class="fg"><label style="color:#5a6880">טלפון <span style="color:#ef4444">*</span></label><input type="tel" id="a-phone" placeholder="050-0000000" dir="ltr" style="background:white;border-color:#c0cce0;color:#1a2030" /></div>
   </div>
   <button class="btn-p" id="a-btn" onclick="primeAudio();handleAuth()" style="animation:onair 1.2s ease-in-out infinite;font-size:20px;font-weight:900;letter-spacing:6px;border:2px solid #ff2200">ON AIR</button>
   <div id="a-msg" class="auth-err"></div>
@@ -2179,8 +2180,10 @@ async function handleAuth(){
   } else {
     const name=document.getElementById('a-name').value.trim();
     const dept=document.getElementById('a-dept').value;
+    const phone=(document.getElementById('a-phone')?.value||'').trim();
     if(!name){setMsg('נא למלא שם מלא');return;}
     if(!dept){setMsg('נא לבחור מחלקה');return;}
+    if(!phone){setMsg('נא למלא מספר טלפון');return;}
     let authData, authError;
     // Try sign up
     const signUpRes = await sb.auth.signUp({email,password:pass});
@@ -2222,7 +2225,7 @@ async function handleAuth(){
     const preservedRole=existingEmp?.role||'employee';
     const preservedPos=existingEmp?.position_percent||100;
     await sb.from('employees').delete().eq('email',email);
-    await sb.from('employees').insert({full_name:name,email,role:preservedRole,department_id:deptId||null,position_percent:preservedPos});
+    await sb.from('employees').insert({full_name:name,email,role:preservedRole,department_id:deptId||null,position_percent:preservedPos,phone:phone||null});
     sessionStorage.removeItem('reg-data');
     await initApp(authData.user);
   }
