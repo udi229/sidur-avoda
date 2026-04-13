@@ -7539,13 +7539,13 @@ async function renderContactView(el){
         box-shadow:${isFront?glowFront:glowBack};`;
       if(isFront){
         card.innerHTML=`${sparkSVG(d.color,'c'+i)}
-          <div style="font-size:52px;position:relative;z-index:2">${d.icon}</div>
-          <div style="font-size:24px;font-weight:900;letter-spacing:3px;color:${d.color};text-shadow:0 0 18px ${d.color},0 0 45px ${d.color}55;position:relative;z-index:2">${d.name}</div>
-          <div style="font-size:12px;color:#555;letter-spacing:1px;position:relative;z-index:2">${d.members.length} אנשי קשר</div>
+          <div style="font-size:${Math.round(CW*0.18)}px;position:relative;z-index:2">${d.icon}</div>
+          <div style="font-size:${Math.round(CW*0.085)}px;font-weight:900;letter-spacing:3px;color:${d.color};text-shadow:0 0 18px ${d.color},0 0 45px ${d.color}55;position:relative;z-index:2">${d.name}</div>
+          <div style="font-size:${Math.round(CW*0.043)}px;color:#555;letter-spacing:1px;position:relative;z-index:2">${d.members.length} אנשי קשר</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;padding:0 20px;position:relative;z-index:2">
-            ${d.members.map(m=>`<div style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid ${d.color}55;color:${d.color};background:rgba(${rgb(d.color)},0.12)">${m.lead?'★ ':''}${m.name.split(' ')[0]}</div>`).join('')}
+            ${d.members.map(m=>`<div style="font-size:${Math.round(CW*0.04)}px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid ${d.color}55;color:${d.color};background:rgba(${rgb(d.color)},0.12)">${m.lead?'★ ':''}${m.name.split(' ')[0]}</div>`).join('')}
           </div>
-          <div style="font-size:11px;color:#2a2a2a;letter-spacing:1px;position:relative;z-index:2;margin-top:4px">לחץ לפתיחה</div>`;
+          <div style="font-size:${Math.round(CW*0.038)}px;color:#2a2a2a;letter-spacing:1px;position:relative;z-index:2;margin-top:4px">לחץ לפתיחה</div>`;
         card.onclick=()=>openCVPopup(i);
         // JS float
         let t=0,raf;
@@ -7555,9 +7555,9 @@ async function renderContactView(el){
       } else {
         // back cards — show icon, name and member count clearly
         card.innerHTML=`
-          <div style="font-size:36px;position:relative;z-index:2">${d.icon}</div>
-          <div style="font-size:16px;font-weight:900;color:${d.color};letter-spacing:2px;position:relative;z-index:2;text-shadow:0 0 12px ${d.color}88">${d.name}</div>
-          <div style="font-size:11px;color:${d.color}88;position:relative;z-index:2">${d.members.length} אנשי קשר</div>`;
+          <div style="font-size:${Math.round(CW*0.13)}px;position:relative;z-index:2">${d.icon}</div>
+          <div style="font-size:${Math.round(CW*0.06)}px;font-weight:900;color:${d.color};letter-spacing:2px;position:relative;z-index:2;text-shadow:0 0 12px ${d.color}88">${d.name}</div>
+          <div style="font-size:${Math.round(CW*0.04)}px;color:${d.color}88;position:relative;z-index:2">${d.members.length} אנשי קשר</div>`;
         card.onclick=()=>goCV((cur+(off>0?1:-1)+N)%N);
       }
       scene.appendChild(card);
@@ -7593,19 +7593,23 @@ async function renderContactView(el){
     const nm=document.getElementById('cv-pop-name');
     nm.textContent=d.name;nm.style.color=d.color;nm.style.textShadow=`0 0 14px ${d.color}88`;
 
-    document.getElementById('cv-pop-contacts').innerHTML=d.members.map(m=>`
-      <div style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:18px;margin-bottom:10px;border:1px solid ${m.lead?d.color:d.color+'33'};background:#080808;${m.lead?'box-shadow:0 0 12px '+d.color+'22':''}">
+    document.getElementById('cv-pop-contacts').innerHTML=d.members.map(m=>{
+      const canEditNow=isMgr;
+      const phoneDisplay=fmt(m.phone)||'';
+      const callBtn=m.phone?`<a href="tel:${m.phone.replace(/[-\s]/g,'')}" style="width:46px;height:46px;border-radius:50%;border:2px solid ${d.color};display:flex;align-items:center;justify-content:center;font-size:20px;background:#000;text-decoration:none;box-shadow:0 0 12px ${d.color}44;flex-shrink:0">📞</a>`:'<div style="width:46px;flex-shrink:0"></div>';
+      return`<div style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:18px;margin-bottom:10px;border:1px solid ${m.lead?d.color:d.color+'33'};background:#080808;${m.lead?'box-shadow:0 0 12px '+d.color+'22':''}">
         <div style="flex:1">
           <div style="font-size:15px;font-weight:900;color:#fff">${m.name}${m.lead?' ★':''}</div>
-          ${canEdit?
-            `<input id="phone-${m.id}" value="${m.phone||''}" placeholder="050-000-0000" dir="ltr"
-              style="font-size:14px;font-weight:700;color:${d.color};background:transparent;border:none;border-bottom:1px solid ${d.color}44;outline:none;width:100%;margin-top:4px;font-family:inherit;padding:2px 0;"
-              onblur="saveContactPhone('${m.id}',this.value,'${idx}')"/>`:
-            `<div style="font-size:14px;font-weight:700;color:${d.color};text-shadow:0 0 8px ${d.color}44;direction:ltr;margin-top:4px">${fmt(m.phone)||'—'}</div>`
+          ${canEditNow
+            ?`<input id="phone-${m.id}" value="${m.phone||''}" placeholder="050-000-0000" dir="ltr"
+                style="font-size:14px;font-weight:700;color:${d.color};background:transparent;border:none;border-bottom:1px solid ${d.color}66;outline:none;width:100%;margin-top:6px;font-family:inherit;padding:2px 0;cursor:text;"
+                onblur="saveContactPhone('${m.id}',this.value)"/>`
+            :`<div style="font-size:14px;font-weight:700;color:${d.color};text-shadow:0 0 8px ${d.color}44;direction:ltr;margin-top:4px">${phoneDisplay||'—'}</div>`
           }
         </div>
-        ${m.phone?`<a href="tel:${m.phone.replace(/-/g,'')}" style="width:46px;height:46px;border-radius:50%;border:2px solid ${d.color};display:flex;align-items:center;justify-content:center;font-size:20px;background:#000;text-decoration:none;box-shadow:0 0 12px ${d.color}44;flex-shrink:0">📞</a>`:''}
-      </div>`).join('');
+        ${callBtn}
+      </div>`;
+    }).join('');
 
     bg.style.opacity='1';bg.style.pointerEvents='all';
     sheet.style.transform='translateY(0)';
@@ -7644,14 +7648,15 @@ async function renderContactView(el){
   build();
 }
 
-async function saveContactPhone(empId, phone, deptIdx){
+async function saveContactPhone(empId, phone){
   if(!isMgr) return;
   const p=phone.trim();
-  await sb.from('employees').update({phone:p}).eq('id',empId);
-  // update local
-  const emp=employees.find(e=>e.id===empId);
-  if(emp) emp.phone=p;
-  showToast('📞 טלפון נשמר','success');
+  try{
+    await sb.from('employees').update({phone:p}).eq('id',empId);
+    const emp=employees.find(e=>e.id===empId);
+    if(emp) emp.phone=p;
+    showToast('📞 טלפון נשמר','success');
+  }catch(e){ showToast('שגיאה בשמירה','error'); console.error(e); }
 }
 
 function closeContactView(){
