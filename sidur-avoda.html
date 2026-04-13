@@ -1399,7 +1399,16 @@
   <div class="auth-title" style="color:#1a2030">אולפנים</div>
   <div class="auth-sub" id="auth-sub" style="color:#6a7890">הרשמה</div>
   <div class="fg"><label style="color:#5a6880">אימייל</label><input type="email" id="a-email" placeholder="your@email.com" style="background:white;border-color:#c0cce0;color:#1a2030" /></div>
-  <div class="fg"><label style="color:#5a6880">סיסמה</label><input type="password" id="a-pass" placeholder="••••••••" style="background:white;border-color:#c0cce0;color:#1a2030" /></div>
+  <div class="fg">
+    <label style="color:#5a6880">סיסמה</label>
+    <div style="position:relative;display:flex;align-items:center;">
+      <input type="password" id="a-pass" placeholder="סיסמה פשוטה ככל שניתן"
+        style="background:white;border-color:#c0cce0;color:#1a2030;width:100%;padding-left:40px"
+        oninput="this.placeholder=''" />
+      <button type="button" onclick="togglePassVis()" id="pass-eye-btn"
+        style="position:absolute;left:10px;background:none;border:none;cursor:pointer;font-size:18px;color:#8090a8;padding:0;line-height:1;top:50%;transform:translateY(-50%)">👁</button>
+    </div>
+  </div>
   <div id="reg-f">
     <div class="fg"><label style="color:#5a6880">שם מלא</label><input type="text" id="a-name" placeholder="ישראל ישראלי" style="background:white;border-color:#c0cce0;color:#1a2030" /></div>
     <div class="fg"><label style="color:#5a6880">מחלקה</label><select id="a-dept" style="background:white;border-color:#c0cce0;color:#1a2030"><option value="">-- בחר מחלקה --</option></select></div>
@@ -2030,6 +2039,12 @@ function getIsraeliHoliday(day, month, year){
     // יום העצמאות
     '1-5-2025':'יום העצמאות','22-4-2026':'יום העצמאות',
     '12-5-2027':'יום העצמאות','30-4-2028':'יום העצמאות',
+    // יום הזיכרון לחללי מערכות ישראל (ערב יום העצמאות)
+    '30-4-2025':'יום הזיכרון','21-4-2026':'יום הזיכרון',
+    '11-5-2027':'יום הזיכרון','29-4-2028':'יום הזיכרון',
+    // יום הזיכרון לשואה ולגבורה
+    '7-5-2025':'יום השואה','19-4-2026':'יום השואה',
+    '28-4-2027':'יום השואה','17-4-2028':'יום השואה',
     // יום ירושלים
     '28-5-2025':'יום ירושלים','18-5-2026':'יום ירושלים',
     '7-6-2027':'יום ירושלים','26-5-2028':'יום ירושלים',
@@ -2127,10 +2142,18 @@ function initAuthScreen(){
   loadDeptSel();
 }
 function setMsg(t,ok=false){const e=document.getElementById('a-msg');e.textContent=t;e.className=ok?'auth-ok':'auth-err';}
+function togglePassVis(){
+  const inp=document.getElementById('a-pass');
+  const btn=document.getElementById('pass-eye-btn');
+  if(inp.type==='password'){inp.type='text';btn.textContent='🙈';}
+  else{inp.type='password';btn.textContent='👁';}
+}
+
 async function handleAuth(){
   const email=document.getElementById('a-email').value.trim();
   const pass=document.getElementById('a-pass').value;
   if(!email||!pass){setMsg('נא למלא אימייל וסיסמה');return;}
+  if(pass.length<4){setMsg('הסיסמה חייבת להכיל לפחות 4 תווים');return;}
   if(authMode==='login'){
     const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
     if(error){setMsg('אימייל או סיסמה שגויים');return;}
@@ -7609,7 +7632,7 @@ async function renderContactView(el){
     cont.innerHTML='';
     d.members.forEach(m=>{
       const row=document.createElement('div');
-      row.style.cssText=`display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:18px;margin-bottom:10px;border:1px solid ${m.lead?d.color:d.color+'33'};background:#080808;${m.lead?'box-shadow:0 0 14px '+d.color+'22':''}`;
+      row.style.cssText=`display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:18px;margin-bottom:10px;border:1px solid ${d.color+'33'};background:#080808;`;
 
       const info=document.createElement('div');
       info.style.cssText='flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;';
