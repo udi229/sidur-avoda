@@ -2219,7 +2219,15 @@ async function handleAuth(){
     const preservedRole=existingEmp?.role||'employee';
     const preservedPos=existingEmp?.position_percent||100;
     await sb.from('employees').delete().eq('email',email);
-    await sb.from('employees').insert({full_name:name,email,role:preservedRole,department_id:deptId||null,position_percent:preservedPos,phone:phone||null});
+    const {error:empErr}=await sb.from('employees').insert({full_name:name,email,role:preservedRole,department_id:deptId||null,position_percent:preservedPos,phone:phone||null});
+    if(empErr){
+      console.error('employee insert error:',empErr.message);
+      // אם השגיאה היא על עמודת phone — נכניס בלי phone
+      if(empErr.message?.includes('phone')){
+        await sb.from('employees').insert({full_name:name,email,role:preservedRole,department_id:deptId||null,position_percent:preservedPos});
+        console.warn('phone column missing in DB — inserted without phone. Run: ALTER TABLE employees ADD COLUMN IF NOT EXISTS phone text;');
+      }
+    }
     sessionStorage.removeItem('reg-data');
     await initApp(authData.user);
   }
