@@ -2184,20 +2184,36 @@ async function handleAuth(){
     if(!name){setMsg('נא למלא שם מלא');return;}
     if(!dept){setMsg('נא לבחור מחלקה');return;}
     if(!phone){setMsg('נא למלא מספר טלפון');return;}
-    let authData, authError;
-    // Try sign up
-    const signUpRes = await sb.auth.signUp({email,password:pass});
-    if(signUpRes.error){
-      // If already exists in auth but deleted from employees — allow re-register
-      if(signUpRes.error.message.includes('already registered')){
-        const signInRes = await sb.auth.signInWithPassword({email,password:pass});
-        if(signInRes.error){setMsg('מייל זה כבר קיים — נסה להתחבר עם הסיסמה שלך');return;}
-        authData = signInRes.data;
-      } else {
-        setMsg('שגיאה: '+signUpRes.error.message); return;
+    let authData;
+
+    // נסה קודם להתחבר — אם המייל קיים ייכנס, אם לא — נירשם
+    const trySignIn = await sb.auth.signInWithPassword({email,password:pass});
+
+    if(!trySignIn.error && trySignIn.data?.user){
+      // מייל קיים וסיסמה נכונה — נכנס (ומעדכן פרטים)
+      authData = trySignIn.data;
+    } else if(trySignIn.error?.message?.includes('Invalid login credentials')){
+      // מייל לא קיים (או סיסמה שגויה) — נירשם
+      const signUpRes = await sb.auth.signUp({email,password:pass});
+      if(signUpRes.error){
+        setMsg('שגיאה בהרשמה: '+signUpRes.error.message);
+        return;
       }
+      // נסה להתחבר מיד אחרי הרשמה
+      const signInAfter = await sb.auth.signInWithPassword({email,password:pass});
+      if(signInAfter.error || !signInAfter.data?.user){
+        setMsg('נרשמת בהצלחה! כעת היכנס עם הפרטים שלך.');
+        return;
+      }
+      authData = signInAfter.data;
     } else {
-      authData = signUpRes.data;
+      setMsg('שגיאה: '+(trySignIn.error?.message||'נסה שוב'));
+      return;
+    }
+
+    if(!authData?.user){
+      setMsg('שגיאה בהתחברות, נסה שוב.');
+      return;
     }
     // Delete any old employee record and re-insert fresh
     // dept can be UUID or dept name (fallback)
