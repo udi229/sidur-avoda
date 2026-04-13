@@ -2237,20 +2237,22 @@ function enterMgr(label='מנהל',type='primary'){
     const ftBtn=document.getElementById('freelance-toggle');
     if(ftBtn) ftBtn.style.display='inline-block';
     const nightBtn=document.getElementById('night-shift-btn');
-    if(nightBtn) nightBtn.style.display=window._mgrType==='secondary'?'none':'inline-block';
+    if(nightBtn) nightBtn.style.display='inline-block';
     const srch=document.getElementById('sched-search');
     if(srch) srch.style.display='block';
     const myShiftsBtn=document.getElementById('my-shifts-btn');
     if(myShiftsBtn) myShiftsBtn.style.display='none';
     updateWeekUI();renderDeptTabs();renderSchedule();renderOnlineList();
   });
-  // presence for manager
-  const mgrCh=sb.channel('online-users',{config:{presence:{key:'manager@local'}}});
+  // presence for manager — use different key for Udi vs Efrat
+  const presenceKey=window._mgrType==='secondary'?'efratn@kan.org.il':'manager@local';
+  const presenceName=window._mgrType==='secondary'?'אפרת':'אודי';
+  const mgrCh=sb.channel('online-users',{config:{presence:{key:presenceKey}}});
   mgrCh
     .on('presence',{event:'sync'},()=>{const state=mgrCh.presenceState();onlineUsers=new Set(Object.keys(state));renderOnlineList();})
     .on('presence',{event:'join'},({key})=>{onlineUsers.add(key);renderOnlineList();})
     .on('presence',{event:'leave'},({key})=>{onlineUsers.delete(key);renderOnlineList();})
-    .subscribe(async(status)=>{if(status==='SUBSCRIBED') await mgrCh.track({email:'manager@local',name:'מנהל',online_at:new Date().toISOString()});});
+    .subscribe(async(status)=>{if(status==='SUBSCRIBED') await mgrCh.track({email:presenceKey,name:presenceName,online_at:new Date().toISOString()});});
 }
 async function logout(){
   if(!isMgr) await sb.auth.signOut();
@@ -3937,10 +3939,7 @@ function renderSchedule(){
   }
 
   noteHtml+='</div>';
-  noteDiv.innerHTML=noteHtml;
-  wrap.appendChild(noteDiv);
-
-  // ── STATS PANEL ──
+  // ── STATS PANEL ── (before notes)
   // Remove any previous stats panel first
   wrap.querySelectorAll('.inline-stats-panel').forEach(el=>el.remove());
   if((isMgr||currentEmp?.role==='manager'||(currentEmp?.role==='team_lead'&&currentEmp?.department_id===activeDeptId)||isSecondaryLead(activeDeptId))&&activeDeptId){
@@ -4000,7 +3999,11 @@ function renderSchedule(){
     wrap.appendChild(statDiv);
   }
 
-  // online list after stats
+  // ── NOTES after stats ──
+  noteDiv.innerHTML=noteHtml;
+  wrap.appendChild(noteDiv);
+
+  // online list
   renderOnlineList();
   // Auto-fit zoom on mobile
   if(window.innerWidth<600) setTimeout(autoFitMobile,60);
@@ -4011,12 +4014,22 @@ function renderOnlineList(){
   const el=document.getElementById('online-list');
   if(!el) return;
   const isMgrView=isMgr||currentEmp?.role==='manager';
+  // אפרת לא רואה את רשימת המחוברים
+  if(window._mgrType==='secondary'){el.style.display='none';return;}
   if(!isMgrView||activeView!=='schedule'){el.style.display='none';return;}
   el.style.display='block';
 
   let html=`<div style="background:white;border-radius:14px;padding:16px 20px;box-shadow:0 1px 8px rgba(0,0,0,0.07);margin-bottom:18px">
     <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:12px">👥 משתמשים מחוברים</div>
     <div style="display:flex;flex-wrap:wrap;gap:8px">`;
+
+  // אפרת — הצג אותה ראשונה כמנהלת
+  const efratOnline=onlineUsers.has('efratn@kan.org.il')||onlineUsers.has('manager-secondary');
+  html+=`<div style="display:flex;align-items:center;gap:6px;background:#f8fafc;border-radius:20px;padding:5px 12px;border:1px solid ${efratOnline?'#bbf7d0':'#fee2e2'}">
+    <span style="width:9px;height:9px;border-radius:50%;background:${efratOnline?'#10b981':'#ef4444'};flex-shrink:0;${efratOnline?'box-shadow:0 0 6px #10b98188':''}"></span>
+    <span style="font-size:13px;font-weight:600;color:#0f172a">אפרת</span>
+    <span style="font-size:10px;color:#94a3b8">מנהלת</span>
+  </div>`;
 
   employees.forEach(emp=>{
     const isOnline=onlineUsers.has(emp.email.toLowerCase())||onlineUsers.has(emp.email);
@@ -7617,6 +7630,28 @@ async function renderContactView(el){
         inp.addEventListener('blur',()=>{
           inp.style.borderBottomColor=d.color+'55';
           saveContactPhone(m.id, inp.value);
+          // update call button live
+          const callBtn=row.querySelector('.cv-call-btn');
+          if(callBtn){
+            const p=inp.value.replace(/[-\s]/g,'');
+            if(p){callBtn.href='tel:'+p;callBtn.style.opacity='1';callBtn.style.pointerEvents='all';}
+            else{callBtn.href='#';callBtn.style.opacity='0.25';callBtn.style.pointerEvents='none';}
+          }
+        });
+        // autosave every 3 seconds while typing
+        let autoSaveTimer=null;
+        inp.addEventListener('input',()=>{
+          clearTimeout(autoSaveTimer);
+          autoSaveTimer=setTimeout(()=>{
+            saveContactPhone(m.id, inp.value);
+            // update call button
+            const callBtn=row.querySelector('.cv-call-btn');
+            if(callBtn){
+              const p=inp.value.replace(/[-\s]/g,'');
+              if(p){callBtn.href='tel:'+p;callBtn.style.opacity='1';callBtn.style.pointerEvents='all';}
+              else{callBtn.href='#';callBtn.style.opacity='0.25';callBtn.style.pointerEvents='none';}
+            }
+          },2000);
         });
         info.appendChild(inp);
       } else {
@@ -7628,14 +7663,14 @@ async function renderContactView(el){
 
       row.appendChild(info);
 
+      // call button — always show, dimmed if no phone
       const phone=m.phone?m.phone.replace(/[-\s]/g,''):'';
-      if(phone){
-        const btn=document.createElement('a');
-        btn.href='tel:'+phone;
-        btn.style.cssText=`width:50px;height:50px;border-radius:50%;border:2px solid ${d.color};display:flex;align-items:center;justify-content:center;font-size:24px;background:#000;text-decoration:none;box-shadow:0 0 14px ${d.color}44;flex-shrink:0;`;
-        btn.textContent='📞';
-        row.appendChild(btn);
-      }
+      const callA=document.createElement('a');
+      callA.className='cv-call-btn';
+      callA.href=phone?'tel:'+phone:'#';
+      callA.style.cssText=`width:50px;height:50px;border-radius:50%;border:2px solid ${d.color};display:flex;align-items:center;justify-content:center;font-size:24px;background:#000;text-decoration:none;box-shadow:0 0 14px ${d.color}44;flex-shrink:0;opacity:${phone?'1':'0.25'};pointer-events:${phone?'all':'none'};transition:opacity 0.2s;`;
+      callA.textContent='📞';
+      row.appendChild(callA);
       cont.appendChild(row);
     });
 
@@ -7677,7 +7712,7 @@ async function saveContactPhone(empId, phone){
     await sb.from('employees').update({phone:p}).eq('id',empId);
     const emp=employees.find(e=>e.id===empId);
     if(emp) emp.phone=p;
-    showToast('📞 טלפון נשמר','success');
+    showToast('📞 נשמר','success');
   }catch(e){ showToast('שגיאה בשמירה','error'); console.error(e); }
 }
 
