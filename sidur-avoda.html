@@ -7433,191 +7433,219 @@ function showContactView(){
 async function renderContactView(el){
   el.innerHTML=`
     <div style="padding:10px 16px;border-bottom:1px solid #111;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:#000">
-      <a href="#" onclick="closeContactView();return false;"
-        style="color:#ff2244;border:1.5px solid #ff2244;border-radius:20px;padding:7px 18px;
-               font-size:12px;font-weight:900;text-decoration:none;letter-spacing:1px;
-               font-family:inherit;animation:redpulse 1.4s ease-in-out infinite;display:inline-block;">חזרה →</a>
+      <button onclick="closeContactView()" style="color:#ff2244;border:1.5px solid #ff2244;border-radius:20px;padding:7px 18px;font-size:12px;font-weight:900;letter-spacing:1px;font-family:inherit;animation:redpulse 1.4s ease-in-out infinite;background:none;cursor:pointer;">חזרה →</button>
       <span style="font-size:10px;color:#2a2a2a">החלק או לחץ חצים</span>
     </div>
-    <div style="flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:visible;" id="cv-swipe">
-      <button id="cv-arr-r" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);z-index:50;width:38px;height:38px;border-radius:50%;border:1px solid #333;background:rgba(0,0,0,0.85);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#555;font-family:inherit">‹</button>
-      <div style="position:relative;width:300px;height:390px;" id="cv-scene"></div>
-      <button id="cv-arr-l" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);z-index:50;width:38px;height:38px;border-radius:50%;border:1px solid #333;background:rgba(0,0,0,0.85);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#555;font-family:inherit">›</button>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;position:relative;" id="cv-swipe">
+      <button id="cv-arr-r" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);z-index:50;width:36px;height:36px;border-radius:50%;border:1px solid #333;background:rgba(0,0,0,0.85);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#555;font-family:inherit;">‹</button>
+      <div id="cv-scene" style="position:relative;"></div>
+      <button id="cv-arr-l" style="position:absolute;left:6px;top:50%;transform:translateY(-50%);z-index:50;width:36px;height:36px;border-radius:50%;border:1px solid #333;background:rgba(0,0,0,0.85);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#555;font-family:inherit;">›</button>
     </div>
-    <div style="display:flex;gap:8px;justify-content:center;padding:12px;flex-shrink:0;background:#000" id="cv-dots"></div>
-    <div id="cv-popup-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:999;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.28s;">
+    <div style="display:flex;gap:8px;justify-content:center;padding:10px;flex-shrink:0;background:#000" id="cv-dots"></div>
+    <div id="cv-popup-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.28s;">
       <div id="cv-popup-sheet" style="width:100%;max-width:440px;border-radius:28px 28px 0 0;background:#050505;padding:20px 18px 50px;transform:translateY(100%);transition:transform 0.36s cubic-bezier(0.4,0,0.2,1);max-height:75vh;overflow-y:auto;border-top:2px solid #fff;">
-        <div id="cv-pill" style="width:38px;height:4px;border-radius:2px;margin:0 auto 20px;background:#fff;"></div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-          <span id="cv-pop-icon" style="font-size:24px"></span>
-          <span id="cv-pop-name" style="font-size:18px;font-weight:900;letter-spacing:2px;"></span>
-        </div>
+        <div id="cv-pill" style="width:38px;height:4px;border-radius:2px;margin:0 auto 20px;"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;"><span id="cv-pop-icon" style="font-size:26px"></span><span id="cv-pop-name" style="font-size:18px;font-weight:900;letter-spacing:2px;"></span></div>
         <div id="cv-pop-contacts"></div>
       </div>
-    </div>
-  `;
+    </div>`;
 
-  // load data
-  const depts=departments;
-  const emps=employees;
+  if(!departments.length||!employees.length){
+    try{ await loadAll(); }catch(e){ console.warn(e); }
+  }
 
-  // group by dept, filter depts with employees
-  const deptGroups=depts.map(d=>{
-    const mem=emps.filter(e=>e.department_id===d.id).map(e=>({
+  const deptGroups=departments.map(d=>{
+    const mem=employees.filter(e=>e.department_id===d.id).map(e=>({
       id:e.id, name:e.full_name, phone:e.phone||'', lead:e.role==='team_lead'
     }));
-    return{id:d.id, name:d.name, color:d.color||'#00d4ff', icon:getDeptIcon(d.name), members:mem};
+    return{id:d.id,name:d.name,color:d.color||'#00d4ff',icon:getDeptIcon(d.name),members:mem};
   }).filter(g=>g.members.length>0);
 
   if(!deptGroups.length){
-    document.getElementById('cv-scene').innerHTML='<div style="color:#555;font-size:13px;text-align:center">אין עובדים</div>';
+    document.getElementById('cv-scene').innerHTML='<div style="color:#555;padding:40px;text-align:center">אין עובדים</div>';
     return;
   }
 
-  let cur=0;
   const N=deptGroups.length;
-  const canEdit=isMgr; // אודי ואפרת
+  let cur=0, cvBusy=false, floatRaf=null;
+  const CW=Math.min(window.innerWidth-100,300);
+  const CH=Math.round(CW*1.3);
 
-  function fmt(p){return p?p.replace(/(\d{3})(\d{3,4})(\d{4})/,'$1-$2-$3'):'';}
-  function rgb(h){try{return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)].join(',');}catch(e){return'100,180,255';}}
+  function cvRgb(h){try{return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)].join(',');}catch(e){return'100,180,255';}}
+  function cvFmt(p){return p?p.replace(/(\d{3})(\d{3,4})(\d{4})/,'$1-$2-$3'):'';}
 
-  function sparkSVG(color,uid){
-    const W=244,H=316,R=26,perim=1100,sLen=90;
-    return`<svg style="position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);pointer-events:none;" viewBox="-3 -3 ${W} ${H}" fill="none">
+  function cvSparkSVG(color,uid){
+    return`<svg style="position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);pointer-events:none;overflow:visible;" viewBox="-3 -3 244 316" fill="none">
       <defs><filter id="gfx${uid}"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
-      <rect x="0" y="0" width="${W-6}" height="${H-6}" rx="${R}" stroke="${color}" stroke-width="1.5" stroke-opacity="0.45"/>
-      <rect x="0" y="0" width="${W-6}" height="${H-6}" rx="${R}" stroke="white" stroke-width="4"
-        stroke-dasharray="${sLen} ${perim}" stroke-dashoffset="0" stroke-opacity="0.95"
+      <rect x="0" y="0" width="238" height="310" rx="26" stroke="${color}" stroke-width="1.5" stroke-opacity="0.45"/>
+      <rect x="0" y="0" width="238" height="310" rx="26" stroke="white" stroke-width="4"
+        stroke-dasharray="90 1100" stroke-dashoffset="0" stroke-opacity="0.95"
         filter="url(#gfx${uid})" style="animation:spark 5s linear infinite"/>
     </svg>`;
   }
 
-  function getPos(off){
-    const a=Math.abs(off),s=off<0?-1:1;
-    // peek cards shifted sideways more so they're clearly visible
-    if(a===0) return{tx:0,   ty:0,   rot:0,   scale:1,    z:30, opa:1};
-    if(a===1) return{tx:s*-28,ty:-20, rot:s*-5, scale:0.91, z:20, opa:1};
-    if(a===2) return{tx:s*-50,ty:-38, rot:s*-9, scale:0.83, z:10, opa:0.9};
-    if(a===3) return{tx:s*-68,ty:-54, rot:s*-13,scale:0.75, z:5,  opa:0.75};
+  function cvGetPos(off){
+    const a=Math.abs(off),s=Math.sign(off)||1;
+    if(a===0)return{tx:0,ty:0,rot:0,sc:1,z:30};
+    if(a===1)return{tx:s*-26,ty:-18,rot:s*-5,sc:0.91,z:20};
+    if(a===2)return{tx:s*-46,ty:-34,rot:s*-9,sc:0.83,z:10};
+    if(a===3)return{tx:s*-62,ty:-48,rot:s*-13,sc:0.75,z:5};
     return null;
   }
 
-  // responsive card size
-  const CW=Math.min(window.innerWidth-80, 300);
-  const CH=Math.round(CW*1.3);
-
-  function build(){
+  function cvBuild(){
+    if(floatRaf){cancelAnimationFrame(floatRaf);floatRaf=null;}
     const scene=document.getElementById('cv-scene');
-    if(!scene) return;
-    scene.style.width=CW+'px';
-    scene.style.height=CH+'px';
-    // stop old float
-    scene.querySelectorAll('div').forEach(el=>{if(el._stopFloat)el._stopFloat();});
+    if(!scene)return;
+    scene.style.cssText=`position:relative;width:${CW}px;height:${CH}px;`;
     scene.innerHTML='';
+
     const order=[];
-    for(let i=0;i<N;i++){let off=i-cur;if(off>N/2)off-=N;if(off<-N/2)off+=N;order.push({i,off});}
+    for(let i=0;i<N;i++){
+      let off=i-cur;
+      if(off>N/2)off-=N;
+      if(off<-N/2)off+=N;
+      order.push({i,off});
+    }
     order.sort((a,b)=>Math.abs(b.off)-Math.abs(a.off));
+
     order.forEach(({i,off})=>{
-      const p=getPos(off);if(!p)return;
+      const p=cvGetPos(off); if(!p)return;
       const d=deptGroups[i];
-      const card=document.createElement('div');
-      const isFront=p.front;
+      const isFront=(off===0);
       const absOff=Math.abs(off);
-      // brighter neon for back cards so they're clearly visible
-      const borderCol=isFront?d.color:absOff===1?d.color+'cc':d.color+'88';
-      const borderW=isFront?'1.5px':absOff===1?'1.5px':'1px';
-      const glowFront=`0 0 28px ${d.color}66,0 0 70px ${d.color}22,0 20px 50px rgba(0,0,0,0.95)`;
-      const glowBack=absOff===1
-        ?`0 0 20px ${d.color}88,0 0 40px ${d.color}44,0 12px 30px rgba(0,0,0,0.85)`
-        :`0 0 14px ${d.color}66,0 0 28px ${d.color}33,0 10px 24px rgba(0,0,0,0.8)`;
-      card.style.cssText=`position:absolute;width:${CW}px;height:${CH}px;left:0;top:0;border-radius:26px;
-        background:#060606;cursor:pointer;overflow:visible;
-        display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
-        transform:translate(${p.tx}px,${p.ty}px) rotate(${p.rot}deg) scale(${p.scale});
-        z-index:${p.z};opacity:${p.opa};
-        border:${borderW} solid ${borderCol};
-        box-shadow:${isFront?glowFront:glowBack};`;
+
+      const card=document.createElement('div');
+      card.style.cssText=`
+        position:absolute;width:${CW}px;height:${CH}px;left:0;top:0;
+        border-radius:26px;background:#060606;cursor:pointer;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+        transform:translate(${p.tx}px,${p.ty}px) rotate(${p.rot}deg) scale(${p.sc});
+        z-index:${p.z};
+        border:${isFront?'1.5px':absOff===1?'1.5px':'1px'} solid ${isFront?d.color:absOff===1?d.color+'cc':d.color+'88'};
+        box-shadow:${isFront
+          ?`0 0 28px ${d.color}55,0 0 60px ${d.color}18,0 20px 50px rgba(0,0,0,0.95)`
+          :absOff===1
+            ?`0 0 20px ${d.color}77,0 0 40px ${d.color}33,0 12px 30px rgba(0,0,0,0.85)`
+            :`0 0 12px ${d.color}55,0 0 24px ${d.color}22`};`;
+
       if(isFront){
-        card.innerHTML=`${sparkSVG(d.color,'c'+i)}
-          <div style="font-size:${Math.round(CW*0.18)}px;position:relative;z-index:2;pointer-events:none">${d.icon}</div>
-          <div style="font-size:${Math.round(CW*0.085)}px;font-weight:900;letter-spacing:3px;color:${d.color};text-shadow:0 0 18px ${d.color},0 0 45px ${d.color}55;position:relative;z-index:2;pointer-events:none">${d.name}</div>
-          <div style="font-size:${Math.round(CW*0.043)}px;color:#555;letter-spacing:1px;position:relative;z-index:2;pointer-events:none">${d.members.length} אנשי קשר</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;padding:0 20px;position:relative;z-index:2;pointer-events:none">
-            ${d.members.map(m=>`<div style="font-size:${Math.round(CW*0.04)}px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid ${d.color}55;color:${d.color};background:rgba(${rgb(d.color)},0.12)">${m.lead?'★ ':''}${m.name.split(' ')[0]}</div>`).join('')}
-          </div>
-          <div style="font-size:${Math.round(CW*0.038)}px;color:#2a2a2a;letter-spacing:1px;position:relative;z-index:2;margin-top:4px;pointer-events:none">לחץ לפתיחה</div>`;
-        card.style.cursor='pointer';
-        card.addEventListener('click', (ev)=>{ ev.stopPropagation(); openCVPopup(i); });
-        // JS float
-        let t=0,raf;
-        function tick(){t+=0.016;const dy=Math.sin(t*0.8)*8;card.style.transform=`translate(${p.tx}px,${p.ty+dy}px) rotate(${p.rot}deg) scale(${p.scale})`;raf=requestAnimationFrame(tick);}
-        raf=requestAnimationFrame(tick);
-        card._stopFloat=()=>cancelAnimationFrame(raf);
-      } else {
-        // back cards — show icon, name and member count clearly
         card.innerHTML=`
-          <div style="font-size:${Math.round(CW*0.13)}px;position:relative;z-index:2">${d.icon}</div>
-          <div style="font-size:${Math.round(CW*0.06)}px;font-weight:900;color:${d.color};letter-spacing:2px;position:relative;z-index:2;text-shadow:0 0 12px ${d.color}88">${d.name}</div>
-          <div style="font-size:${Math.round(CW*0.04)}px;color:${d.color}88;position:relative;z-index:2">${d.members.length} אנשי קשר</div>`;
-        card.onclick=()=>goCV((cur+(off>0?1:-1)+N)%N);
+          ${cvSparkSVG(d.color,'f'+i)}
+          <div style="font-size:${Math.round(CW*.18)}px;pointer-events:none;position:relative;z-index:2">${d.icon}</div>
+          <div style="font-size:${Math.round(CW*.085)}px;font-weight:900;letter-spacing:2px;color:${d.color};text-shadow:0 0 16px ${d.color};pointer-events:none;position:relative;z-index:2">${d.name}</div>
+          <div style="font-size:${Math.round(CW*.042)}px;color:#555;pointer-events:none;position:relative;z-index:2">${d.members.length} אנשי קשר</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;justify-content:center;padding:0 16px;pointer-events:none;position:relative;z-index:2">
+            ${d.members.map(m=>`<span style="font-size:${Math.round(CW*.038)}px;font-weight:700;padding:2px 8px;border-radius:16px;border:1px solid ${d.color}44;color:${d.color};background:rgba(${cvRgb(d.color)},.1)">${m.name.split(' ')[0]}</span>`).join('')}
+          </div>
+          <div style="font-size:${Math.round(CW*.036)}px;color:#2a2a2a;pointer-events:none;position:relative;z-index:2">לחץ לפתיחה</div>`;
+
+        // click opens popup
+        card.addEventListener('click', ()=>cvOpenPopup(i));
+
+        // float
+        let t=0,raf;
+        const px=p.tx,py=p.ty,pr=p.rot,ps=p.sc;
+        function tick(){t+=0.016;card.style.transform=`translate(${px}px,${py+Math.sin(t*.8)*8}px) rotate(${pr}deg) scale(${ps})`;raf=requestAnimationFrame(tick);}
+        floatRaf=raf=requestAnimationFrame(tick);
+        card._stop=()=>cancelAnimationFrame(raf);
+
+      } else {
+        card.innerHTML=`
+          <div style="font-size:${Math.round(CW*.13)}px;position:relative;z-index:2">${d.icon}</div>
+          <div style="font-size:${Math.round(CW*.06)}px;font-weight:900;color:${d.color};letter-spacing:2px;position:relative;z-index:2;text-shadow:0 0 10px ${d.color}88">${d.name}</div>
+          <div style="font-size:${Math.round(CW*.04)}px;color:${d.color}77;position:relative;z-index:2">${d.members.length} אנשי קשר</div>`;
+        card.addEventListener('click', ()=>{
+          const dir=off>0?1:-1;
+          cvGo((cur+dir+N)%N);
+        });
       }
       scene.appendChild(card);
     });
 
-    // update arrows
+    // arrows + dots
     const c=deptGroups[cur].color;
-    const arrR=document.getElementById('cv-arr-r');
-    const arrL=document.getElementById('cv-arr-l');
-    if(arrR){arrR.style.borderColor=c+'55';arrR.style.color=c;arrR.style.boxShadow=`0 0 10px ${c}33`;}
-    if(arrL){arrL.style.borderColor=c+'55';arrL.style.color=c;arrL.style.boxShadow=`0 0 10px ${c}33`;}
-
-    // dots
+    const rr=document.getElementById('cv-arr-r');
+    const ll=document.getElementById('cv-arr-l');
+    if(rr){rr.style.borderColor=c+'55';rr.style.color=c;rr.style.boxShadow=`0 0 8px ${c}33`;}
+    if(ll){ll.style.borderColor=c+'55';ll.style.color=c;ll.style.boxShadow=`0 0 8px ${c}33`;}
     const dots=document.getElementById('cv-dots');
-    if(dots) dots.innerHTML=deptGroups.map((d,i)=>`<div style="height:4px;border-radius:2px;transition:all 0.3s;width:${i===cur?28:7}px;background:${i===cur?d.color:'#1a1a1a'};${i===cur?'box-shadow:0 0 8px '+d.color:''}"></div>`).join('');
+    if(dots)dots.innerHTML=deptGroups.map((_,i)=>`<div style="height:4px;border-radius:2px;transition:all .3s;width:${i===cur?26:7}px;background:${i===cur?deptGroups[cur].color:'#1a1a1a'};${i===cur?'box-shadow:0 0 8px '+deptGroups[cur].color:''}"></div>`).join('');
   }
 
-  let cvBusy=false;
-  function goCV(idx){
+  function cvGo(idx){
     if(cvBusy||idx===cur)return;
-    cvBusy=true;cur=(idx+N)%N;build();
+    cvBusy=true;cur=(idx+N)%N;cvBuild();
     setTimeout(()=>{cvBusy=false;},450);
   }
 
-  function openCVPopup(idx){
+  function cvOpenPopup(idx){
     const d=deptGroups[idx];
     const sheet=document.getElementById('cv-popup-sheet');
     const bg=document.getElementById('cv-popup-bg');
+    if(!sheet||!bg)return;
     sheet.style.borderColor=d.color;
     sheet.style.boxShadow=`0 -20px 60px ${d.color}33`;
     document.getElementById('cv-pill').style.background=d.color;
     document.getElementById('cv-pop-icon').textContent=d.icon;
     const nm=document.getElementById('cv-pop-name');
-    nm.textContent=d.name;nm.style.color=d.color;nm.style.textShadow=`0 0 14px ${d.color}88`;
+    nm.textContent=d.name;nm.style.color=d.color;nm.style.textShadow=`0 0 12px ${d.color}88`;
 
-    document.getElementById('cv-pop-contacts').innerHTML=d.members.map(m=>{
-      const canEditNow=isMgr;
-      const phoneDisplay=fmt(m.phone)||'';
-      const callBtn=m.phone?`<a href="tel:${m.phone.replace(/[-\s]/g,'')}" style="width:46px;height:46px;border-radius:50%;border:2px solid ${d.color};display:flex;align-items:center;justify-content:center;font-size:20px;background:#000;text-decoration:none;box-shadow:0 0 12px ${d.color}44;flex-shrink:0">📞</a>`:'<div style="width:46px;flex-shrink:0"></div>';
-      return`<div style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:18px;margin-bottom:10px;border:1px solid ${m.lead?d.color:d.color+'33'};background:#080808;${m.lead?'box-shadow:0 0 12px '+d.color+'22':''}">
-        <div style="flex:1">
-          <div style="font-size:15px;font-weight:900;color:#fff">${m.name}${m.lead?' ★':''}</div>
-          ${canEditNow
-            ?`<input id="phone-${m.id}" value="${m.phone||''}" placeholder="050-000-0000" dir="ltr"
-                style="font-size:14px;font-weight:700;color:${d.color};background:transparent;border:none;border-bottom:1px solid ${d.color}66;outline:none;width:100%;margin-top:6px;font-family:inherit;padding:2px 0;cursor:text;"
-                onblur="saveContactPhone('${m.id}',this.value)"/>`
-            :`<div style="font-size:14px;font-weight:700;color:${d.color};text-shadow:0 0 8px ${d.color}44;direction:ltr;margin-top:4px">${phoneDisplay||'—'}</div>`
-          }
-        </div>
-        ${callBtn}
-      </div>`;
-    }).join('');
+    // build contacts list
+    const cont=document.getElementById('cv-pop-contacts');
+    cont.innerHTML='';
+    d.members.forEach(m=>{
+      const row=document.createElement('div');
+      row.style.cssText=`display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:18px;margin-bottom:10px;border:1px solid ${m.lead?d.color:d.color+'33'};background:#080808;${m.lead?'box-shadow:0 0 14px '+d.color+'22':''}`;
+
+      const info=document.createElement('div');
+      info.style.cssText='flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;';
+
+      const nameEl=document.createElement('div');
+      nameEl.style.cssText='font-size:18px;font-weight:900;color:#fff;';
+      nameEl.textContent=m.name;
+      info.appendChild(nameEl);
+
+      if(isMgr){
+        const inp=document.createElement('input');
+        inp.type='tel';
+        inp.value=m.phone||'';
+        inp.placeholder='050-000-0000';
+        inp.dir='ltr';
+        inp.style.cssText=`font-size:17px;font-weight:700;color:${d.color};background:transparent;border:none;border-bottom:2px solid ${d.color}55;outline:none;width:100%;font-family:inherit;padding:4px 0;cursor:text;`;
+        inp.addEventListener('focus',()=>inp.style.borderBottomColor=d.color);
+        inp.addEventListener('blur',()=>{
+          inp.style.borderBottomColor=d.color+'55';
+          saveContactPhone(m.id, inp.value);
+        });
+        info.appendChild(inp);
+      } else {
+        const ph=document.createElement('div');
+        ph.style.cssText=`font-size:17px;font-weight:700;color:${d.color};direction:ltr;`;
+        ph.textContent=cvFmt(m.phone)||'—';
+        info.appendChild(ph);
+      }
+
+      row.appendChild(info);
+
+      const phone=m.phone?m.phone.replace(/[-\s]/g,''):'';
+      if(phone){
+        const btn=document.createElement('a');
+        btn.href='tel:'+phone;
+        btn.style.cssText=`width:50px;height:50px;border-radius:50%;border:2px solid ${d.color};display:flex;align-items:center;justify-content:center;font-size:24px;background:#000;text-decoration:none;box-shadow:0 0 14px ${d.color}44;flex-shrink:0;`;
+        btn.textContent='📞';
+        row.appendChild(btn);
+      }
+      cont.appendChild(row);
+    });
 
     bg.style.opacity='1';bg.style.pointerEvents='all';
     sheet.style.transform='translateY(0)';
   }
 
+  // close popup on bg click
   document.getElementById('cv-popup-bg').addEventListener('click',e=>{
-    if(e.target===document.getElementById('cv-popup-bg')){
+    if(e.target.id==='cv-popup-bg'){
       const sheet=document.getElementById('cv-popup-sheet');
       const bg=document.getElementById('cv-popup-bg');
       sheet.style.transform='translateY(100%)';
@@ -7625,28 +7653,21 @@ async function renderContactView(el){
     }
   });
 
-  document.getElementById('cv-arr-l').onclick=()=>goCV((cur+1)%N);
-  document.getElementById('cv-arr-r').onclick=()=>goCV((cur-1+N)%N);
+  document.getElementById('cv-arr-l').onclick=()=>cvGo((cur+1)%N);
+  document.getElementById('cv-arr-r').onclick=()=>cvGo((cur-1+N)%N);
 
-  // swipe
-  const sa=document.getElementById('cv-swipe');
-  let tx=null,ty=null,mx=null;
-  sa.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
-  sa.addEventListener('touchend',e=>{
-    if(tx===null)return;
-    const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;
-    tx=null;ty=null;
+  // touch swipe
+  let stx=null,sty=null;
+  document.getElementById('cv-swipe').addEventListener('touchstart',e=>{stx=e.touches[0].clientX;sty=e.touches[0].clientY;},{passive:true});
+  document.getElementById('cv-swipe').addEventListener('touchend',e=>{
+    if(stx===null)return;
+    const dx=e.changedTouches[0].clientX-stx,dy=e.changedTouches[0].clientY-sty;
+    stx=null;sty=null;
     if(Math.abs(dy)>Math.abs(dx)||Math.abs(dx)<40)return;
-    goCV((cur+(dx<0?1:-1)+N)%N);
-  });
-  sa.addEventListener('mousedown',e=>{if(!e.target.closest('button'))mx=e.clientX;});
-  window.addEventListener('mouseup',e=>{
-    if(mx===null)return;const dx=e.clientX-mx;mx=null;
-    if(Math.abs(dx)<40)return;
-    goCV((cur+(dx<0?1:-1)+N)%N);
+    cvGo((cur+(dx<0?1:-1)+N)%N);
   });
 
-  build();
+  cvBuild();
 }
 
 async function saveContactPhone(empId, phone){
