@@ -681,6 +681,7 @@
   }
   @keyframes hubSpin  { to{transform:rotate(360deg);} }
   @keyframes hubSpinR { to{transform:rotate(-360deg);} }
+  @keyframes hvBounce { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-8px);} }
   @keyframes hubOrbit { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
   @keyframes hubCounter { from{transform:rotate(0deg);} to{transform:rotate(-360deg);} }
   @keyframes morphAppear { from{transform:scale(0.06);opacity:0;} to{transform:scale(1);opacity:1;} }
@@ -2162,6 +2163,7 @@ async function handleAuth(){
   const email=document.getElementById('a-email').value.trim();
   const pass=document.getElementById('a-pass').value;
   if(!email||!pass){setMsg('נא למלא אימייל וסיסמה');return;}
+  if(!email.includes('@')||!email.includes('.')){setMsg('נא להזין כתובת מייל תקינה');return;}
   if(pass.length<4){setMsg('הסיסמה חייבת להכיל לפחות 4 תווים');return;}
   if(authMode==='login'){
     const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
@@ -2192,23 +2194,27 @@ async function handleAuth(){
     if(!trySignIn.error && trySignIn.data?.user){
       // מייל קיים וסיסמה נכונה — נכנס (ומעדכן פרטים)
       authData = trySignIn.data;
-    } else if(trySignIn.error?.message?.includes('Invalid login credentials')){
-      // מייל לא קיים (או סיסמה שגויה) — נירשם
+    } else {
+      // מייל לא קיים או סיסמה שגויה — נירשם
       const signUpRes = await sb.auth.signUp({email,password:pass});
       if(signUpRes.error){
-        setMsg('שגיאה בהרשמה: '+signUpRes.error.message);
+        const msg=signUpRes.error.message||'';
+        if(msg.includes('already registered')||msg.includes('already been registered')){
+          setMsg('מייל זה כבר רשום — לחץ "כניסה"');
+        } else if(msg.includes('invalid')||msg.includes('valid')){
+          setMsg('כתובת מייל לא תקינה');
+        } else {
+          setMsg('שגיאה: '+msg);
+        }
         return;
       }
       // נסה להתחבר מיד אחרי הרשמה
       const signInAfter = await sb.auth.signInWithPassword({email,password:pass});
       if(signInAfter.error || !signInAfter.data?.user){
-        setMsg('נרשמת בהצלחה! כעת היכנס עם הפרטים שלך.');
+        setMsg('נרשמת! כעת היכנס עם הפרטים שלך.');
         return;
       }
       authData = signInAfter.data;
-    } else {
-      setMsg('שגיאה: '+(trySignIn.error?.message||'נסה שוב'));
-      return;
     }
 
     if(!authData?.user){
@@ -3330,6 +3336,16 @@ function saveShiftTime(shiftId, time){
 function renderCombinedView(){
   const cv=combinedViews.find(v=>v.id===activeCombinedId);
   if(!cv){document.getElementById('sched-wrap').innerHTML='<div class="loading">תצוגה לא נמצאה</div>';return;}
+
+  // עובד רואה שעון חול אם הסידור המשולב לא פורסם לשבוע זה
+  if(!isMgr && !cv.published){
+    document.getElementById('sched-wrap').innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:center;padding:60px 20px;">
+        <div style="font-size:56px;animation:hvBounce 1.2s ease-in-out infinite">⏳</div>
+      </div>`;
+    document.getElementById('lock-notice').style.display='none';
+    return;
+  }
   const depts=cv.dept_ids.map(id=>departments.find(d=>d.id===id)).filter(Boolean);
   const dates=weekDates();
   const wrap=document.getElementById('sched-wrap');
@@ -4778,7 +4794,8 @@ function changeWeek(d){
   const newOffset=weekOffset+d;
   if(role==='employee'&&!isMgr&&newOffset>2) return;
 
-  // סידור משולב — עובד יכול לדפדף אבל יראה שעון חול (כמו חצים רגילים)
+  // סידור משולב לא מפורסם — עובד רואה שעון חול
+  // (הבדיקה תתבצע ב-renderSchedule אחרי טעינת הנתונים)
 
   const view=document.getElementById('view-schedule');
   // Only animate on mobile
