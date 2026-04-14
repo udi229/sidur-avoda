@@ -274,6 +274,16 @@
   }
   @keyframes neonPulseRed{0%,100%{box-shadow:0 0 8px #ff003c,0 0 16px #ff003c66}50%{box-shadow:0 0 20px #ff003c,0 0 40px #ff003caa}}
   @keyframes neonPulseBlue{0%,100%{box-shadow:0 0 8px #3b82f6,0 0 16px #3b82f666,inset 0 0 4px #3b82f622}50%{box-shadow:0 0 18px #3b82f6,0 0 36px #3b82f6aa,inset 0 0 8px #3b82f644}}
+  @keyframes neonStripeBlue{0%,100%{opacity:0.75;box-shadow:0 0 5px #3b82f6cc,0 0 12px #3b82f666;}50%{opacity:1;box-shadow:0 0 10px #3b82f6ff,0 0 22px #3b82f6aa;}}
+  @keyframes neonStripeGreen{0%,100%{opacity:0.75;box-shadow:0 0 5px #22c55ecc,0 0 12px #22c55e66;}50%{opacity:1;box-shadow:0 0 10px #22c55eff,0 0 22px #22c55eaa;}}
+  .holiday-col-jewish{background:#f0f7ff!important;position:relative;}
+  .holiday-col-jewish::before,.holiday-col-jewish::after{content:'';position:absolute;top:0;bottom:0;width:2.5px;background:#3b82f6;animation:neonStripeBlue 1.8s ease-in-out infinite;pointer-events:none;z-index:2;}
+  .holiday-col-jewish::before{left:0;}
+  .holiday-col-jewish::after{right:0;}
+  .holiday-col-muslim{background:#f0fdf4!important;position:relative;}
+  .holiday-col-muslim::before,.holiday-col-muslim::after{content:'';position:absolute;top:0;bottom:0;width:2.5px;background:#22c55e;animation:neonStripeGreen 1.8s ease-in-out infinite;pointer-events:none;z-index:2;}
+  .holiday-col-muslim::before{left:0;}
+  .holiday-col-muslim::after{right:0;}
   @keyframes neonPulsePurple{0%,100%{box-shadow:0 0 8px #7c3aed,0 0 16px #7c3aed66}50%{box-shadow:0 0 18px #a78bfa,0 0 36px #7c3aedaa}}
   @keyframes orbitSpark{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
   @keyframes neonSparkBlue{
@@ -2029,7 +2039,7 @@ function getIsraeliHoliday(day, month, year){
     '24-4-2030':'ערב יום השואה','25-4-2030':'יום השואה',
     // יום הזיכרון לחללי מערכות ישראל (ד׳ אייר) + ערב
     '29-4-2025':'ערב יום הזיכרון','30-4-2025':'יום הזיכרון',
-    '19-4-2026':'ערב יום הזיכרון','20-4-2026':'יום הזיכרון',
+    '20-4-2026':'ערב יום הזיכרון','21-4-2026':'יום הזיכרון',
     '10-5-2027':'ערב יום הזיכרון','11-5-2027':'יום הזיכרון',
     '28-4-2028':'ערב יום הזיכרון','29-4-2028':'יום הזיכרון',
     '18-4-2029':'ערב יום הזיכרון','19-4-2029':'יום הזיכרון',
@@ -2082,9 +2092,21 @@ function holidayBadge(dateStr){
 }
 function holidayThStyle(dateStr){
   const {jewish, muslim} = getHolidayForDate(dateStr);
-  if(jewish && muslim) return 'border:2px solid #3b82f6!important;animation:neonPulseBlue 1.4s ease-in-out infinite;background:#eff6ff;';
-  if(jewish) return 'border:2px solid #3b82f6!important;animation:neonPulseBlue 1.4s ease-in-out infinite;background:#eff6ff;';
-  if(muslim) return 'border:2px solid #22c55e!important;animation:neonPulseGreen 1.4s ease-in-out infinite;background:#f0fdf4;';
+  if(jewish && muslim) return 'background:#e8f0fe;position:relative;';
+  if(jewish) return 'background:#e8f0fe;position:relative;';
+  if(muslim) return 'background:#f0fdf4;position:relative;';
+  return '';
+}
+function holidayColClass(dateStr){
+  const {jewish, muslim} = getHolidayForDate(dateStr);
+  if(jewish) return 'holiday-col-jewish';
+  if(muslim) return 'holiday-col-muslim';
+  return '';
+}
+function holidayColStyle(dateStr){
+  const {jewish, muslim} = getHolidayForDate(dateStr);
+  if(jewish) return 'background:#f0f7ff;position:relative;';
+  if(muslim) return 'background:#f0fdf4;position:relative;';
   return '';
 }
 const ROLE_HEB={employee:'עובד',team_lead:'ראש צוות',manager:'מנהל'};
@@ -3763,7 +3785,7 @@ function renderSchedule(){
     <div class="tbl-wrap"><table>
     <thead><tr>
       <th class="shift-col">משמרת</th>
-      ${DAYS_DISPLAY.map((d,i)=>`<th style="text-align:center;font-size:15px;color:#475569;font-weight:700;padding:4px 4px;${holidayThStyle(dates[i])}">${holidayBadge(dates[i])}${d}<br><span style="font-size:13px;font-weight:700;color:#0f172a">${dates[i]}</span></th>`).join('')}
+      ${DAYS_DISPLAY.map((d,i)=>`<th class="${holidayColClass(dates[i])}" style="text-align:center;font-size:15px;color:#475569;font-weight:700;padding:4px 4px;">${holidayBadge(dates[i])}${d}<br><span style="font-size:13px;font-weight:700;color:#0f172a">${dates[i]}</span></th>`).join('')}
     </tr></thead><tbody>`;
 
   // get shifts for this dept — night shift only shown if active this week
@@ -3815,7 +3837,7 @@ function renderSchedule(){
       const noteVal2=noteKey2&&cellData[noteKey2]?.content||'';
       const names=sched?getCellNames(sched.id,shift.id,d):[];
       const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===shift.id&&openDropdown.dayIdx===d;
-      html+=`<td><div class="cell-inner cell-rel" style="position:relative">
+      html+=`<td class="${holidayColClass(dates[d])}"><div class="cell-inner cell-rel" style="position:relative">
         <div class="cell-tags">`;
       const uniqueNames=[...new Set(names)];
       uniqueNames.forEach(name=>{
@@ -3886,7 +3908,7 @@ function renderSchedule(){
         const noteKey2=sched2?`note_${sched2.id}_${roleKey}_${d}`:'';
         const noteVal2=noteKey2&&cellData[noteKey2]?.content||'';
         const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===roleKey&&openDropdown.dayIdx===d;
-        html+=`<td style="position:relative;border-bottom:1px solid #e2e8f0"><div class="cell-inner cell-rel" style="position:relative">
+        html+=`<td class="${holidayColClass(dates[d])}" style="position:relative;border-bottom:1px solid #e2e8f0"><div class="cell-inner cell-rel" style="position:relative">
           <div class="cell-tags">`;
         const uniqueRoleNames=[...new Set(roleNames)];
         uniqueRoleNames.forEach(name=>{
@@ -5156,7 +5178,7 @@ const IL_HOLIDAYS = {
   '2026-04-01':'ערב פסח','2026-04-02':'פסח','2026-04-03':'פסח','2026-04-04':'פסח',
   '2026-04-05':'פסח','2026-04-06':'פסח','2026-04-07':'פסח','2026-04-08':'פסח',
   '2026-04-12':'ערב יום השואה','2026-04-13':'יום השואה',
-  '2026-04-19':'ערב יום הזיכרון','2026-04-20':'יום הזיכרון','2026-04-21':'יום העצמאות',
+  '2026-04-20':'ערב יום הזיכרון','2026-04-21':'יום הזיכרון','2026-04-22':'יום העצמאות',
   '2026-05-22':'שבועות',
   '2026-07-23':'תשעה באב',
   '2026-09-11':'ערב ראש השנה','2026-09-12':'ראש השנה','2026-09-13':'ראש השנה',
