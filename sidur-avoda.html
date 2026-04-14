@@ -3656,6 +3656,18 @@ function renderSchedule(){
   const role=currentEmp?.role||'employee';
   const fa=fullyApproved();
   const isEmployee=role==='employee'&&!isMgr;
+  // עובד רגיל לא יכול לראות שבוע עתידי שלא אושר
+  if(isEmployee && weekOffset>0){
+    const anyApproved=departments.some(d=>schedules[d.id]?.status==='approved'&&schedules[d.id]?.week_start===weekStartStr());
+    if(!anyApproved){
+      document.getElementById('lock-notice').style.display='none';
+      document.getElementById('sched-wrap').innerHTML=`
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:55vh;gap:16px">
+          <div style="font-size:56px;animation:hvBounce 1.2s ease-in-out infinite">⏳</div>
+        </div>`;
+      return;
+    }
+  }
   const deptInPublishedCV=combinedViews.some(cv=>cv.published&&cv.dept_ids.includes(activeDeptId));
   if(isEmployee&&!isApproved(activeDeptId)&&!deptInPublishedCV){
     document.getElementById('lock-notice').style.display='block';
@@ -4798,7 +4810,17 @@ function showView(v,e){
 function changeWeek(d){
   const role=currentEmp?.role||'employee';
   const newOffset=weekOffset+d;
-  if(role==='employee'&&!isMgr&&newOffset>2) return;
+  // עובד לא מורשה: לא יותר משבוע קדימה, ולא שבוע שלא אושר
+  if(!isMgr && role!=='team_lead'){
+    if(newOffset>0){
+      // בדוק שהשבוע הבא אושר לפחות מחלקה אחת
+      const ws=weekStart(newOffset).toISOString().split('T')[0];
+      const anyApproved=Object.values(schedules).some(s=>s?.week_start===ws&&s?.status==='approved');
+      if(!anyApproved) return;
+    }
+  }
+  // team_lead: עד שבועיים קדימה
+  if(role==='team_lead'&&!isMgr&&newOffset>2) return;
 
   // סידור משולב לא מפורסם — עובד רואה שעון חול
   // (הבדיקה תתבצע ב-renderSchedule אחרי טעינת הנתונים)
@@ -7510,7 +7532,14 @@ function lozInjectSaveButtons(){
 function changeWeekNoAnim(d){
   const role=currentEmp?.role||'employee';
   const newOffset=weekOffset+d;
-  if(role==='employee'&&!isMgr&&newOffset>2) return;
+  if(!isMgr && role!=='team_lead'){
+    if(newOffset>0){
+      const ws=weekStart(newOffset).toISOString().split('T')[0];
+      const anyApproved=Object.values(schedules).some(s=>s?.week_start===ws&&s?.status==='approved');
+      if(!anyApproved) return;
+    }
+  }
+  if(role==='team_lead'&&!isMgr&&newOffset>2) return;
   weekOffset=newOffset;openDropdown=null;editingShiftTime=null;editMode=false;
   loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});
 }
