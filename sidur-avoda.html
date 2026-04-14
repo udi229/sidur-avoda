@@ -274,12 +274,9 @@
   }
   @keyframes neonPulseRed{0%,100%{box-shadow:0 0 8px #ff003c,0 0 16px #ff003c66}50%{box-shadow:0 0 20px #ff003c,0 0 40px #ff003caa}}
   @keyframes neonPulseBlue{0%,100%{box-shadow:0 0 8px #3b82f6,0 0 16px #3b82f666,inset 0 0 4px #3b82f622}50%{box-shadow:0 0 18px #3b82f6,0 0 36px #3b82f6aa,inset 0 0 8px #3b82f644}}
-  @keyframes neonStripeBlue{0%,100%{opacity:0.8;box-shadow:0 0 5px #3b82f6cc,0 0 12px #3b82f666;}50%{opacity:1;box-shadow:0 0 10px #3b82f6ff,0 0 22px #3b82f6aa;}}
-  @keyframes neonStripeGreen{0%,100%{opacity:0.8;box-shadow:0 0 5px #22c55ecc,0 0 12px #22c55e66;}50%{opacity:1;box-shadow:0 0 10px #22c55eff,0 0 22px #22c55eaa;}}
-  .holiday-col-jewish{background:#f0f7ff!important;position:relative;}
-  .holiday-col-jewish::after{content:'';position:absolute;top:0;bottom:0;right:0;width:2px;background:#3b82f6;animation:neonStripeBlue 1.8s ease-in-out infinite;pointer-events:none;z-index:2;}
-  .holiday-col-muslim{background:#f0fdf4!important;position:relative;}
-  .holiday-col-muslim::after{content:'';position:absolute;top:0;bottom:0;right:0;width:2px;background:#22c55e;animation:neonStripeGreen 1.8s ease-in-out infinite;pointer-events:none;z-index:2;}
+  @keyframes neonStripeBlue{0%,100%{opacity:0.8;}50%{opacity:1;}}
+  .holiday-col-jewish{background:#f0f7ff!important;box-shadow:inset -1px 0 0 0 #3b82f6, inset -2px 0 4px #3b82f644;}
+  .holiday-col-muslim{background:#f0fdf4!important;box-shadow:inset -1px 0 0 0 #22c55e, inset -2px 0 4px #22c55e44;}
   @keyframes neonPulsePurple{0%,100%{box-shadow:0 0 8px #7c3aed,0 0 16px #7c3aed66}50%{box-shadow:0 0 18px #a78bfa,0 0 36px #7c3aedaa}}
   @keyframes orbitSpark{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
   @keyframes neonSparkBlue{
