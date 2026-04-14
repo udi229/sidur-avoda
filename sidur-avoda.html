@@ -3450,7 +3450,11 @@ function renderCombinedView(){
     <colgroup>
       <col style="width:80px;min-width:80px">
       <col style="width:75px;min-width:65px">
-      ${DAYS_DISPLAY.map(()=>'<col style="min-width:65px">').join('')}
+      ${dates.map(date=>{
+        const {jewish,muslim}=getHolidayForDate(date);
+        const holStyle=jewish?'border-left:2px solid #3b82f6;border-right:2px solid #3b82f6':muslim?'border-left:2px solid #22c55e;border-right:2px solid #22c55e':'';
+        return `<col style="min-width:65px;${holStyle}">`;
+      }).join('')}
     </colgroup>
 
     <tbody>`;
@@ -3512,7 +3516,7 @@ function renderCombinedView(){
         const names=sched?getCellNames(sched.id,row.key,d):[];
         const {jewish:hJew,muslim:hMus}=getHolidayForDate(dates[d]);
         const holBg=rowBg;
-        const holShadow=hJew?';box-shadow:inset 0 0 0 1px #93c5fd':hMus?';box-shadow:inset 0 0 0 1px #86efac':'';
+        const holShadow='';
         html+=`<td style="${B};padding:3px 2px;text-align:center;vertical-align:middle;
           background:${holBg};border-bottom:1px solid #e2e8f0${holShadow}">`;
         if(names.length){
@@ -3554,7 +3558,7 @@ function renderCombinedView(){
     let bHtml=`<div class="sched-block" style="border:${isMorning?'2px solid #0f172a':`3px solid ${col}`};border-radius:12px;margin-top:8px">`;
     bHtml+=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">`;
     bHtml+=`<table style="border-collapse:${showDates?'separate':'collapse'};border-spacing:0;direction:rtl;min-width:500px;width:100%">`;
-    bHtml+=`<colgroup><col style="width:80px;min-width:80px"><col style="width:75px;min-width:65px">${DAYS_DISPLAY.map(()=>'<col style="min-width:65px">').join('')}</colgroup>`;
+    bHtml+=`<colgroup><col style="width:80px;min-width:80px"><col style="width:75px;min-width:65px">${dates.map(date=>{const {jewish,muslim}=getHolidayForDate(date);const hs=jewish?'border-left:2px solid #3b82f6;border-right:2px solid #3b82f6':muslim?'border-left:2px solid #22c55e;border-right:2px solid #22c55e':'';return `<col style="min-width:65px;${hs}">`;}).join('')}</colgroup>`;
     if(showDates){
     bHtml+=`<thead>
       <tr style="background:white">
@@ -3612,7 +3616,7 @@ function renderCombinedView(){
         const names2=sched?getCellNames(sched.id,row.key,d):[];
         const {jewish:hJew2,muslim:hMus2}=getHolidayForDate(dates[d]);
         const holBg2=rowBg2;
-        const holShadow2=hJew2?';box-shadow:inset 0 0 0 1px #93c5fd':hMus2?';box-shadow:inset 0 0 0 1px #86efac':'';
+        const holShadow2='';
         bHtml+=`<td style="${B};padding:3px 2px;text-align:center;vertical-align:middle;background:${holBg2};border-bottom:1px solid #e2e8f0${holShadow2}">`;
         if(names2.length){
           names2.forEach(name=>{
