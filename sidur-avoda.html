@@ -274,16 +274,12 @@
   }
   @keyframes neonPulseRed{0%,100%{box-shadow:0 0 8px #ff003c,0 0 16px #ff003c66}50%{box-shadow:0 0 20px #ff003c,0 0 40px #ff003caa}}
   @keyframes neonPulseBlue{0%,100%{box-shadow:0 0 8px #3b82f6,0 0 16px #3b82f666,inset 0 0 4px #3b82f622}50%{box-shadow:0 0 18px #3b82f6,0 0 36px #3b82f6aa,inset 0 0 8px #3b82f644}}
-  @keyframes neonStripeBlue{0%,100%{opacity:0.75;box-shadow:0 0 5px #3b82f6cc,0 0 12px #3b82f666;}50%{opacity:1;box-shadow:0 0 10px #3b82f6ff,0 0 22px #3b82f6aa;}}
-  @keyframes neonStripeGreen{0%,100%{opacity:0.75;box-shadow:0 0 5px #22c55ecc,0 0 12px #22c55e66;}50%{opacity:1;box-shadow:0 0 10px #22c55eff,0 0 22px #22c55eaa;}}
+  @keyframes neonStripeBlue{0%,100%{opacity:0.8;box-shadow:0 0 5px #3b82f6cc,0 0 12px #3b82f666;}50%{opacity:1;box-shadow:0 0 10px #3b82f6ff,0 0 22px #3b82f6aa;}}
+  @keyframes neonStripeGreen{0%,100%{opacity:0.8;box-shadow:0 0 5px #22c55ecc,0 0 12px #22c55e66;}50%{opacity:1;box-shadow:0 0 10px #22c55eff,0 0 22px #22c55eaa;}}
   .holiday-col-jewish{background:#f0f7ff!important;position:relative;}
-  .holiday-col-jewish::before,.holiday-col-jewish::after{content:'';position:absolute;top:0;bottom:0;width:2.5px;background:#3b82f6;animation:neonStripeBlue 1.8s ease-in-out infinite;pointer-events:none;z-index:2;}
-  .holiday-col-jewish::before{left:0;}
-  .holiday-col-jewish::after{right:0;}
+  .holiday-col-jewish::after{content:'';position:absolute;top:0;bottom:0;right:0;width:2px;background:#3b82f6;animation:neonStripeBlue 1.8s ease-in-out infinite;pointer-events:none;z-index:2;}
   .holiday-col-muslim{background:#f0fdf4!important;position:relative;}
-  .holiday-col-muslim::before,.holiday-col-muslim::after{content:'';position:absolute;top:0;bottom:0;width:2.5px;background:#22c55e;animation:neonStripeGreen 1.8s ease-in-out infinite;pointer-events:none;z-index:2;}
-  .holiday-col-muslim::before{left:0;}
-  .holiday-col-muslim::after{right:0;}
+  .holiday-col-muslim::after{content:'';position:absolute;top:0;bottom:0;right:0;width:2px;background:#22c55e;animation:neonStripeGreen 1.8s ease-in-out infinite;pointer-events:none;z-index:2;}
   @keyframes neonPulsePurple{0%,100%{box-shadow:0 0 8px #7c3aed,0 0 16px #7c3aed66}50%{box-shadow:0 0 18px #a78bfa,0 0 36px #7c3aedaa}}
   @keyframes orbitSpark{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
   @keyframes neonSparkBlue{
@@ -2092,9 +2088,9 @@ function holidayBadge(dateStr){
 }
 function holidayThStyle(dateStr){
   const {jewish, muslim} = getHolidayForDate(dateStr);
-  if(jewish && muslim) return 'background:#e8f0fe;position:relative;';
-  if(jewish) return 'background:#e8f0fe;position:relative;';
-  if(muslim) return 'background:#f0fdf4;position:relative;';
+  if(jewish && muslim) return 'border:2px solid #3b82f6!important;animation:neonPulseBlue 1.4s ease-in-out infinite;background:#eff6ff;';
+  if(jewish) return 'border:2px solid #3b82f6!important;animation:neonPulseBlue 1.4s ease-in-out infinite;background:#eff6ff;';
+  if(muslim) return 'border:2px solid #22c55e!important;animation:neonPulseGreen 1.4s ease-in-out infinite;background:#f0fdf4;';
   return '';
 }
 function holidayColClass(dateStr){
@@ -3516,7 +3512,8 @@ function renderCombinedView(){
       for(let d=0;d<7;d++){
         const sched=schedules[row.dept.id];
         const names=sched?getCellNames(sched.id,row.key,d):[];
-        html+=`<td style="${B};padding:3px 2px;text-align:center;vertical-align:middle;
+        const hClass=holidayColClass(dates[d]);
+        html+=`<td class="${hClass}" style="${B};padding:3px 2px;text-align:center;vertical-align:middle;
           background:${rowBg};border-bottom:1px solid #e2e8f0">`;
         if(names.length){
           names.forEach(name=>{
@@ -3785,7 +3782,7 @@ function renderSchedule(){
     <div class="tbl-wrap"><table>
     <thead><tr>
       <th class="shift-col">משמרת</th>
-      ${DAYS_DISPLAY.map((d,i)=>`<th class="${holidayColClass(dates[i])}" style="text-align:center;font-size:15px;color:#475569;font-weight:700;padding:4px 4px;">${holidayBadge(dates[i])}${d}<br><span style="font-size:13px;font-weight:700;color:#0f172a">${dates[i]}</span></th>`).join('')}
+      ${DAYS_DISPLAY.map((d,i)=>`<th style="text-align:center;font-size:15px;color:#475569;font-weight:700;padding:4px 4px;${holidayThStyle(dates[i])}">${holidayBadge(dates[i])}${d}<br><span style="font-size:13px;font-weight:700;color:#0f172a">${dates[i]}</span></th>`).join('')}
     </tr></thead><tbody>`;
 
   // get shifts for this dept — night shift only shown if active this week
@@ -3837,7 +3834,7 @@ function renderSchedule(){
       const noteVal2=noteKey2&&cellData[noteKey2]?.content||'';
       const names=sched?getCellNames(sched.id,shift.id,d):[];
       const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===shift.id&&openDropdown.dayIdx===d;
-      html+=`<td class="${holidayColClass(dates[d])}"><div class="cell-inner cell-rel" style="position:relative">
+      html+=`<td><div class="cell-inner cell-rel" style="position:relative">
         <div class="cell-tags">`;
       const uniqueNames=[...new Set(names)];
       uniqueNames.forEach(name=>{
@@ -3908,7 +3905,7 @@ function renderSchedule(){
         const noteKey2=sched2?`note_${sched2.id}_${roleKey}_${d}`:'';
         const noteVal2=noteKey2&&cellData[noteKey2]?.content||'';
         const isOpen=openDropdown&&openDropdown.dId===dept.id&&openDropdown.shiftId===roleKey&&openDropdown.dayIdx===d;
-        html+=`<td class="${holidayColClass(dates[d])}" style="position:relative;border-bottom:1px solid #e2e8f0"><div class="cell-inner cell-rel" style="position:relative">
+        html+=`<td style="position:relative;border-bottom:1px solid #e2e8f0"><div class="cell-inner cell-rel" style="position:relative">
           <div class="cell-tags">`;
         const uniqueRoleNames=[...new Set(roleNames)];
         uniqueRoleNames.forEach(name=>{
