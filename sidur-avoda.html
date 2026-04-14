@@ -7222,6 +7222,13 @@ function lozRenderRole(){
   const main=document.getElementById('loz-main');
   if(!main) return;
 
+  // safety — אם עורכים לא נטענו עדיין, נסה לטעון ולרנדר שוב
+  if(!canEdit && !isMgr && lozEditors.length===0 && currentEmp?.email){
+    sb.from('loz_editors').select('user_email').then(({data})=>{
+      if(data?.length){ lozEditors=data.map(r=>r.user_email); lozRenderRole(); }
+    });
+  }
+
   if(canEdit){
     // Editor: show full editor
     main.style.display='';
@@ -7361,6 +7368,8 @@ async function lozViewerDay(dir){
 async function changeDay(dir){
   if(_lozHourglassTimer){ clearInterval(_lozHourglassTimer); _lozHourglassTimer=null; }
   offset+=dir;
+  // reload editors list to ensure permissions are current
+  try{ const {data}=await sb.from('loz_editors').select('user_email'); lozEditors=(data||[]).map(r=>r.user_email); }catch(e){}
   await lozLoadDay(dKey(getD(offset)));
   lozRenderRole();
 }
