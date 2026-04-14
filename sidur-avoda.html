@@ -7141,7 +7141,7 @@ function publishDay(){
   // placeholder — functionality to be added
 }
 
-function closePreview(){
+async function closePreview(){
   if(_lozHourglassTimer){ clearInterval(_lozHourglassTimer); _lozHourglassTimer=null; }
   document.getElementById('preview-overlay').classList.remove('open');
   if(lozCanEdit()){
