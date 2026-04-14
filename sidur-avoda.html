@@ -7238,18 +7238,19 @@ function lozRenderEditorsList(){
   });
 }
 
-function lozRenderRole(){
+async function lozRenderRole(){
+  // ודא שהעורכים תמיד טעונים לפני הבדיקה
+  if(!isMgr && currentEmp?.email){
+    try{
+      const {data}=await sb.from('loz_editors').select('user_email');
+      if(data) lozEditors=data.map(r=>r.user_email);
+    }catch(e){}
+  }
+
   const canEdit=lozCanEdit();
   const pub=lozIsPublished();
   const main=document.getElementById('loz-main');
   if(!main) return;
-
-  // safety — אם עורכים לא נטענו עדיין, נסה לטעון ולרנדר שוב
-  if(!canEdit && !isMgr && lozEditors.length===0 && currentEmp?.email){
-    sb.from('loz_editors').select('user_email').then(({data})=>{
-      if(data?.length){ lozEditors=data.map(r=>r.user_email); lozRenderRole(); }
-    });
-  }
 
   if(canEdit){
     // Editor: show full editor
