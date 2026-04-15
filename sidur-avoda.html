@@ -2540,9 +2540,13 @@ async function initApp(user){
   // Polling — fires every 2s, checks for real changes before reloading
   let _pollInterval=null;
   let _lastHash='';
+  let _pollCount=0;
   function startPolling(){
     if(_pollInterval) return;
+    console.log('[Polling] started');
     _pollInterval=setInterval(async()=>{
+      _pollCount++;
+      if(_pollCount%10===0) console.log('[Polling] tick #'+_pollCount);
       try{
         const ws=weekStartStr();
         if(!ws) return;
@@ -2559,6 +2563,7 @@ async function initApp(user){
         const hash=(sc||[]).map(s=>s.id+'@'+s.updated_at+'@'+s.team_submitted+'@'+s.status).sort().join('|')+'||'+cellsHash+'||'+cvHash;
         if(hash!==_lastHash){
           if(_lastHash!==''){
+            console.log('[Polling] change detected — reloading');
             loadWeekData().then(()=>{
               renderSchedule();
               window._cvWeeklyPub={};
@@ -3224,16 +3229,20 @@ async function saveNames(dId,shiftId,dayIdx,names){
   const content=names.join('|');
   const now=new Date().toISOString();
   // update schedules.updated_at so polling detects change
-  await sb.from('schedules').update({updated_at:now}).eq('id',sched.id);
+  const {error:schedErr}=await sb.from('schedules').update({updated_at:now}).eq('id',sched.id);
+  if(schedErr) console.error('[saveNames] schedules update error:',schedErr.message);
   if(schedules[dId]) schedules[dId].updated_at=now;
   const existing=cellData[key];
   if(existing){
-    const {data}=await sb.from('schedule_cells').update({content,updated_at:now}).eq('id',existing.id).select().single();
+    const {data,error:cellErr}=await sb.from('schedule_cells').update({content,updated_at:now}).eq('id',existing.id).select().single();
+    if(cellErr) console.error('[saveNames] cell update error:',cellErr.message);
     if(data) cellData[key]=data;
   } else {
-    const {data}=await sb.from('schedule_cells').insert({schedule_id:sched.id,shift_type:shiftId,day_index:dayIdx,content,updated_at:now}).select().single();
+    const {data,error:cellErr}=await sb.from('schedule_cells').insert({schedule_id:sched.id,shift_type:shiftId,day_index:dayIdx,content,updated_at:now}).select().single();
+    if(cellErr) console.error('[saveNames] cell insert error:',cellErr.message);
     if(data) cellData[key]=data;
   }
+  console.log('[saveNames] saved key=',key,'content=',content,'updated_at=',now);
 }
 
 async function removeName(dId,shiftId,dayIdx,name){
@@ -3245,9 +3254,10 @@ async function removeName(dId,shiftId,dayIdx,name){
 }
 
 async function addName(dId,shiftId,dayIdx,name){
+  console.log('[addName] called dId=',dId,'name=',name);
   const sched=await ensureSched(dId);
   const prevNames=[...getCellNames(sched.id,shiftId,dayIdx)];
-  if(prevNames.includes(name)) return;
+  if(prevNames.includes(name)){console.log('[addName] already exists');return;}
   const names=[...prevNames,name];
   await saveNames(dId,shiftId,dayIdx,names);
   await notifyIfAffected(dId,shiftId,dayIdx,names,prevNames);
@@ -6913,16 +6923,11 @@ function hubExit(){
 function showHub(){
   document.getElementById('hub-screen').classList.add('active');
   document.getElementById('app').style.display='none';
-  // show contact btn — managers get full access, employees get disabled "coming soon"
+  // show contact btn — all users can view, managers can edit
   const contactBtn=document.getElementById('hub-contact-btn');
   const contactSoon=document.getElementById('hub-contact-soon');
-  if(isMgr){
-    if(contactBtn) contactBtn.style.display='flex';
-    if(contactSoon) contactSoon.style.display='none';
-  } else {
-    if(contactBtn) contactBtn.style.display='none';
-    if(contactSoon) contactSoon.style.display='flex';
-  }
+  if(contactBtn) contactBtn.style.display='flex';
+  if(contactSoon) contactSoon.style.display='none';
   const exitBtn=document.getElementById('hub-exit-btn');
   if(exitBtn) exitBtn.classList.add('show');
   hubInitStars();
