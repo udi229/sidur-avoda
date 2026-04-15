@@ -2600,7 +2600,7 @@ async function loadAll(){
   window.departments=departments;
   employees=e.data||[]; window.employees=employees;
   freelancers=f.data||[];
-  combinedViews=(cv.data||[]).map(v=>({...v, dept_ids: v.dept_ids.split(','), published: false}));
+  combinedViews=(cv.data||[]).map(v=>({...v, dept_ids: v.dept_ids.split(',').map(s=>s.trim()).filter(Boolean), published: false}));
   // Load weekly publish status
   const ws=weekStartStr();
   try{
@@ -3363,6 +3363,7 @@ function saveShiftTime(shiftId, time){
 
 function renderCombinedView(){
   const cv=combinedViews.find(v=>v.id===activeCombinedId);
+  console.log('[CV] renderCombinedView activeCombinedId=',activeCombinedId,'cv=',cv,'isMgr=',isMgr,'combinedViews.length=',combinedViews.length);
   if(!cv){document.getElementById('sched-wrap').innerHTML='<div class="loading">תצוגה לא נמצאה</div>';return;}
 
   // עובד רואה שעון חול אם הסידור המשולב לא פורסם לשבוע זה
@@ -3375,6 +3376,10 @@ function renderCombinedView(){
     return;
   }
   const depts=cv.dept_ids.map(id=>departments.find(d=>d.id===id)).filter(Boolean);
+  if(!depts.length){
+    document.getElementById('sched-wrap').innerHTML=`<div style="padding:40px;text-align:center;color:#94a3b8;font-size:14px">לא נמצאו מחלקות לתצוגה המשולבת (${cv.dept_ids.join(', ')})</div>`;
+    return;
+  }
   const dates=weekDates();
   const wrap=document.getElementById('sched-wrap');
   document.getElementById('lock-notice').style.display='none';
@@ -3625,10 +3630,10 @@ function renderCombinedView(){
         bHtml+=`<td class="${holClass2}" style="${B};padding:3px 2px;text-align:center;vertical-align:middle;background:${holBg2};border-bottom:1px solid #e2e8f0">`;
         if(names2.length){
           names2.forEach(name=>{
+            const firstName2=name.split(' ')[0];
             const nameCount2=names2.length;
             const fs2=nameCount2>=2?'11px':firstName2.length>6?'13px':'16px';
             const isMe2=currentEmp&&currentEmp.full_name===name&&!isMgr;
-            const firstName2=name.split(' ')[0];
             const isFree2=freelancers.some(f=>f.name===name);
             const isSearch2=searchQuery&&name.toLowerCase().includes(searchQuery.toLowerCase());
             const isHighlightedFree2=_highlightedFree&&(name===_highlightedFree||firstName2===_highlightedFree);
@@ -6763,6 +6768,14 @@ async function refreshApp(btn){
   }
 }
 
+function cvClosePopup(){
+  const sheet=document.getElementById('cv-popup-sheet');
+  const bg=document.getElementById('cv-popup-bg');
+  if(!sheet||!bg) return;
+  sheet.style.transform='translateY(100%)';
+  bg.style.opacity='0';bg.style.pointerEvents='none';
+}
+
 function goBackToHub(){
   document.getElementById('app').style.display='none';
   window._vacInitialized = false;
@@ -7853,6 +7866,7 @@ async function renderContactView(el){
   function cvClosePopup(){
     const sheet=document.getElementById('cv-popup-sheet');
     const bg=document.getElementById('cv-popup-bg');
+    if(!sheet||!bg) return;
     sheet.style.transform='translateY(100%)';
     bg.style.opacity='0';bg.style.pointerEvents='none';
   }
@@ -7862,6 +7876,27 @@ async function renderContactView(el){
   document.getElementById('cv-popup-bg').addEventListener('click',e=>{
     if(e.target.id==='cv-popup-bg') cvClosePopup();
   });
+
+  // swipe on popup sheet to go to next/prev department
+  let pstx=null,psty=null,popupDeptIdx=0;
+  const sheet=document.getElementById('cv-popup-sheet');
+  sheet.addEventListener('touchstart',e=>{
+    pstx=e.touches[0].clientX;psty=e.touches[0].clientY;
+  },{passive:true});
+  sheet.addEventListener('touchend',e=>{
+    if(pstx===null)return;
+    const dx=e.changedTouches[0].clientX-pstx,dy=e.changedTouches[0].clientY-psty;
+    pstx=null;psty=null;
+    if(Math.abs(dy)>Math.abs(dx)||Math.abs(dx)<50)return;
+    const nextIdx=(popupDeptIdx+(dx<0?1:-1)+N)%N;
+    popupDeptIdx=nextIdx;
+    cvGo(nextIdx);
+    cvOpenPopup(nextIdx);
+  });
+
+  // wrap cvOpenPopup to track current popup dept
+  const _origOpen=cvOpenPopup;
+  cvOpenPopup=function(idx){ popupDeptIdx=idx; _origOpen(idx); };
 
   document.getElementById('cv-arr-l').onclick=()=>cvGo((cur+1)%N);
   document.getElementById('cv-arr-r').onclick=()=>cvGo((cur-1+N)%N);
