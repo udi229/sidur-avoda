@@ -2499,18 +2499,22 @@ async function initApp(user){
     },120);
   }
 
+  window._appStartTime=Date.now();
+
   if(!window._rtCh){
   window._rtCh = sb.channel('rt', {config:{broadcast:{self:false}}})
     .on('postgres_changes',{event:'*',schema:'public',table:'schedule_cells'},()=>{
       rtReload(()=>{
-        if(!isMgr&&currentEmp) showNotification('עדכון בסידור','הסידור שלך עודכן');
+        // התעלם מהודעות ב-5 שניות הראשונות (backfill events)
+        if(!isMgr&&currentEmp&&Date.now()-window._appStartTime>5000)
+          showNotification('עדכון בסידור','הסידור שלך עודכן');
       });
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'schedules'},(payload)=>{
       const wasApproved=payload?.new?.status==='approved'&&payload?.old?.status!=='approved';
       rtReload(()=>{
         updateWeekUI();
-        if(wasApproved&&!isMgr&&currentEmp){
+        if(wasApproved&&!isMgr&&currentEmp&&Date.now()-window._appStartTime>5000){
           showNotification('הסידור אושר! ✅','המנהל אישר את הסידור שלך — ניתן לצפות בו');
         }
       });
