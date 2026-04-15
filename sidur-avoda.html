@@ -2200,12 +2200,17 @@ async function _handleAuth(){
 
     // נסה קודם להתחבר — אם המייל קיים ייכנס
     const trySignIn = await sb.auth.signInWithPassword({email,password:pass});
+    console.log('[auth] signIn result:', trySignIn.error?.message||'ok');
 
     if(!trySignIn.error && trySignIn.data?.user){
+      // מייל קיים וסיסמה נכונה
       authData = trySignIn.data;
-    } else {
+    } else if(trySignIn.error?.message?.includes('Invalid login credentials')||
+              trySignIn.error?.message?.includes('invalid_grant')||
+              trySignIn.error?.status===400){
       // מייל לא קיים — נירשם
       const signUpRes = await sb.auth.signUp({email,password:pass});
+      console.log('[auth] signUp result:', signUpRes.error?.message||'ok', 'user:', !!signUpRes.data?.user);
       if(signUpRes.error){
         const msg=signUpRes.error.message||'';
         if(msg.includes('already registered')||msg.includes('already been registered')){
@@ -2217,25 +2222,33 @@ async function _handleAuth(){
         }
         return;
       }
-
-      // Supabase מחזיר session ישירות ב-signUp (כשאין email confirmation)
       if(signUpRes.data?.session && signUpRes.data?.user){
         authData = signUpRes.data;
       } else {
-        // יש email confirmation — נסה signIn אחד נוסף
         const signInAfter = await sb.auth.signInWithPassword({email,password:pass});
         if(!signInAfter.error && signInAfter.data?.user){
           authData = signInAfter.data;
+        } else if(signUpRes.data?.user){
+          authData = signUpRes.data;
         } else {
-          // נשתמש ב-user מה-signUp גם בלי session (refresh יפתור)
-          if(signUpRes.data?.user){
-            authData = signUpRes.data;
-          } else {
-            setMsg('נרשמת! כעת היכנס עם הפרטים שלך.');
-            return;
-          }
+          setMsg('נרשמת! כעת היכנס עם הפרטים שלך.');
+          return;
         }
       }
+    } else if(trySignIn.error?.message?.includes('Email not confirmed')){
+      // מייל קיים אבל לא אומת — נכנס בכל זאת
+      setMsg('כניסה ללא אימות מייל...');
+      const signUpRes = await sb.auth.signUp({email,password:pass});
+      if(signUpRes.data?.session){
+        authData = signUpRes.data;
+      } else {
+        setMsg('מייל זה כבר רשום — לחץ "כניסה"');
+        return;
+      }
+    } else {
+      // שגיאה אחרת
+      setMsg('שגיאה: '+(trySignIn.error?.message||'נסה שוב'));
+      return;
     }
 
     if(!authData?.user){
