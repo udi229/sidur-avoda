@@ -4990,7 +4990,10 @@ function showView(v,e){
   activeView=v;openDropdown=null;
   ['schedule','stats','settings','vacation','loz'].forEach(x=>{const el=document.getElementById('view-'+x);if(el)el.style.display=x===v?(x==='vacation'?'flex':'block'):'none';});
   if(v==='vacation') setTimeout(initVacationApp,100);
-  if(v==='loz') setTimeout(()=>{if(typeof lozInit==='function')lozInit();},100);
+  if(v==='loz') setTimeout(()=>{
+    window._lozForcePreview=true; // תמיד מתחיל בתצוגה מקדימה
+    if(typeof lozInit==='function')lozInit();
+  },100);
   document.getElementById('wk-nav').style.display=(v==='settings'||v==='vacation'||v==='loz')?'none':'block';
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   if(e) e.target.classList.add('active');
@@ -7346,12 +7349,9 @@ function publishDay(){
 async function closePreview(){
   if(_lozHourglassTimer){ clearInterval(_lozHourglassTimer); _lozHourglassTimer=null; }
   document.getElementById('preview-overlay').classList.remove('open');
-  if(lozCanEdit()){
-    window._lozForcePreview=true; // חזור לתצוגה מקדימה
-    await lozRenderRole();
-  } else {
-    goBackToHub();
-  }
+  const btnWrap=document.getElementById('loz-preview-btns');
+  if(btnWrap) btnWrap.style.display='none';
+  goBackToHub();
 }
 
 
@@ -7518,6 +7518,9 @@ async function lozRenderRole(){
     const ep=document.getElementById('loz-editors-panel');
     if(ep) ep.style.display=isMgr?'':'none';
     lozRenderEditorsList();
+    // הסתר כפתורי תצוגה מקדימה
+    const btnWrap=document.getElementById('loz-preview-btns');
+    if(btnWrap) btnWrap.style.display='none';
   } else if(canEdit && window._lozForcePreview){
     // Manager in PREVIEW mode (default)
     main.style.display='';
@@ -7527,24 +7530,46 @@ async function lozRenderRole(){
       if(pubBtn) pubBtn.style.display='';
       const nvw=document.getElementById('loz-viewer-nav-wrap');
       if(nvw) nvw.style.display='flex';
-      // Add edit button for manager in preview
-      let editBtn=document.getElementById('loz-edit-mode-btn');
-      if(!editBtn){
-        editBtn=document.createElement('button');
+      // כפתורי עריכה + פרסום למנהל בתצוגה מקדימה
+      let btnWrap=document.getElementById('loz-preview-btns');
+      if(!btnWrap){
+        btnWrap=document.createElement('div');
+        btnWrap.id='loz-preview-btns';
+        btnWrap.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;display:flex;gap:10px;align-items:center';
+
+        // כפתור פרסם
+        const pubBtn2=document.createElement('button');
+        pubBtn2.id='loz-preview-pub-btn2';
+        pubBtn2.style.cssText='border-radius:24px;padding:10px 22px;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:1px;white-space:nowrap;border:none;transition:all 0.2s';
+        const updatePub2=()=>{
+          const isPub=lozIsPublished();
+          pubBtn2.textContent=isPub?'🛑 בטל פרסום':'🚀 פרסם';
+          pubBtn2.style.background=isPub?'#dc2626':'#16a34a';
+          pubBtn2.style.color='white';
+          pubBtn2.style.boxShadow=isPub?'0 0 14px #dc262666':'0 0 14px #16a34a66';
+        };
+        pubBtn2.onclick=async()=>{ await lozTogglePublish(); updatePub2(); };
+        window._lozUpdatePub2=updatePub2;
+
+        // כפתור עריכה
+        const editBtn=document.createElement('button');
         editBtn.id='loz-edit-mode-btn';
-        editBtn.textContent='✏️ מצב עריכה';
-        editBtn.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;background:#0f172a;color:#00d4ff;border:2px solid #00d4ff;border-radius:24px;padding:10px 28px;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;box-shadow:0 0 18px #00d4ff44;letter-spacing:1px';
+        editBtn.textContent='✏️ עריכה';
+        editBtn.style.cssText='background:#0f172a;color:#00d4ff;border:2px solid #00d4ff;border-radius:24px;padding:10px 22px;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;box-shadow:0 0 18px #00d4ff44;letter-spacing:1px;white-space:nowrap';
         editBtn.onclick=()=>{
           window._lozForcePreview=false;
-          // סגור את ה-overlay
           const ov=document.getElementById('preview-overlay');
           if(ov) ov.classList.remove('open');
-          editBtn.style.display='none';
+          btnWrap.style.display='none';
           lozRenderRole();
         };
-        document.getElementById('view-loz').appendChild(editBtn);
+
+        btnWrap.appendChild(pubBtn2);
+        btnWrap.appendChild(editBtn);
+        document.getElementById('view-loz').appendChild(btnWrap);
       }
-      editBtn.style.display='';
+      btnWrap.style.display='flex';
+      if(window._lozUpdatePub2) window._lozUpdatePub2();
     },80);
   } else if(pub){
     // Viewer + published: show preview with day navigation
@@ -7555,9 +7580,9 @@ async function lozRenderRole(){
       if(pubBtn) pubBtn.style.display='none';
       const nvw=document.getElementById('loz-viewer-nav-wrap');
       if(nvw) nvw.style.display='flex';
-      // Hide edit button if exists
-      const editBtn=document.getElementById('loz-edit-mode-btn');
-      if(editBtn) editBtn.style.display='none';
+      // הסתר כפתורי מנהל
+      const btnWrap=document.getElementById('loz-preview-btns');
+      if(btnWrap) btnWrap.style.display='none';
     },80);
   } else {
     // Not published — show hourglass animation
