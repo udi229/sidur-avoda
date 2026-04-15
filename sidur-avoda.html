@@ -5232,7 +5232,7 @@ async function loadUsers() {
   try {
     const {data:emps} = await sb.from('employees').select('*');
     const {data:depts} = await sb.from('departments').select('*');
-    DB.users = (emps||[]).map(e=>{
+    DB.users = (emps||[]).filter(e=>e.full_name&&!e.full_name.match(/^z{3,}$/i)).map(e=>{
       const dept=(depts||[]).find(d=>d.id===e.department_id);
       return {id:e.email, name:e.full_name, email:e.email, dept:dept?.name||'כללי', createdAt:e.created_at};
     });
@@ -5798,38 +5798,68 @@ function renderAdminTab(){
 }
 function renderReqTable(){
   const tb=document.getElementById('admin-requests-tbody');
-  // Sort: pending first, then by creation date (newest first)
   const sorted=[...DB.requests].sort((a,b)=>{
-    // Pending requests go first
     if(a.status==='pending' && b.status!=='pending') return -1;
     if(a.status!=='pending' && b.status==='pending') return 1;
-    // Within same status, sort by date (newest first)
     return new Date(b.createdAt)-new Date(a.createdAt);
   });
   if(!sorted.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:26px;color:var(--text-light)">אין בקשות עדיין</td></tr>';return;}
   const sm={pending:['⏳','ממתין','pending'],approved:['✅','אושרה','approved'],rejected:['❌','נדחתה','rejected']};
   const rm={recommended:['👍','מומלץ','recommended'],not_recommended:['👎','לא מומלץ','not-recommended']};
-  
-  // Function to format date and time
-  const formatDateTime = (dateStr) => {
-    const d = new Date(dateStr);
-    const date = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
-    const time = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-    return `${date}<br><span style="color:var(--text-light);font-size:11px">${time}</span>`;
-  };
-  
+  const isMobile=window.innerWidth<640;
+
+  if(isMobile){
+    // Mobile — כרטיסיות
+    const container=tb.closest('table')?.parentElement||tb.closest('.requests-table')||tb.parentElement;
+    const cardsHtml=sorted.map(r=>{
+      const[si,sl,sc]=sm[r.status]||sm.pending;
+      const rec=r.recommendation?rm[r.recommendation]:null;
+      const recBadge=rec?`<span class="status-badge ${rec[2]}">${rec[0]} ${rec[1]}</span>`:'';
+      const d=new Date(r.createdAt);
+      const dateStr=`${d.getDate()}/${d.getMonth()+1} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      return`<div style="background:white;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);border:1px solid ${r.status==='pending'?'#fbbf24':r.status==='approved'?'#bbf7d0':'#fecaca'}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div>
+            <div style="font-size:16px;font-weight:800;color:#0f172a">${r.name}</div>
+            <div style="font-size:12px;color:#64748b">${r.dept} · ${dateStr}</div>
+          </div>
+          <span class="status-badge ${sc}" style="flex-shrink:0">${si} ${sl}</span>
+        </div>
+        <div style="font-size:13px;color:#475569;margin-bottom:6px">📅 ${fmt(r.start)} — ${fmt(r.end)}</div>
+        <div style="font-size:13px;color:#475569;margin-bottom:8px;background:#f8fafc;border-radius:8px;padding:6px 10px">${r.reason}</div>
+        ${recBadge?`<div style="margin-bottom:8px">${recBadge}${r.recommendationReason?` <span style="font-size:12px;color:#64748b">— ${r.recommendationReason}</span>`:''}</div>`:''}
+        <div style="display:flex;gap:8px">
+          <button class="action-btn btn-approve" style="flex:1" onclick="adminAction('${r.id}','approved')">✅ אשר</button>
+          <button class="action-btn btn-reject" style="flex:1" onclick="adminAction('${r.id}','rejected')">❌ דחה</button>
+          <button class="action-btn" style="background:#fee;color:#c00;border:1px solid #fcc;flex-shrink:0" onclick="adminDeleteRequest('${r.id}')">🗑️</button>
+        </div>
+      </div>`;
+    }).join('');
+    // Replace table with cards div
+    const tbl=tb.closest('table');
+    if(tbl){
+      let cardsDiv=tbl.parentElement.querySelector('.mobile-req-cards');
+      if(!cardsDiv){cardsDiv=document.createElement('div');cardsDiv.className='mobile-req-cards';tbl.parentElement.insertBefore(cardsDiv,tbl);}
+      cardsDiv.innerHTML=cardsHtml;
+      tbl.style.display='none';
+    }
+    return;
+  }
+
+  // Desktop — table
+  const tbl=tb.closest('table');
+  if(tbl) tbl.style.display='';
+  const cardsDiv=tb.closest('.requests-table')?.querySelector('.mobile-req-cards')||document.querySelector('.mobile-req-cards');
+  if(cardsDiv) cardsDiv.innerHTML='';
+
+  const formatDateTime=(dateStr)=>{const d=new Date(dateStr);return`${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}<br><span style="color:var(--text-light);font-size:11px">${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}</span>`;};
   tb.innerHTML=sorted.map(r=>{
     const[si,sl,sc]=sm[r.status]||sm.pending;
     const rec=r.recommendation?rm[r.recommendation]:null;
-    const recWithReason = rec ? `<span class="status-badge ${rec[2]}">${rec[0]} ${rec[1]}${r.recommendationReason?` <span style="cursor:pointer;" onclick="alert('סיבת ההמלצה:\\n${r.recommendationReason.replace(/'/g, "\\'")}')">💬</span>`:''}</span>` : '<span style="color:var(--text-light);font-size:12px">—</span>';
-    
-    // Always show all buttons - admin can change status anytime
-    const acts = `
-      <button class="action-btn btn-approve" onclick="adminAction('${r.id}','approved')">✅</button>
+    const recWithReason=rec?`<span class="status-badge ${rec[2]}">${rec[0]} ${rec[1]}${r.recommendationReason?` <span style="cursor:pointer;" onclick="alert('סיבת ההמלצה:\\n${r.recommendationReason.replace(/'/g,"\\'")}')">💬</span>`:''}</span>`:'<span style="color:var(--text-light);font-size:12px">—</span>';
+    const acts=`<button class="action-btn btn-approve" onclick="adminAction('${r.id}','approved')">✅</button>
       <button class="action-btn btn-reject" onclick="adminAction('${r.id}','rejected')">❌</button>
-      <button class="action-btn" style="background:#fee;color:#c00;border:1px solid #fcc" onclick="adminDeleteRequest('${r.id}')">🗑️</button>
-    `;
-    
+      <button class="action-btn" style="background:#fee;color:#c00;border:1px solid #fcc" onclick="adminDeleteRequest('${r.id}')">🗑️</button>`;
     return`<tr><td><strong>${r.name}</strong></td><td>${r.dept}</td><td style="font-size:13px">${fmt(r.start)}<br><span style="color:var(--text-light)">עד</span> ${fmt(r.end)}</td><td style="font-size:13px;max-width:250px;word-wrap:break-word;white-space:normal;">${r.reason}</td><td>${recWithReason}</td><td><span class="status-badge ${sc}">${si} ${sl}</span></td><td style="font-size:12px">${formatDateTime(r.createdAt)}</td><td>${acts}</td></tr>`;
   }).join('');
 }
@@ -7317,9 +7347,9 @@ async function closePreview(){
   if(_lozHourglassTimer){ clearInterval(_lozHourglassTimer); _lozHourglassTimer=null; }
   document.getElementById('preview-overlay').classList.remove('open');
   if(lozCanEdit()){
+    window._lozForcePreview=true; // חזור לתצוגה מקדימה
     await lozRenderRole();
   } else {
-    // Regular viewer — go back to hub
     goBackToHub();
   }
 }
@@ -7338,13 +7368,41 @@ function lozCanEdit(){
 async function lozInit(){
   if(lozInitialized){ await lozRenderRole(); return; }
   lozInitialized = true;
-  // Always start on today
   offset = 0;
+  // מנהל/עורך מתחיל בתצוגה מקדימה כברירת מחדל
+  if(typeof window._lozForcePreview==='undefined') window._lozForcePreview=true;
   try{ const {data}=await sb.from('loz_editors').select('user_email'); lozEditors=(data||[]).map(r=>r.user_email); }catch(e){}
   try{ const {data}=await sb.from('loz_default').select('data').single(); if(data?.data?.length) defSections=data.data; }catch(e){}
   await lozLoadDay(dKey(getD(0)));
   lozInjectSaveButtons();
   await lozRenderRole();
+  // סווייפ בין ימים בתצוגת לוז
+  lozAddDaySwipe();
+}
+
+function lozAddDaySwipe(){
+  if(window._lozSwipeInit) return;
+  window._lozSwipeInit=true;
+  const lozView=document.getElementById('view-loz');
+  if(!lozView) return;
+  let stx=null,sty=null;
+  lozView.addEventListener('touchstart',e=>{
+    if(e.target.closest('button,input,textarea,select,[onclick]')) return;
+    stx=e.touches[0].clientX; sty=e.touches[0].clientY;
+  },{passive:true});
+  lozView.addEventListener('touchend',async e=>{
+    if(stx===null) return;
+    const dx=e.changedTouches[0].clientX-stx;
+    const dy=e.changedTouches[0].clientY-sty;
+    stx=null; sty=null;
+    if(Math.abs(dy)>Math.abs(dx)||Math.abs(dx)<45) return;
+    // שמאל=יום הבא, ימין=יום קודם (RTL)
+    const dir=dx>0?-1:1;
+    offset+=dir;
+    const key=dKey(getD(offset));
+    await lozLoadDay(key);
+    await lozRenderRole();
+  });
 }
 
 async function lozLoadDay(key){
@@ -7446,34 +7504,53 @@ async function lozRenderRole(){
   const main=document.getElementById('loz-main');
   if(!main) return;
 
-  if(canEdit){
-    // Editor: show full editor
+  if(canEdit && !window._lozForcePreview){
+    // Editor/Manager in EDIT mode
     main.style.display='';
     renderDaily();
     lozUpdatePubBtn();
-    // Close preview only if NOT currently open (don't close if user opened it)
     const ov=document.getElementById('preview-overlay');
     if(ov && !ov.classList.contains('open')) ov.classList.remove('open');
-    // Show publish btn for editors
     const pvPub=document.getElementById('pv-publish-btn');
     if(pvPub) pvPub.style.display='';
-    // Hide viewer nav wrap for editors (they use their own nav)
     const nvw=document.getElementById('loz-viewer-nav-wrap');
     if(nvw) nvw.style.display='none';
     const ep=document.getElementById('loz-editors-panel');
     if(ep) ep.style.display=isMgr?'':'none';
     lozRenderEditorsList();
+  } else if(canEdit && window._lozForcePreview){
+    // Manager in PREVIEW mode (default)
+    main.style.display='';
+    printDay();
+    setTimeout(()=>{
+      const pubBtn=document.getElementById('pv-publish-btn');
+      if(pubBtn) pubBtn.style.display='';
+      const nvw=document.getElementById('loz-viewer-nav-wrap');
+      if(nvw) nvw.style.display='flex';
+      // Add edit button for manager in preview
+      let editBtn=document.getElementById('loz-edit-mode-btn');
+      if(!editBtn){
+        editBtn=document.createElement('button');
+        editBtn.id='loz-edit-mode-btn';
+        editBtn.textContent='✏️ מצב עריכה';
+        editBtn.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#0f172a;color:#00d4ff;border:2px solid #00d4ff;border-radius:24px;padding:10px 28px;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;box-shadow:0 0 18px #00d4ff44;letter-spacing:1px';
+        editBtn.onclick=()=>{ window._lozForcePreview=false; lozRenderRole(); };
+        document.getElementById('view-loz').appendChild(editBtn);
+      }
+      editBtn.style.display='';
+    },80);
   } else if(pub){
     // Viewer + published: show preview with day navigation
     main.style.display='';
     printDay();
-    // Show nav, hide publish for viewers
     setTimeout(()=>{
       const pubBtn=document.getElementById('pv-publish-btn');
       if(pubBtn) pubBtn.style.display='none';
       const nvw=document.getElementById('loz-viewer-nav-wrap');
       if(nvw) nvw.style.display='flex';
-
+      // Hide edit button if exists
+      const editBtn=document.getElementById('loz-edit-mode-btn');
+      if(editBtn) editBtn.style.display='none';
     },80);
   } else {
     // Not published — show hourglass animation
@@ -7652,74 +7729,8 @@ function lozInjectSaveButtons(){
 }
 // ===== END LOZ APP =====
 
-// ── MOBILE SWIPE BETWEEN WEEKS ──
-(function(){
-  let tx=null, ty=null, dragging=false;
-  const THRESH=50;
-  const el=()=>document.getElementById('view-schedule');
-
-  function onStart(e){
-    if(e.target.closest('button,select,input,textarea,.cell-inner,[onclick]')) return;
-    tx=e.touches[0].clientX;
-    ty=e.touches[0].clientY;
-    dragging=false;
-    const v=el(); if(v){ v.style.transition='none'; }
-  }
-
-  function onMove(e){
-    if(tx===null) return;
-    const dx=e.touches[0].clientX-tx;
-    const dy=e.touches[0].clientY-ty;
-    // אם גוללים אנכית — ביטול
-    if(!dragging && Math.abs(dy)>Math.abs(dx) && Math.abs(dy)>8){ tx=null; return; }
-    if(Math.abs(dx)>8) dragging=true;
-    if(!dragging) return;
-    e.preventDefault();
-    const v=el(); if(!v) return;
-    // גרור את הדף עם האצבע — תחושה טבעית
-    v.style.transform=`translateX(${dx*0.4}px)`;
-    v.style.opacity=`${1-Math.min(Math.abs(dx)/280,0.4)}`;
-  }
-
-  function onEnd(e){
-    if(tx===null) return;
-    const ex=e.changedTouches[0].clientX;
-    const dx=ex-tx; tx=null; ty=null;
-    const v=el(); if(!v){ dragging=false; return; }
-    // איפוס אם לא גררנו מספיק
-    if(!dragging||Math.abs(dx)<THRESH){
-      v.style.transition='transform 0.15s ease, opacity 0.15s ease';
-      v.style.transform=''; v.style.opacity='';
-      dragging=false; return;
-    }
-    dragging=false;
-    if(activeView!=='schedule'&&activeView!=='stats'){
-      v.style.transition='transform 0.15s ease, opacity 0.15s ease';
-      v.style.transform=''; v.style.opacity=''; return;
-    }
-    // ימינה = שבוע קודם (d=-1), שמאלה = שבוע הבא (d=1)
-    const d=dx>0?1:-1;
-    // snap החוצה
-    const snapX=dx>0?'120px':'-120px';
-    v.style.transition='transform 0.12s ease-out, opacity 0.12s ease-out';
-    v.style.transform=`translateX(${snapX})`;
-    v.style.opacity='0';
-    setTimeout(()=>{
-      v.style.transition='none';
-      v.style.transform= dx>0?'translateX(-60px)':'translateX(60px)';
-      v.style.opacity='0';
-      changeWeekNoAnim(d);
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        v.style.transition='transform 0.15s ease-out, opacity 0.15s ease-out';
-        v.style.transform=''; v.style.opacity='';
-      }));
-    },120);
-  }
-
-  document.addEventListener('touchstart',onStart,{passive:true});
-  document.addEventListener('touchmove',onMove,{passive:false});
-  document.addEventListener('touchend',onEnd);
-})();
+// ── MOBILE SWIPE BETWEEN WEEKS — מבוטל ──
+// (הסווייפ בין שבועות הוסר לפי בקשת המשתמש)
 
 // changeWeek ללא אנימציה CSS (האנימציה מנוהלת ע"י ה-swipe handler)
 function changeWeekNoAnim(d){
