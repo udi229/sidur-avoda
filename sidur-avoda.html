@@ -1958,6 +1958,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
 
 let currentUser=null, currentEmp=null, isMgr=false;
 let weekOffset=0, departments=[], employees=[], freelancers=[], schedules={}, cellData={};
+window._lastHash=''; window._pollInterval=null;
 window.departments=[]; window.employees=[];
 let activeView='schedule', activeDeptId=null;
 let openDropdown=null;
@@ -2327,6 +2328,8 @@ function enterMgr(label='מנהל',type='primary'){
     const myShiftsBtn=document.getElementById('my-shifts-btn');
     if(myShiftsBtn) myShiftsBtn.style.display='none';
     updateWeekUI();renderDeptTabs();renderSchedule();renderOnlineList();
+    // start polling for realtime updates
+    if(typeof window.startPolling==='function') window.startPolling();
   });
   // presence for manager — use different key for Udi vs Efrat
   const presenceKey=window._mgrType==='secondary'?'efratn@kan.org.il':'manager@local';
@@ -2538,13 +2541,11 @@ async function initApp(user){
     });
 
   // Polling — fires every 2s, checks for real changes before reloading
-  let _pollInterval=null;
-  let _lastHash='';
   let _pollCount=0;
-  function startPolling(){
-    if(_pollInterval) return;
+  window.startPolling=function startPolling(){
+    if(window._pollInterval) return;
     console.log('[Polling] started');
-    _pollInterval=setInterval(async()=>{
+    window._pollInterval=setInterval(async()=>{
       _pollCount++;
       if(_pollCount%10===0) console.log('[Polling] tick #'+_pollCount);
       try{
@@ -2561,8 +2562,8 @@ async function initApp(user){
         const {data:cvp}=await sb.from('cv_weekly_publish').select('cv_id,published').eq('week_start',ws);
         const cvHash=(cvp||[]).map(p=>p.cv_id+':'+p.published).sort().join('|');
         const hash=(sc||[]).map(s=>s.id+'@'+s.updated_at+'@'+s.team_submitted+'@'+s.status).sort().join('|')+'||'+cellsHash+'||'+cvHash;
-        if(hash!==_lastHash){
-          if(_lastHash!==''){
+        if(hash!==window._lastHash){
+          if(window._lastHash!==''){
             console.log('[Polling] change detected — reloading');
             loadWeekData().then(()=>{
               renderSchedule();
@@ -2572,7 +2573,7 @@ async function initApp(user){
               renderDeptTabs();
             });
           }
-          _lastHash=hash;
+          window._lastHash=hash;
         }
       }catch(e){}
     },2000);
