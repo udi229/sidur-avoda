@@ -2540,46 +2540,8 @@ async function initApp(user){
       }
     });
 
-  // Polling — fires every 2s, checks for real changes before reloading
-  let _pollCount=0;
-  window.startPolling=function startPolling(){
-    if(window._pollInterval) return;
-    console.log('[Polling] started');
-    window._pollInterval=setInterval(async()=>{
-      _pollCount++;
-      if(_pollCount%10===0) console.log('[Polling] tick #'+_pollCount);
-      try{
-        const ws=weekStartStr();
-        if(!ws) return;
-        const {data:sc,error:scErr}=await sb.from('schedules').select('id,updated_at,team_submitted,status').eq('week_start',ws);
-        if(scErr||!sc) return;
-        const schedIds=sc.map(s=>s.id);
-        let cellsHash='';
-        if(schedIds.length){
-          const {data:cells}=await sb.from('schedule_cells').select('id,content,schedule_id').in('schedule_id',schedIds);
-          cellsHash=(cells||[]).map(c=>c.schedule_id+'_'+c.id+':'+c.content).sort().join('|');
-        }
-        const {data:cvp}=await sb.from('cv_weekly_publish').select('cv_id,published').eq('week_start',ws);
-        const cvHash=(cvp||[]).map(p=>p.cv_id+':'+p.published).sort().join('|');
-        const hash=(sc||[]).map(s=>s.id+'@'+s.updated_at+'@'+s.team_submitted+'@'+s.status).sort().join('|')+'||'+cellsHash+'||'+cvHash;
-        if(hash!==window._lastHash){
-          if(window._lastHash!==''){
-            console.log('[Polling] change detected — reloading');
-            loadWeekData().then(()=>{
-              renderSchedule();
-              window._cvWeeklyPub={};
-              (cvp||[]).forEach(p=>{ window._cvWeeklyPub[p.cv_id]=p.published; });
-              combinedViews.forEach(cv=>{ cv.published=window._cvWeeklyPub[cv.id]||false; });
-              renderDeptTabs();
-            });
-          }
-          window._lastHash=hash;
-        }
-      }catch(e){}
-    },2000);
-  }
   // Always poll as safety net
-  startPolling();
+  window.startPolling();
 
   // presence channel
   const presenceCh=sb.channel('online-users',{config:{presence:{key:currentUser.email}}});
@@ -2658,6 +2620,45 @@ async function loadAll(){
 }
 
 // ── WEEK ──
+// ── POLLING (global, works for both managers and employees) ──
+let _pollCount=0;
+window.startPolling=function(){
+  if(window._pollInterval) return;
+  console.log('[Polling] started');
+  window._pollInterval=setInterval(async()=>{
+    _pollCount++;
+    if(_pollCount%15===0) console.log('[Polling] tick #'+_pollCount);
+    try{
+      const ws=weekStartStr();
+      if(!ws) return;
+      const {data:sc,error:scErr}=await sb.from('schedules').select('id,updated_at,team_submitted,status').eq('week_start',ws);
+      if(scErr||!sc) return;
+      const schedIds=sc.map(s=>s.id);
+      let cellsHash='';
+      if(schedIds.length){
+        const {data:cells}=await sb.from('schedule_cells').select('id,content,schedule_id').in('schedule_id',schedIds);
+        cellsHash=(cells||[]).map(c=>c.schedule_id+'_'+c.id+':'+c.content).sort().join('|');
+      }
+      const {data:cvp}=await sb.from('cv_weekly_publish').select('cv_id,published').eq('week_start',ws);
+      const cvHash=(cvp||[]).map(p=>p.cv_id+':'+p.published).sort().join('|');
+      const hash=(sc||[]).map(s=>s.id+'@'+s.updated_at+'@'+s.team_submitted+'@'+s.status).sort().join('|')+'||'+cellsHash+'||'+cvHash;
+      if(hash!==window._lastHash){
+        if(window._lastHash!==''){
+          console.log('[Polling] change detected — reloading');
+          loadWeekData().then(()=>{
+            renderSchedule();
+            window._cvWeeklyPub={};
+            (cvp||[]).forEach(p=>{ window._cvWeeklyPub[p.cv_id]=p.published; });
+            combinedViews.forEach(cv=>{ cv.published=window._cvWeeklyPub[cv.id]||false; });
+            renderDeptTabs();
+          });
+        }
+        window._lastHash=hash;
+      }
+    }catch(e){}
+  },2000);
+};
+
 function weekStart(o=weekOffset){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay()+o*7);return d;}
 function weekStartStr(o=weekOffset){return weekStart(o).toISOString().split('T')[0];}
 function weekDates(o=weekOffset){const s=weekStart(o);return DAYS_DISPLAY.map((_,i)=>{const d=new Date(s);d.setDate(s.getDate()+i);return `${d.getDate()}.${d.getMonth()+1}`;});}
