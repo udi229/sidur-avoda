@@ -7385,23 +7385,61 @@ function lozAddDaySwipe(){
   window._lozSwipeInit=true;
   const lozView=document.getElementById('view-loz');
   if(!lozView) return;
-  let stx=null,sty=null;
+  let stx=null,sty=null,animating=false;
+
   lozView.addEventListener('touchstart',e=>{
+    if(animating) return;
     if(e.target.closest('button,input,textarea,select,[onclick]')) return;
     stx=e.touches[0].clientX; sty=e.touches[0].clientY;
   },{passive:true});
+
   lozView.addEventListener('touchend',async e=>{
-    if(stx===null) return;
+    if(stx===null||animating) return;
     const dx=e.changedTouches[0].clientX-stx;
     const dy=e.changedTouches[0].clientY-sty;
     stx=null; sty=null;
     if(Math.abs(dy)>Math.abs(dx)||Math.abs(dx)<45) return;
-    // RTL: שמאל=יום הבא (+1), ימין=יום קודם (-1)
-    const dir=dx<0?1:-1;
+
+    // שמאל (-dx) = חזרה (-1), ימין (+dx) = קדימה (+1)
+    const dir=dx<0?-1:1;
+    animating=true;
+
+    // האנימציה — הדף יוצא לכיוון ההפוך מהסווייפ
+    const pvOverlay=document.getElementById('preview-overlay');
+    const target=pvOverlay&&pvOverlay.classList.contains('open')
+      ? document.getElementById('pv-content')
+      : document.getElementById('loz-main');
+
+    if(target){
+      // slide out
+      const exitX=dir>0?'-60px':'60px';
+      target.style.transition='transform 0.2s ease-out, opacity 0.2s ease-out';
+      target.style.transform=`translateX(${exitX})`;
+      target.style.opacity='0';
+    }
+
+    await new Promise(r=>setTimeout(r,200));
+
     offset+=dir;
     const key=dKey(getD(offset));
     await lozLoadDay(key);
     await lozRenderRole();
+
+    // slide in מהכיוון ההפוך
+    if(target){
+      const enterX=dir>0?'60px':'-60px';
+      target.style.transition='none';
+      target.style.transform=`translateX(${enterX})`;
+      target.style.opacity='0';
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        target.style.transition='transform 0.22s ease-out, opacity 0.22s ease-out';
+        target.style.transform='';
+        target.style.opacity='';
+        setTimeout(()=>{ target.style.transition=''; animating=false; },230);
+      }));
+    } else {
+      animating=false;
+    }
   });
 }
 
