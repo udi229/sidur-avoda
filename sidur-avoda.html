@@ -2200,55 +2200,51 @@ async function _handleAuth(){
 
     // נסה קודם להתחבר — אם המייל קיים ייכנס
     const trySignIn = await sb.auth.signInWithPassword({email,password:pass});
-    console.log('[auth] signIn result:', trySignIn.error?.message||'ok');
+    console.log('[auth] signIn result:', trySignIn.error?.message||'ok', 'status:', trySignIn.error?.status);
 
     if(!trySignIn.error && trySignIn.data?.user){
       // מייל קיים וסיסמה נכונה
       authData = trySignIn.data;
-    } else if(trySignIn.error?.message?.includes('Invalid login credentials')||
-              trySignIn.error?.message?.includes('invalid_grant')||
-              trySignIn.error?.status===400){
-      // מייל לא קיים — נירשם
-      const signUpRes = await sb.auth.signUp({email,password:pass});
-      console.log('[auth] signUp result:', signUpRes.error?.message||'ok', 'user:', !!signUpRes.data?.user);
-      if(signUpRes.error){
-        const msg=signUpRes.error.message||'';
-        if(msg.includes('already registered')||msg.includes('already been registered')){
-          setMsg('מייל זה כבר רשום — לחץ "כניסה"');
-        } else if(msg.includes('invalid')||msg.includes('valid')){
-          setMsg('כתובת מייל לא תקינה');
-        } else {
-          setMsg('שגיאה: '+msg);
-        }
-        return;
-      }
-      if(signUpRes.data?.session && signUpRes.data?.user){
-        authData = signUpRes.data;
-      } else {
-        const signInAfter = await sb.auth.signInWithPassword({email,password:pass});
-        if(!signInAfter.error && signInAfter.data?.user){
-          authData = signInAfter.data;
-        } else if(signUpRes.data?.user){
-          authData = signUpRes.data;
-        } else {
-          setMsg('נרשמת! כעת היכנס עם הפרטים שלך.');
+    } else {
+      const errMsg=trySignIn.error?.message||'';
+      const shouldSignUp=errMsg.includes('Invalid login credentials')||
+                         errMsg.includes('invalid_grant')||
+                         errMsg.includes('Email not confirmed')||
+                         trySignIn.error?.status===400||
+                         !trySignIn.data?.user;
+
+      if(shouldSignUp){
+        // מייל לא קיים — נירשם
+        const signUpRes = await sb.auth.signUp({email,password:pass});
+        console.log('[auth] signUp result:', signUpRes.error?.message||'ok', 'user:', !!signUpRes.data?.user, 'session:', !!signUpRes.data?.session);
+        if(signUpRes.error){
+          const msg=signUpRes.error.message||'';
+          if(msg.includes('already registered')||msg.includes('already been registered')){
+            setMsg('מייל זה כבר רשום — לחץ "כניסה"');
+          } else if(msg.includes('invalid')||msg.includes('email')){
+            setMsg('כתובת מייל לא תקינה');
+          } else {
+            setMsg('שגיאה: '+msg);
+          }
           return;
         }
-      }
-    } else if(trySignIn.error?.message?.includes('Email not confirmed')){
-      // מייל קיים אבל לא אומת — נכנס בכל זאת
-      setMsg('כניסה ללא אימות מייל...');
-      const signUpRes = await sb.auth.signUp({email,password:pass});
-      if(signUpRes.data?.session){
-        authData = signUpRes.data;
+        if(signUpRes.data?.session && signUpRes.data?.user){
+          authData = signUpRes.data;
+        } else {
+          const signInAfter = await sb.auth.signInWithPassword({email,password:pass});
+          if(!signInAfter.error && signInAfter.data?.user){
+            authData = signInAfter.data;
+          } else if(signUpRes.data?.user){
+            authData = signUpRes.data;
+          } else {
+            setMsg('נרשמת! כעת היכנס עם הפרטים שלך.');
+            return;
+          }
+        }
       } else {
-        setMsg('מייל זה כבר רשום — לחץ "כניסה"');
+        setMsg('שגיאה: '+errMsg);
         return;
       }
-    } else {
-      // שגיאה אחרת
-      setMsg('שגיאה: '+(trySignIn.error?.message||'נסה שוב'));
-      return;
     }
 
     if(!authData?.user){
@@ -2277,7 +2273,11 @@ async function _handleAuth(){
     // Store reg data for initApp fallback
     try{ sessionStorage.setItem('reg-data', JSON.stringify({name, dept:deptId})); }catch(e){}
     // Check if employee already exists - preserve role and position
-    const {data:existingEmp}=await sb.from('employees').select('role,position_percent').eq('email',email).single().catch(()=>({data:null}));
+    let existingEmp=null;
+    try{
+      const {data:empData}=await sb.from('employees').select('role,position_percent').eq('email',email).single();
+      existingEmp=empData;
+    }catch(e){}
     const preservedRole=existingEmp?.role||'employee';
     const preservedPos=existingEmp?.position_percent||100;
     await sb.from('employees').delete().eq('email',email);
