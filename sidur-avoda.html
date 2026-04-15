@@ -2275,7 +2275,7 @@ async function _handleAuth(){
     // Check if employee already exists - preserve role and position
     let existingEmp=null;
     try{
-      const {data:empData}=await sb.from('employees').select('role,position_percent').eq('email',email).single();
+      const {data:empData}=await sb.from('employees').select('role,position_percent').eq('email',email).maybeSingle();
       existingEmp=empData;
     }catch(e){}
     const preservedRole=existingEmp?.role||'employee';
@@ -2499,7 +2499,8 @@ async function initApp(user){
     },120);
   }
 
-  const _rtCh = sb.channel('rt', {config:{broadcast:{self:false}}})
+  if(!window._rtCh){
+  window._rtCh = sb.channel('rt', {config:{broadcast:{self:false}}})
     .on('postgres_changes',{event:'*',schema:'public',table:'schedule_cells'},()=>{
       rtReload(()=>{
         if(!isMgr&&currentEmp) showNotification('עדכון בסידור','הסידור שלך עודכן');
@@ -2552,6 +2553,7 @@ async function initApp(user){
         console.warn('[Realtime] channel lost, relying on polling');
       }
     });
+  } // end if(!window._rtCh)
 
   // Always poll as safety net
   window.startPolling();
@@ -6975,7 +6977,7 @@ function hubGoZoom(e, dest, col){
     if(auth){auth.style.display='flex';setTimeout(initAuthScreen,200);}
     return;
   }
-  if(dest==='contact' && !isMgr){showToast('אין הרשאה לדף קשר','error');return;}
+  if(dest==='contact' && false){ /* כולם יכולים לצפות בדף קשר */ }
 
   const btn=e.currentTarget;
   const rect=btn.getBoundingClientRect();
