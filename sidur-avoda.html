@@ -7629,7 +7629,7 @@ async function renderContactView(el){
     </div>
     <div style="display:flex;gap:8px;justify-content:center;padding:10px;flex-shrink:0;background:#000" id="cv-dots"></div>
     <div id="cv-popup-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.28s;">
-      <div id="cv-popup-sheet" style="width:100%;max-width:440px;border-radius:28px 28px 0 0;background:#050505;padding:0 0 50px;transform:translateY(100%);transition:transform 0.36s cubic-bezier(0.4,0,0.2,1);max-height:92vh;overflow-y:auto;border-top:2px solid #fff;">
+      <div id="cv-popup-sheet" style="width:100%;max-width:440px;border-radius:28px 28px 0 0;background:#050505;padding:0 0 50px;transform:translateY(100%);transition:transform 0.36s cubic-bezier(0.4,0,0.2,1);height:92vh;overflow-y:auto;border-top:2px solid #fff;">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0;position:sticky;top:0;background:#050505;z-index:10;border-bottom:1px solid #111;margin-bottom:4px;">
           <button id="cv-pop-back" onclick="cvClosePopup()"
             style="color:#ff2244;border:1.5px solid #ff2244;border-radius:20px;padding:6px 16px;
@@ -7877,31 +7877,35 @@ async function renderContactView(el){
     if(e.target.id==='cv-popup-bg') cvClosePopup();
   });
 
-  // swipe on popup sheet to go to next/prev department
-  let pstx=null,psty=null,popupDeptIdx=0;
+  // סווייפ על הפופאפ לעבור בין מחלקות
+  let pstx=null,psty=null;
+  let currentPopupIdx=0;
   const sheet=document.getElementById('cv-popup-sheet');
+
   sheet.addEventListener('touchstart',e=>{
-    pstx=e.touches[0].clientX;psty=e.touches[0].clientY;
+    pstx=e.touches[0].clientX;
+    psty=e.touches[0].clientY;
   },{passive:true});
+
   sheet.addEventListener('touchend',e=>{
-    if(pstx===null)return;
-    const dx=e.changedTouches[0].clientX-pstx,dy=e.changedTouches[0].clientY-psty;
-    pstx=null;psty=null;
-    if(Math.abs(dy)>Math.abs(dx)||Math.abs(dx)<50)return;
-    const nextIdx=(popupDeptIdx+(dx<0?1:-1)+N)%N;
-    popupDeptIdx=nextIdx;
-    cvGo(nextIdx);
-    cvOpenPopup(nextIdx);
+    if(pstx===null) return;
+    const dx=e.changedTouches[0].clientX-pstx;
+    const dy=e.changedTouches[0].clientY-psty;
+    pstx=null; psty=null;
+    if(Math.abs(dy)>Math.abs(dx)||Math.abs(dx)<50) return;
+    currentPopupIdx=(currentPopupIdx+(dx<0?1:-1)+N)%N;
+    cvGo(currentPopupIdx);
+    setTimeout(()=>cvOpenPopup(currentPopupIdx),200);
   });
 
-  // wrap cvOpenPopup to track current popup dept
-  const _origOpen=cvOpenPopup;
-  cvOpenPopup=function(idx){ popupDeptIdx=idx; _origOpen(idx); };
+  // עדכון index כשפותחים ידנית
+  const _origOpenPopup=cvOpenPopup;
+  cvOpenPopup=function(idx){ currentPopupIdx=idx; _origOpenPopup(idx); };
 
   document.getElementById('cv-arr-l').onclick=()=>cvGo((cur+1)%N);
   document.getElementById('cv-arr-r').onclick=()=>cvGo((cur-1+N)%N);
 
-  // touch swipe
+  // touch swipe על כרטיסיות
   let stx=null,sty=null;
   document.getElementById('cv-swipe').addEventListener('touchstart',e=>{stx=e.touches[0].clientX;sty=e.touches[0].clientY;},{passive:true});
   document.getElementById('cv-swipe').addEventListener('touchend',e=>{
