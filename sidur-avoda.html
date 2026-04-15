@@ -1678,7 +1678,7 @@
       <div class="preview-date" id="pv-date" style="color:#fff;font-size:14px;font-weight:700;min-width:140px;text-align:center"></div>
       <button onclick="lozViewerDay(1)" style="background:#111;border:2px solid #E8550A;color:#E8550A;border-radius:8px;width:34px;height:34px;font-size:18px;cursor:pointer;font-weight:700">›</button>
     </div>
-    <button class="pv-btn pv-publish" id="pv-publish-btn" onclick="lozTogglePublishFromPreview()">פרסם</button>
+    <button class="pv-btn pv-publish" id="pv-publish-btn" onclick="lozTogglePublishFromPreview()" style="display:none"></button>
   </div>
   <div id="pv-content"></div>
 </div>
@@ -3592,10 +3592,11 @@ function renderCombinedView(){
             else if(isHighlightedEmp){col='#ff2200';bg='#fff0f0';extraStyle='box-shadow:0 0 8px #ff220088;border:2px solid #ff2200;';}
             else{col='#0f172a';bg='transparent';}
             const nameCount=names.length;
-            const combinedFontSize=nameCount>=2?'11px':firstName.length>6?'13px':'16px';
+            const nameLen=firstName.length;
+            const combinedFontSize=nameCount>=2?(nameLen>7?'9px':nameLen>5?'10px':'11px'):(nameLen>9?'11px':nameLen>7?'12px':nameLen>5?'13px':'15px');
             html+=`<span style="font-size:${combinedFontSize};font-weight:700;color:${col};background:${bg};${extraStyle}
               border-radius:8px;padding:2px 3px;display:block;width:100%;text-align:center;
-              overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;">${firstName}</span>`;
+              white-space:nowrap;overflow:hidden;max-width:100%;line-height:1.2;">${firstName}</span>`;
           });
         } else {
           html+=`<span style="color:#d1d5db;font-size:12px">—</span>`;
@@ -3681,7 +3682,8 @@ function renderCombinedView(){
           names2.forEach(name=>{
             const firstName2=name.split(' ')[0];
             const nameCount2=names2.length;
-            const fs2=nameCount2>=2?'11px':firstName2.length>6?'13px':'16px';
+            const nameLen2=firstName2.length;
+            const fs2=nameCount2>=2?(nameLen2>7?'9px':nameLen2>5?'10px':'11px'):(nameLen2>9?'11px':nameLen2>7?'12px':nameLen2>5?'13px':'15px');
             const isMe2=currentEmp&&currentEmp.full_name===name&&!isMgr;
             const isFree2=freelancers.some(f=>f.name===name);
             const isSearch2=searchQuery&&name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -3694,7 +3696,7 @@ function renderCombinedView(){
             else if(showFreelancers&&isFree2){col2='#d97706';bg2='white';extra2='box-shadow:0 0 10px #fbbf24,0 0 20px #fbbf2466;animation:neonPulseYellow 1.2s ease-in-out infinite;border:2px solid #fbbf24;';}
             else if(isHighlightedEmp2){col2='#ff2200';bg2='#fff0f0';extra2='box-shadow:0 0 8px #ff220088;border:2px solid #ff2200;';}
             else{col2='#0f172a';bg2='transparent';}
-            bHtml+=`<span style="font-size:${fs2};font-weight:700;color:${col2};background:${bg2};${extra2}border-radius:8px;padding:2px 3px;display:block;width:100%;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;">${firstName2}</span>`;
+            bHtml+=`<span style="font-size:${fs2};font-weight:700;color:${col2};background:${bg2};${extra2}border-radius:8px;padding:2px 3px;display:block;width:100%;text-align:center;white-space:nowrap;overflow:hidden;max-width:100%;line-height:1.2;">${firstName2}</span>`;
           });
         } else {
           bHtml+=`<span style="color:#d1d5db;font-size:12px">—</span>`;
