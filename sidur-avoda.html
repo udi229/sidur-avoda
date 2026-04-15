@@ -2555,8 +2555,8 @@ async function initApp(user){
         const schedIds=sc.map(s=>s.id);
         let cellsHash='';
         if(schedIds.length){
-          const {data:cells}=await sb.from('schedule_cells').select('id,content,updated_at').in('schedule_id',schedIds);
-          cellsHash=(cells||[]).map(c=>c.id+':'+(c.updated_at||'')+':'+c.content).sort().join('|');
+          const {data:cells}=await sb.from('schedule_cells').select('id,content,schedule_id').in('schedule_id',schedIds);
+          cellsHash=(cells||[]).map(c=>c.schedule_id+'_'+c.id+':'+c.content).sort().join('|');
         }
         const {data:cvp}=await sb.from('cv_weekly_publish').select('cv_id,published').eq('week_start',ws);
         const cvHash=(cvp||[]).map(p=>p.cv_id+':'+p.published).sort().join('|');
@@ -3234,11 +3234,11 @@ async function saveNames(dId,shiftId,dayIdx,names){
   if(schedules[dId]) schedules[dId].updated_at=now;
   const existing=cellData[key];
   if(existing){
-    const {data,error:cellErr}=await sb.from('schedule_cells').update({content,updated_at:now}).eq('id',existing.id).select().single();
+    const {data,error:cellErr}=await sb.from('schedule_cells').update({content}).eq('id',existing.id).select().single();
     if(cellErr) console.error('[saveNames] cell update error:',cellErr.message);
     if(data) cellData[key]=data;
   } else {
-    const {data,error:cellErr}=await sb.from('schedule_cells').insert({schedule_id:sched.id,shift_type:shiftId,day_index:dayIdx,content,updated_at:now}).select().single();
+    const {data,error:cellErr}=await sb.from('schedule_cells').insert({schedule_id:sched.id,shift_type:shiftId,day_index:dayIdx,content}).select().single();
     if(cellErr) console.error('[saveNames] cell insert error:',cellErr.message);
     if(data) cellData[key]=data;
   }
