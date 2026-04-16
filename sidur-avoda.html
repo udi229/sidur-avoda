@@ -2909,6 +2909,16 @@ function renderDeptTabs(){
 
   document.getElementById('dept-tabs').innerHTML=deptTabsHtml+cvTabsHtml;
   if(!activeDeptId&&vis.length) activeDeptId=vis[0].id;
+
+  // עובד רגיל — אם המחלקה שלו בתוך CV מפורסם, עבור אוטומטית ל-CV
+  if(!isMgr && role!=='manager' && role!=='team_lead'){
+    const myDept=currentEmp?.department_id;
+    const publishedCV=combinedViews.find(cv=>cv.published&&cv.dept_ids.includes(myDept));
+    if(publishedCV && !activeCombinedId){
+      activeCombinedId=publishedCV.id;
+      activeDeptId=null;
+    }
+  }
 }
 function toolbarSubmit(){
   // find the actual submit button in notes panel and click it
