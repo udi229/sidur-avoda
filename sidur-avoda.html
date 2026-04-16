@@ -2911,10 +2911,12 @@ function renderDeptTabs(){
   if(!activeDeptId&&vis.length) activeDeptId=vis[0].id;
 
   // עובד רגיל — אם המחלקה שלו בתוך CV מפורסם, עבור אוטומטית ל-CV
-  if(!isMgr && role!=='manager' && role!=='team_lead'){
+  // רק אם לא בחר ידנית לשונית מחלקתית (activeDeptId===מחלקתו)
+  if(!isMgr && role!=='manager' && role!=='team_lead' && !activeCombinedId){
     const myDept=currentEmp?.department_id;
     const publishedCV=combinedViews.find(cv=>cv.published&&cv.dept_ids.includes(myDept));
-    if(publishedCV && !activeCombinedId){
+    // עבור ל-CV רק אם העובד עדיין על המחלקה שלו (לא בחר ידנית משהו אחר)
+    if(publishedCV && activeDeptId===myDept && !window._userChoseDept){
       activeCombinedId=publishedCV.id;
       activeDeptId=null;
     }
@@ -2953,6 +2955,7 @@ function updateToolbarSubmitBtn(){
   }
 }
 function setDept(id){
+  window._userChoseDept=true; // המשתמש בחר ידנית
   activeDeptId=id;activeCombinedId=null;openDropdown=null;editingShiftTime=null;
   searchQuery='';showMyShifts=false;
   const si=document.getElementById('sched-search');
@@ -3024,6 +3027,7 @@ async function toggleCVPublish(id){
   await sb.from('cv_weekly_publish').upsert({cv_id:id, week_start:ws, published:newVal},{onConflict:'cv_id,week_start'});
 }
 function setCombined(id){
+  window._userChoseDept=false;
   activeCombinedId=id;openDropdown=null;
   searchQuery='';
   const si=document.getElementById('sched-search');
@@ -5040,7 +5044,7 @@ async function changeWeek(d){
   const view=document.getElementById('view-schedule');
   // Only animate on mobile
   if(!view||window.innerWidth>768){
-    weekOffset=newOffset;openDropdown=null;editingShiftTime=null;editMode=false;
+    weekOffset=newOffset;openDropdown=null;editingShiftTime=null;editMode=false;window._userChoseDept=false;
     loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});
     return;
   }
@@ -5053,7 +5057,7 @@ async function changeWeek(d){
   const enterClass=d>0?'swipe-enter-left':'swipe-enter-right';
   view.classList.add(exitClass);
   setTimeout(()=>{
-    weekOffset=newOffset;openDropdown=null;editingShiftTime=null;editMode=false;
+    weekOffset=newOffset;openDropdown=null;editingShiftTime=null;editMode=false;window._userChoseDept=false;
     loadWeekData().then(()=>{
       renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();
       view.classList.remove(exitClass);
@@ -7832,7 +7836,7 @@ function changeWeekNoAnim(d){
     }
   }
   if(role==='team_lead'&&!isMgr&&newOffset>2) return;
-  weekOffset=newOffset;openDropdown=null;editingShiftTime=null;editMode=false;
+  weekOffset=newOffset;openDropdown=null;editingShiftTime=null;editMode=false;window._userChoseDept=false;
   loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});
 }
 
