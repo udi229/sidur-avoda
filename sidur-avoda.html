@@ -3756,7 +3756,8 @@ function renderSchedule(){
   // עובד רגיל לא יכול לראות שבוע עתידי שלא אושר
   if(isEmployee && weekOffset>0){
     const anyApproved=departments.some(d=>schedules[d.id]?.status==='approved'&&schedules[d.id]?.week_start===weekStartStr());
-    if(!anyApproved){
+    const cvPublished=combinedViews.some(cv=>cv.published);
+    if(!anyApproved && !cvPublished){
       document.getElementById('lock-notice').style.display='none';
       document.getElementById('sched-wrap').innerHTML=`
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:55vh;gap:16px">
@@ -5013,16 +5014,21 @@ function showView(v,e){
   if(v==='settings'){ renderSettings(); lozPopulateEditorSelect(); lozRenderEditorsList(); if(typeof lozRenderEditorsListSettings==='function') lozRenderEditorsListSettings(); if(!window._vacInitialized){ initVacationApp(); } else { if(typeof renderDeptGrid==='function') renderDeptGrid(); if(typeof renderViewerSection==='function') renderViewerSection(); if(typeof renderUsersList==='function') renderUsersList(); } }
   if(v==='schedule'){renderDeptTabs();renderSchedule();}
 }
-function changeWeek(d){
+async function changeWeek(d){
   const role=currentEmp?.role||'employee';
   const newOffset=weekOffset+d;
   // עובד לא מורשה: לא יותר משבוע קדימה, ולא שבוע שלא אושר
   if(!isMgr && role!=='team_lead'){
     if(newOffset>0){
-      // בדוק שהשבוע הבא אושר לפחות מחלקה אחת
       const ws=weekStart(newOffset).toISOString().split('T')[0];
       const anyApproved=Object.values(schedules).some(s=>s?.week_start===ws&&s?.status==='approved');
-      if(!anyApproved) return;
+      if(!anyApproved){
+        // בדוק אם יש CV מפורסם לשבוע הספציפי
+        try{
+          const {data:cvp}=await sb.from('cv_weekly_publish').select('published').eq('week_start',ws).eq('published',true).limit(1);
+          if(!cvp||!cvp.length) return;
+        }catch(e){ return; }
+      }
     }
   }
   // team_lead: עד שבועיים קדימה
