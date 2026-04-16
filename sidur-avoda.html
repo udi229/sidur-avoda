@@ -1821,10 +1821,6 @@
           <span class="filter-label">מחלקה:</span>
           <select class="filter-select" id="admin-cal-filter" onchange="renderAdminCalendar()">
             <option value="all">כולן</option>
-            <option value="סאונד">סאונד</option><option value="ניתוב">ניתוב</option>
-            <option value="במאים">במאים</option><option value="ע.במאי">ע.במאי</option>
-            <option value="סיג'י/פרומפטר">סיג'י/פרומפטר</option><option value="צלמים">צלמים</option>
-            <option value="מנהלי במה">מנהלי במה</option><option value="כללי">כללי</option>
           </select>
         </div>
         <div class="calendar-legend">
@@ -1874,10 +1870,6 @@
           <span class="filter-label">מחלקה:</span>
           <select class="filter-select" id="viewer-cal-filter" onchange="renderViewerCalendar()">
             <option value="all">כולן</option>
-            <option value="סאונד">סאונד</option><option value="ניתוב">ניתוב</option>
-            <option value="במאים">במאים</option><option value="ע.במאי">ע.במאי</option>
-            <option value="סיג'י/פרומפטר">סיג'י/פרומפטר</option><option value="צלמים">צלמים</option>
-            <option value="מנהלי במה">מנהלי במה</option><option value="כללי">כללי</option>
           </select>
         </div>
         <div class="calendar-legend">
@@ -5777,27 +5769,65 @@ function renderDeptCalendar(){
   document.getElementById('cal-month-display').textContent=`${MH[calMonth]} ${calYear}`;
   if(!currentUser) return;
   const myDept=currentUser.dept;
-  // התאמה גמישה — גם חלקית
-  const filtered=DB.requests.filter(r=>{
-    if(!r.dept||!myDept) return false;
-    return r.dept===myDept||r.dept.includes(myDept)||myDept.includes(r.dept);
-  });
-  console.log('[VacCal] myDept=',myDept,'total=',DB.requests.length,'filtered=',filtered.length);
+  const filtered=DB.requests.filter(r=>deptMatch(r.dept,myDept));
   renderCal('dept-calendar',calYear,calMonth,filtered);
 }
 function changeMonth(d){calMonth+=d;if(calMonth<0){calMonth=11;calYear--;}if(calMonth>11){calMonth=0;calYear++;}renderDeptCalendar();}
+function populateCalFilters(){
+  // בנה פילטרים דינמית מהמחלקות האמיתיות
+  ['admin-cal-filter','viewer-cal-filter'].forEach(id=>{
+    const sel=document.getElementById(id);
+    if(!sel||sel.options.length>1) return;
+    departments.forEach(d=>{
+      const opt=document.createElement('option');
+      opt.value=d.name; opt.textContent=d.name;
+      sel.appendChild(opt);
+    });
+    // גם מחלקות שיש בבקשות (שמות ישנים)
+    const existingDepts=new Set([...sel.options].map(o=>o.value));
+    DB.requests.forEach(r=>{
+      if(r.dept&&!existingDepts.has(r.dept)){
+        const opt=document.createElement('option');
+        opt.value=r.dept; opt.textContent=r.dept+' (ישן)';
+        sel.appendChild(opt);
+        existingDepts.add(r.dept);
+      }
+    });
+  });
+}
+
+function deptMatch(reqDept, filterDept){
+  if(!reqDept||!filterDept) return false;
+  const r=reqDept.trim().toLowerCase();
+  const f=filterDept.trim().toLowerCase();
+  if(r===f) return true;
+  // התאמה לפי מחלקה מה-employees table
+  const emp=employees.find(e=>e.email&&(e.email.toLowerCase()==='')||false);
+  // חיפוש מחלקה מה-departments לפי שם
+  const deptByName=departments.find(d=>d.name.trim().toLowerCase()===r||d.name.trim().toLowerCase()===f);
+  if(deptByName){
+    const deptFilter=departments.find(d=>d.name.trim().toLowerCase()===f);
+    if(deptFilter&&deptByName.id===deptFilter.id) return true;
+  }
+  // התאמה חלקית
+  return r.includes(f)||f.includes(r);
+}
+
 function renderAdminCalendar(){
   document.getElementById('admin-cal-month-display').textContent=`${MH[adminCalMonth]} ${adminCalYear}`;
+  populateCalFilters();
   const f=document.getElementById('admin-cal-filter').value;
-  const filtered=f==='all'?DB.requests:DB.requests.filter(r=>{
-    if(!r.dept) return false;
-    return r.dept===f||r.dept.includes(f)||f.includes(r.dept);
-  });
-  console.log('[AdminCal] filter=',f,'filtered=',filtered.length,'all=',DB.requests.length);
+  const filtered=f==='all'?DB.requests:DB.requests.filter(r=>deptMatch(r.dept,f));
   renderCal('admin-calendar',adminCalYear,adminCalMonth,filtered);
 }
 function changeAdminMonth(d){adminCalMonth+=d;if(adminCalMonth<0){adminCalMonth=11;adminCalYear--;}if(adminCalMonth>11){adminCalMonth=0;adminCalYear++;}renderAdminCalendar();}
-function renderViewerCalendar(){document.getElementById('viewer-cal-month-display').textContent=`${MH[viewerCalMonth]} ${viewerCalYear}`;const f=document.getElementById('viewer-cal-filter').value;renderCal('viewer-calendar',viewerCalYear,viewerCalMonth,f==='all'?DB.requests:DB.requests.filter(r=>r.dept===f));}
+function renderViewerCalendar(){
+  document.getElementById('viewer-cal-month-display').textContent=`${MH[viewerCalMonth]} ${viewerCalYear}`;
+  populateCalFilters();
+  const f=document.getElementById('viewer-cal-filter').value;
+  const filtered=f==='all'?DB.requests:DB.requests.filter(r=>deptMatch(r.dept,f));
+  renderCal('viewer-calendar',viewerCalYear,viewerCalMonth,filtered);
+}
 function changeViewerMonth(d){viewerCalMonth+=d;if(viewerCalMonth<0){viewerCalMonth=11;viewerCalYear--;}if(viewerCalMonth>11){viewerCalMonth=0;viewerCalYear++;}renderViewerCalendar();}
 
 function showDayDetails(date, requests){
