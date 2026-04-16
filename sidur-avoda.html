@@ -5773,9 +5773,29 @@ function renderCal(cid,year,month,reqs){
     c.appendChild(de);
   }
 }
-function renderDeptCalendar(){document.getElementById('cal-month-display').textContent=`${MH[calMonth]} ${calYear}`;renderCal('dept-calendar',calYear,calMonth,currentUser?DB.requests.filter(r=>r.dept===currentUser.dept):[]);}
+function renderDeptCalendar(){
+  document.getElementById('cal-month-display').textContent=`${MH[calMonth]} ${calYear}`;
+  if(!currentUser) return;
+  const myDept=currentUser.dept;
+  // התאמה גמישה — גם חלקית
+  const filtered=DB.requests.filter(r=>{
+    if(!r.dept||!myDept) return false;
+    return r.dept===myDept||r.dept.includes(myDept)||myDept.includes(r.dept);
+  });
+  console.log('[VacCal] myDept=',myDept,'total=',DB.requests.length,'filtered=',filtered.length);
+  renderCal('dept-calendar',calYear,calMonth,filtered);
+}
 function changeMonth(d){calMonth+=d;if(calMonth<0){calMonth=11;calYear--;}if(calMonth>11){calMonth=0;calYear++;}renderDeptCalendar();}
-function renderAdminCalendar(){document.getElementById('admin-cal-month-display').textContent=`${MH[adminCalMonth]} ${adminCalYear}`;const f=document.getElementById('admin-cal-filter').value;renderCal('admin-calendar',adminCalYear,adminCalMonth,f==='all'?DB.requests:DB.requests.filter(r=>r.dept===f));}
+function renderAdminCalendar(){
+  document.getElementById('admin-cal-month-display').textContent=`${MH[adminCalMonth]} ${adminCalYear}`;
+  const f=document.getElementById('admin-cal-filter').value;
+  const filtered=f==='all'?DB.requests:DB.requests.filter(r=>{
+    if(!r.dept) return false;
+    return r.dept===f||r.dept.includes(f)||f.includes(r.dept);
+  });
+  console.log('[AdminCal] filter=',f,'filtered=',filtered.length,'all=',DB.requests.length);
+  renderCal('admin-calendar',adminCalYear,adminCalMonth,filtered);
+}
 function changeAdminMonth(d){adminCalMonth+=d;if(adminCalMonth<0){adminCalMonth=11;adminCalYear--;}if(adminCalMonth>11){adminCalMonth=0;adminCalYear++;}renderAdminCalendar();}
 function renderViewerCalendar(){document.getElementById('viewer-cal-month-display').textContent=`${MH[viewerCalMonth]} ${viewerCalYear}`;const f=document.getElementById('viewer-cal-filter').value;renderCal('viewer-calendar',viewerCalYear,viewerCalMonth,f==='all'?DB.requests:DB.requests.filter(r=>r.dept===f));}
 function changeViewerMonth(d){viewerCalMonth+=d;if(viewerCalMonth<0){viewerCalMonth=11;viewerCalYear--;}if(viewerCalMonth>11){viewerCalMonth=0;viewerCalYear++;}renderViewerCalendar();}
