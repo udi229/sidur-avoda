@@ -5773,8 +5773,18 @@ function renderDeptCalendar(){
   renderCal('dept-calendar',calYear,calMonth,filtered);
 }
 function changeMonth(d){calMonth+=d;if(calMonth<0){calMonth=11;calYear--;}if(calMonth>11){calMonth=0;calYear++;}renderDeptCalendar();}
+// מיפוי שמות מחלקות ישנים לחדשים
+const DEPT_RENAME={
+  'במאי/ת':'במאים','במאית':'במאים','במאי':'במאים',
+  'נתב':'נתבים','נציב':'נתבים',
+  'מנהל אולפן':'מנהלי אולפן','מנהלת אולפן':'מנהלי אולפן',
+  'צלם':'צלמים','צלמת':'צלמים',
+  'מפקח קול':'מפקחי קול','מפקחת קול':'מפקחי קול'
+};
+function normDept(d){ if(!d) return ''; const t=d.trim(); return DEPT_RENAME[t]||t; }
+function deptMatch(reqDept,filterDept){ return normDept(reqDept)===normDept(filterDept); }
+
 function populateCalFilters(){
-  // בנה פילטרים דינמית מהמחלקות האמיתיות
   ['admin-cal-filter','viewer-cal-filter'].forEach(id=>{
     const sel=document.getElementById(id);
     if(!sel||sel.options.length>1) return;
@@ -5783,36 +5793,8 @@ function populateCalFilters(){
       opt.value=d.name; opt.textContent=d.name;
       sel.appendChild(opt);
     });
-    // גם מחלקות שיש בבקשות (שמות ישנים)
-    const existingDepts=new Set([...sel.options].map(o=>o.value));
-    DB.requests.forEach(r=>{
-      if(r.dept&&!existingDepts.has(r.dept)){
-        const opt=document.createElement('option');
-        opt.value=r.dept; opt.textContent=r.dept+' (ישן)';
-        sel.appendChild(opt);
-        existingDepts.add(r.dept);
-      }
-    });
   });
 }
-
-function deptMatch(reqDept, filterDept){
-  if(!reqDept||!filterDept) return false;
-  const r=reqDept.trim().toLowerCase();
-  const f=filterDept.trim().toLowerCase();
-  if(r===f) return true;
-  // התאמה לפי מחלקה מה-employees table
-  const emp=employees.find(e=>e.email&&(e.email.toLowerCase()==='')||false);
-  // חיפוש מחלקה מה-departments לפי שם
-  const deptByName=departments.find(d=>d.name.trim().toLowerCase()===r||d.name.trim().toLowerCase()===f);
-  if(deptByName){
-    const deptFilter=departments.find(d=>d.name.trim().toLowerCase()===f);
-    if(deptFilter&&deptByName.id===deptFilter.id) return true;
-  }
-  // התאמה חלקית
-  return r.includes(f)||f.includes(r);
-}
-
 function renderAdminCalendar(){
   document.getElementById('admin-cal-month-display').textContent=`${MH[adminCalMonth]} ${adminCalYear}`;
   populateCalFilters();
