@@ -1912,17 +1912,28 @@
   </div>
 </div>
 
+<!-- ═══ VAC ALERT MODAL ═══ -->
+<div id="vac-alert-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;direction:rtl;">
+  <div style="background:#fff;border-radius:20px;padding:28px 24px;width:min(92vw,440px);box-shadow:0 8px 40px rgba(0,0,0,0.4);max-height:90vh;overflow-y:auto;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:48px;margin-bottom:8px">🎬</div>
+      <div style="font-size:18px;font-weight:900;color:#1e293b" id="vac-alert-title">בקשת חופשה חדשה</div>
+    </div>
+    <div id="vac-alert-body" style="background:#f8fafc;border-radius:12px;padding:16px;margin-bottom:20px;font-size:14px;line-height:1.8;color:#334155;"></div>
+    <div id="vac-alert-reason-wrap" style="display:none;margin-bottom:16px;">
+      <label style="font-size:13px;font-weight:700;color:#475569;display:block;margin-bottom:6px;">סיבת ההמלצה:</label>
+      <textarea id="vac-alert-reason" placeholder="כתוב סיבה..." style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px;font-family:inherit;font-size:13px;resize:vertical;min-height:70px;"></textarea>
+    </div>
+    <div id="vac-alert-btns" style="display:flex;flex-direction:column;gap:10px;"></div>
+  </div>
+</div>
+
 <div class="notifications-panel" id="notifications-panel">
   <div class="notif-header">🎬 עדכונים</div>
   <div id="notif-list"></div>
 </div>
 <div class="toast-container" id="toast-container"></div>
 <button class="admin-entry-btn" id="admin-btn-app" onclick="openAdminModal()" title="כניסת מנהל" style="display:none">👤</button>
-
-
-    </div>
-  </div>
-</div>
 
 <script>
 const SUPABASE_URL = 'https://efkcnuzbmwnslhgvpxws.supabase.co';
@@ -5325,6 +5336,7 @@ async function enterApp(adminMode=false,viewerMode=false){
     // Show 3 admin tabs
     ['tab-admin-cal-btn','tab-admin-req-btn'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='flex';});
     renderAdminTab();showTab('tab-admin-cal',document.getElementById('tab-admin-cal-btn'));
+    setTimeout(()=>checkVacAlerts(),800);
   } else if(isViewer){
     document.getElementById('header-name').textContent=currentUser?currentUser.name:'צופה';
     document.getElementById('header-dept').textContent='צפייה בלבד';
@@ -5343,6 +5355,7 @@ async function enterApp(adminMode=false,viewerMode=false){
     
     showTab('tab-request',document.querySelector('[data-tab="tab-request"]'));
     renderDeptCalendar();
+    setTimeout(()=>checkVacAlerts(),800);
   }
 }
 
@@ -6043,8 +6056,142 @@ async function adminDeleteUser(userId){
 }
 
 // Notifications
+// ═══ VAC ALERT ON ENTRY ═══
+// Supabase table needed:
+// CREATE TABLE IF NOT EXISTS vac_alert_seen (
+//   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+//   request_id text NOT NULL,
+//   user_id text NOT NULL,
+//   seen_at timestamptz DEFAULT now(),
+//   UNIQUE(request_id, user_id)
+// );
+
+async function checkVacAlerts(){
+  if(!currentUser&&!isAdmin) return;
+  // זהה מי המשתמש הנוכחי
+  const isEfrat = isAdmin && window._mgrType==='secondary';
+  const isUdi   = isAdmin && window._mgrType==='primary';
+  const isRep   = !isAdmin && currentUser && Object.values(DB.deptReps).some(e=>e.toLowerCase()===currentUser.id.toLowerCase());
+  if(!isEfrat && !isUdi && !isRep) return;
+
+  const myId = isUdi ? 'udi-admin' : isEfrat ? 'efratn@kan.org.il' : currentUser.id;
+
+  // בקשות pending שלא נראו על ידי המשתמש הזה
+  const {data:seenData} = await sb.from('vac_alert_seen').select('request_id').eq('user_id', myId).catch(()=>({data:[]}));
+  const seenIds = new Set((seenData||[]).map(s=>s.request_id));
+
+  // מצא בקשות רלוונטיות שלא נראו
+  let pending = DB.requests.filter(r=>r.status==='pending' && !seenIds.has(r.id));
+
+  if(isRep){
+    // נציג רואה רק בקשות ממחלקות שלו
+    const myDepts = Object.entries(DB.deptReps)
+      .filter(([d,email])=>email.toLowerCase()===currentUser.id.toLowerCase())
+      .map(([d])=>d);
+    pending = pending.filter(r=>myDepts.some(d=>normDept(r.dept)===normDept(d)||r.dept===d));
+    // לא רואה בקשות של עצמו
+    pending = pending.filter(r=>r.userId!==currentUser.id);
+  }
+
+  if(!pending.length) return;
+  showVacAlert(pending, myId, isRep, isUdi||isEfrat);
+}
+
+let _vacAlertQueue=[], _vacAlertIdx=0;
+
+function showVacAlert(requests, myId, isRep, isManager){
+  _vacAlertQueue=requests; _vacAlertIdx=0;
+  showVacAlertItem(myId, isRep, isManager);
+}
+
+function showVacAlertItem(myId, isRep, isManager){
+  if(_vacAlertIdx>=_vacAlertQueue.length){ closeVacAlert(); return; }
+  const req=_vacAlertQueue[_vacAlertIdx];
+  const overlay=document.getElementById('vac-alert-overlay');
+  overlay.style.display='flex';
+
+  document.getElementById('vac-alert-title').textContent=isManager?'בקשת חופשה חדשה':'בקשת חופשה — המלצה נדרשת';
+  document.getElementById('vac-alert-body').innerHTML=`
+    <div>👤 <strong>${req.name}</strong></div>
+    <div>🏢 ${req.dept}</div>
+    <div>📅 ${fmt(req.start)} — ${fmt(req.end)}</div>
+    <div>📝 ${req.reason||'—'}</div>`;
+
+  document.getElementById('vac-alert-reason-wrap').style.display='none';
+  document.getElementById('vac-alert-reason').value='';
+
+  const btns=document.getElementById('vac-alert-btns');
+  btns.innerHTML='';
+  const btnStyle=`border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;`;
+
+  if(isRep){
+    const bYes=document.createElement('button');
+    bYes.style.cssText=btnStyle+'background:#dcfce7;color:#166534;';
+    bYes.textContent='👍 ממליץ לאשר';
+    bYes.onclick=()=>{
+      closeVacAlert();
+      // פתח את המודאל הקיים, ואחרי שליחה סמן כנראה
+      openRepReasonModal(req.id,'recommended');
+      _waitForRepModalClose(req.id, myId, isRep, isManager);
+    };
+
+    const bNo=document.createElement('button');
+    bNo.style.cssText=btnStyle+'background:#fee2e2;color:#991b1b;';
+    bNo.textContent='👎 לא ממליץ';
+    bNo.onclick=()=>{
+      closeVacAlert();
+      openRepReasonModal(req.id,'not_recommended');
+      _waitForRepModalClose(req.id, myId, isRep, isManager);
+    };
+
+    const bGo=document.createElement('button');
+    bGo.style.cssText=btnStyle+'background:#f8fafc;color:#0f172a;border:1.5px solid #e2e8f0;font-weight:500;font-size:13px;';
+    bGo.textContent='מעבר ללוח חופשות';
+    bGo.onclick=()=>{ markAlertSeen(req.id, myId, isRep, isManager); setTimeout(()=>{const btn=document.getElementById('tab-rep-btn');if(btn&&btn.style.display!=='none')btn.click();},400); };
+
+    const bSkip=document.createElement('button');
+    bSkip.style.cssText=btnStyle+'background:#f1f5f9;color:#64748b;font-weight:500;font-size:13px;';
+    bSkip.textContent='אסתכל אחר כך';
+    bSkip.onclick=()=>{ _vacAlertIdx++; showVacAlertItem(myId,isRep,isManager); };
+
+    btns.append(bYes,bNo,bGo,bSkip);
+  } else {
+    const bGo=document.createElement('button');
+    bGo.style.cssText=btnStyle+'background:#1e40af;color:#fff;';
+    bGo.textContent='מעבר ללוח חופשות';
+    bGo.onclick=()=>{ markAlertSeen(req.id,myId,isRep,isManager); };
+
+    const bClose=document.createElement('button');
+    bClose.style.cssText=btnStyle+'background:#f1f5f9;color:#64748b;font-weight:500;font-size:13px;';
+    bClose.textContent='סגור';
+    bClose.onclick=()=>markAlertSeen(req.id,myId,isRep,isManager);
+
+    btns.append(bGo,bClose);
+  }
+}
+
+// מחכה שהמודאל הקיים ייסגר ואז מסמן כנראה ועובר לבקשה הבאה
+function _waitForRepModalClose(reqId, myId, isRep, isManager){
+  const interval=setInterval(()=>{
+    if(!document.getElementById('rep-reason-modal')){
+      clearInterval(interval);
+      markAlertSeen(reqId, myId, isRep, isManager);
+    }
+  },300);
+}
+
+
+async function markAlertSeen(reqId, myId, isRep, isManager){
+  try{ await sb.from('vac_alert_seen').upsert({request_id:reqId,user_id:myId},{onConflict:'request_id,user_id'}); }catch(e){}
+  _vacAlertIdx++;
+  showVacAlertItem(myId, isRep, isManager);
+}
+
+function closeVacAlert(){
+  document.getElementById('vac-alert-overlay').style.display='none';
+}
+
 function checkNotifications(){
-  if(!currentUser&&!isAdmin)return;
   const uid=isAdmin?'admin':currentUser.id;
   const unread=DB.notifications.filter(n=>n.for.includes(uid)&&!n.read.includes(uid));
   const dot=document.getElementById('notif-dot');if(dot)dot.style.display=unread.length?'block':'none';
