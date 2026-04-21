@@ -5337,6 +5337,7 @@ async function enterApp(adminMode=false,viewerMode=false){
     ['tab-admin-cal-btn','tab-admin-req-btn'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='flex';});
     renderAdminTab();showTab('tab-admin-cal',document.getElementById('tab-admin-cal-btn'));
     setTimeout(()=>checkVacAlerts(),800);
+    initVacRealtime();
   } else if(isViewer){
     document.getElementById('header-name').textContent=currentUser?currentUser.name:'צופה';
     document.getElementById('header-dept').textContent='צפייה בלבד';
@@ -5356,6 +5357,7 @@ async function enterApp(adminMode=false,viewerMode=false){
     showTab('tab-request',document.querySelector('[data-tab="tab-request"]'));
     renderDeptCalendar();
     setTimeout(()=>checkVacAlerts(),800);
+    initVacRealtime();
   }
 }
 
@@ -6068,7 +6070,6 @@ async function adminDeleteUser(userId){
 
 async function checkVacAlerts(){
   if(!currentUser&&!isAdmin) return;
-  // זהה מי המשתמש הנוכחי
   const isEfrat = isAdmin && window._mgrType==='secondary';
   const isUdi   = isAdmin && window._mgrType==='primary';
   const isRep   = !isAdmin && currentUser && Object.values(DB.deptReps).some(e=>e.toLowerCase()===currentUser.id.toLowerCase());
@@ -6076,21 +6077,16 @@ async function checkVacAlerts(){
 
   const myId = isUdi ? 'udi-admin' : isEfrat ? 'efratn@kan.org.il' : currentUser.id;
 
-  // בקשות pending שלא נראו על ידי המשתמש הזה
-  const {data:seenData} = await sb.from('vac_alert_seen').select('request_id').eq('user_id', myId).catch(()=>({data:[]}));
-  const seenIds = new Set((seenData||[]).map(s=>s.request_id));
-
-  // מצא בקשות רלוונטיות שלא נראו
-  let pending = DB.requests.filter(r=>r.status==='pending' && !seenIds.has(r.id));
+  // בקשות שעדיין pending (לא אושרו ולא נדחו) — מציג תמיד עד הכרעה
+  let pending = DB.requests.filter(r=>r.status==='pending');
 
   if(isRep){
-    // נציג רואה רק בקשות ממחלקות שלו
     const myDepts = Object.entries(DB.deptReps)
       .filter(([d,email])=>email.toLowerCase()===currentUser.id.toLowerCase())
       .map(([d])=>d);
     pending = pending.filter(r=>myDepts.some(d=>normDept(r.dept)===normDept(d)||r.dept===d));
-    // לא רואה בקשות של עצמו
-    pending = pending.filter(r=>r.userId!==currentUser.id);
+    // נציג לא רואה בקשות של עצמו, ולא בקשות שכבר המליץ עליהן
+    pending = pending.filter(r=>r.userId!==currentUser.id && !r.recommendation);
   }
 
   if(!pending.length) return;
@@ -6152,7 +6148,8 @@ function showVacAlertItem(myId, isRep, isManager){
     const bSkip=document.createElement('button');
     bSkip.style.cssText=btnStyle+'background:#f1f5f9;color:#64748b;font-weight:500;font-size:13px;';
     bSkip.textContent='אסתכל אחר כך';
-    bSkip.onclick=()=>{ _vacAlertIdx++; showVacAlertItem(myId,isRep,isManager); };
+    // דחייה בלבד — לא שומר כנראה, יחזור בכניסה הבאה
+    bSkip.onclick=()=>{ closeVacAlert(); };
 
     btns.append(bYes,bNo,bGo,bSkip);
   } else {
@@ -6175,6 +6172,7 @@ function _waitForRepModalClose(reqId, myId, isRep, isManager){
   const interval=setInterval(()=>{
     if(!document.getElementById('rep-reason-modal')){
       clearInterval(interval);
+      renderRepTab&&renderRepTab();
       markAlertSeen(reqId, myId, isRep, isManager);
     }
   },300);
@@ -6182,7 +6180,7 @@ function _waitForRepModalClose(reqId, myId, isRep, isManager){
 
 
 async function markAlertSeen(reqId, myId, isRep, isManager){
-  try{ await sb.from('vac_alert_seen').upsert({request_id:reqId,user_id:myId},{onConflict:'request_id,user_id'}); }catch(e){}
+  // לא שומרים ב-DB — ההתראה תחזור עד שהבקשה תוכרע
   _vacAlertIdx++;
   showVacAlertItem(myId, isRep, isManager);
 }
@@ -6191,7 +6189,21 @@ function closeVacAlert(){
   document.getElementById('vac-alert-overlay').style.display='none';
 }
 
+// ═══ VAC REALTIME — מאזין לבקשות חדשות בזמן אמת ═══
+function initVacRealtime(){
+  if(window._vacRtCh) return;
+  window._vacRtCh = sb.channel('vac-rt')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'vac_requests'},async(payload)=>{
+      // טען מחדש ובדוק אם יש התראה
+      await loadDB();
+      // המתן רגע קצר כדי לא לחפוף עם toast של שולח הבקשה
+      setTimeout(()=>checkVacAlerts(),600);
+    })
+    .subscribe();
+}
+
 function checkNotifications(){
+  if(!currentUser&&!isAdmin)return;
   const uid=isAdmin?'admin':currentUser.id;
   const unread=DB.notifications.filter(n=>n.for.includes(uid)&&!n.read.includes(uid));
   const dot=document.getElementById('notif-dot');if(dot)dot.style.display=unread.length?'block':'none';
