@@ -2333,7 +2333,7 @@ function enterMgr(label='מנהל',type='primary'){
   document.getElementById('nav-vacation').style.display='inline-block';
   const _navloz=document.getElementById('nav-loz');if(_navloz)_navloz.style.display='inline-block';
 
-  loadAll().then(()=>loadWeekData()).then(()=>{
+  loadAll().then(()=>loadWeekData()).then(async()=>{
     activeDeptId=departments[0]?.id||null;
     const ftBtn=document.getElementById('freelance-toggle');
     if(ftBtn) ftBtn.style.display='inline-block';
@@ -2344,8 +2344,16 @@ function enterMgr(label='מנהל',type='primary'){
     const myShiftsBtn=document.getElementById('my-shifts-btn');
     if(myShiftsBtn) myShiftsBtn.style.display='none';
     updateWeekUI();renderDeptTabs();renderSchedule();renderOnlineList();
-    // start polling for realtime updates
     if(typeof window.startPolling==='function') window.startPolling();
+    // התראת חופשה פעם אחת בכניסה למנהל
+    if(!window._vacMgrAlertShown){
+      window._vacMgrAlertShown=true;
+      if(typeof loadDB==='function' && typeof checkVacAlerts==='function'){
+        await loadDB();
+        initVacRealtime();
+        setTimeout(()=>checkVacAlerts(), 1000);
+      }
+    }
   });
   // presence for manager — use different key for Udi vs Efrat
   const presenceKey=window._mgrType==='secondary'?'efratn@kan.org.il':'manager@local';
@@ -2366,6 +2374,8 @@ async function logout(){
   document.getElementById('auth-screen').style.display='flex';
   setTimeout(initAuthScreen, 50);
   window._vacInitialized=false;
+  window._vacMgrAlertShown=false;
+  window._vacRtCh=null;
 }
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape') closeDropdown();
@@ -2476,6 +2486,17 @@ async function initApp(user){
   renderDeptTabs();
   renderSchedule();
   requestNotifications();
+
+  // התראת חופשה בכניסה לאפליקציה — רק לראשי צוות ונציגים
+  if(currentEmp?.role==='team_lead' || currentEmp?.role==='manager'){
+    setTimeout(async()=>{
+      if(typeof loadDB==='function' && typeof checkVacAlerts==='function'){
+        await loadDB();
+        initVacRealtime();
+        checkVacAlerts();
+      }
+    }, 1200);
+  }
   // Track login
   try{
     const now=new Date().toISOString();
