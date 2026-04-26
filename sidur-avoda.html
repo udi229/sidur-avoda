@@ -274,6 +274,10 @@
   }
   @keyframes neonPulseRed{0%,100%{box-shadow:0 0 8px #ff003c,0 0 16px #ff003c66}50%{box-shadow:0 0 20px #ff003c,0 0 40px #ff003caa}}
   @keyframes neonPulseBlue{0%,100%{box-shadow:0 0 8px #3b82f6,0 0 16px #3b82f666,inset 0 0 4px #3b82f622}50%{box-shadow:0 0 18px #3b82f6,0 0 36px #3b82f6aa,inset 0 0 8px #3b82f644}}
+  @keyframes noteNeonBlink{
+    0%,100%{box-shadow:0 0 6px #ffffff,0 0 12px #ffffffaa,0 0 18px #ffffff66;border-color:#ffffff}
+    50%{box-shadow:0 0 16px #ffffff,0 0 28px #ffffffdd,0 0 42px #ffffff99;border-color:#f8fafc}
+  }
   @keyframes npbCol{0%,100%{border-color:#3b82f6}50%{border-color:#60a5fa}}
   @keyframes npgCol{0%,100%{border-color:#22c55e}50%{border-color:#86efac}}
   td.hol-j{border-left:2px solid #3b82f6!important;border-right:2px solid #3b82f6!important;border-top:1px solid #e2e8f0!important;border-bottom:1px solid #e2e8f0!important;animation:npbCol 2s ease-in-out infinite;}
@@ -4119,36 +4123,27 @@ function renderSchedule(){
     </div>`+noteHtml;
   }
 
-  // team note
+  // team note (ראש צוות / אפרת) — bigger font, neon white blink when filled
   if(isTeamLead3||isMgrView){
     const tNote=deptSchedNote?.team_note||'';
     const submitted3=deptSchedNote?.team_submitted||false;
+    const hasNote=!!(tNote&&tNote.trim());
+    const neonBorder=hasNote?'2.5px solid #ffffff':'1.5px solid #e2e8f0';
+    const neonAnim=hasNote?'animation:noteNeonBlink 1.4s ease-in-out infinite;':'';
     noteHtml+=`<div style="flex:1;min-width:200px">
-      <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:6px">📝 הערה${isMgrView&&!isTeamLead3?' — '+(deptSchedNote?.team_lead_name||employees.find(e=>e.department_id===activeDeptId&&e.role==='team_lead')?.full_name||'ראש צוות'):' — '+(currentEmp?.full_name||'ראש צוות')}</div>
+      <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:6px">📝 הערה${isMgrView&&!isTeamLead3?' — '+(deptSchedNote?.team_lead_name||employees.find(e=>e.department_id===activeDeptId&&e.role==='team_lead')?.full_name||'ראש צוות'):' — '+(currentEmp?.full_name||'ראש צוות')}</div>
       ${isTeamLead3?
-        `<textarea id="team-note-ta" rows="3" placeholder="הערה לסידור..." style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:13px;outline:none;resize:vertical">${tNote}</textarea>
+        `<textarea id="team-note-ta" rows="3" placeholder="הערה לסידור..." style="width:100%;padding:10px 12px;border:${neonBorder};border-radius:8px;font-family:inherit;font-size:18px;font-weight:600;line-height:1.5;outline:none;resize:vertical;${neonAnim}">${tNote}</textarea>
          <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
            <button onclick="saveTeamNote('${activeDeptId}')" style="background:#0f172a;color:white;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">שמור</button>
            <button onclick="teamSubmit()" style="background:${submitted3?'#059669':'#be123c'};color:white;border:2px solid ${submitted3?'#059669':'#ff003c'};border-radius:20px;padding:6px 18px;font-size:12px;font-weight:900;cursor:pointer;font-family:inherit;box-shadow:0 0 12px ${submitted3?'#05966988':'#ff003c88'};letter-spacing:1px;animation:${submitted3?'none':'onair 1.4s ease-in-out infinite'}">${submitted3?'✓ סיימתי סידור':'סיימתי סידור'}</button>
          </div>` :
-        `<div style="background:#f8fafc;border-radius:8px;padding:10px;font-size:13px;color:${tNote?'#0f172a':'#94a3b8'};min-height:40px">${tNote||'אין הערה'}</div>`
+        `<div style="background:#f8fafc;border-radius:8px;padding:14px;font-size:18px;font-weight:600;line-height:1.5;color:${hasNote?'#0f172a':'#94a3b8'};min-height:60px;border:${neonBorder};${neonAnim}">${tNote||'אין הערה'}</div>`
       }
     </div>`;
   }
+  // manager note removed per user request
 
-
-  // manager note (visible to team_lead too after submission)
-  if(isMgrView||(isTeamLead3&&deptSchedNote?.manager_note)){
-    const mNote=deptSchedNote?.manager_note||'';
-    noteHtml+=`<div style="flex:1;min-width:200px">
-      <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:6px">💬 הערת מנהל</div>
-      ${isMgrView?
-        `<textarea id="mgr-note-ta" rows="3" placeholder="הערה לראש הצוות..." style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:13px;outline:none;resize:vertical">${mNote}</textarea>
-         <button onclick="saveMgrNote('${activeDeptId}')" style="margin-top:6px;background:#0f172a;color:white;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">שמור</button>` :
-        `<div style="background:#eff6ff;border-radius:8px;padding:10px;font-size:13px;color:${mNote?'#1e40af':'#94a3b8'};min-height:40px">${mNote||'אין הערה'}</div>`
-      }
-    </div>`;
-  }
 
   // manager: approve or return buttons
   if(isMgrView&&deptSchedNote?.team_submitted&&deptSchedNote?.status!=='approved'){
@@ -4946,10 +4941,32 @@ async function addDept(){
   renderSettings();renderDeptTabs();
 }
 async function delDept(id){
-  if(!confirm('למחוק מחלקה זו?'))return;
-  await sb.from('departments').delete().eq('id',id);
-  await loadAll();if(activeDeptId===id)activeDeptId=departments[0]?.id||null;
-  renderSettings();renderDeptTabs();renderSchedule();
+  const dept=departments.find(d=>d.id===id);
+  if(!dept)return;
+  if(!confirm(`למחוק את מחלקת "${dept.name}"?\n\nשים לב: כל העובדים, הפרילנסרים, הסידורים והבקשות הקשורים למחלקה זו יימחקו גם הם.`))return;
+  try{
+    // 1. Delete freelancers in this department
+    await sb.from('freelancers').delete().eq('department_id',id);
+    // 2. Unassign employees (set department_id to null) - safer than deleting
+    await sb.from('employees').update({department_id:null}).eq('department_id',id);
+    // 3. Delete schedules for this department
+    await sb.from('schedules').delete().eq('department_id',id);
+    // 4. Delete shift role assignments referencing this dept (if such table exists)
+    try{ await sb.from('shift_roles').delete().eq('department_id',id); }catch(_){}
+    // 5. Delete vacation/swap requests if they reference dept
+    try{ await sb.from('requests').delete().eq('department_id',id); }catch(_){}
+    // 6. Finally delete the department itself
+    const {error}=await sb.from('departments').delete().eq('id',id);
+    if(error){
+      alert('לא ניתן למחוק את המחלקה.\n\nשגיאה: '+error.message+'\n\nייתכן שיש רשומות נוספות שמקושרות למחלקה. בדוק את לוח הבקרה של Supabase.');
+      return;
+    }
+    await loadAll();
+    if(activeDeptId===id)activeDeptId=departments[0]?.id||null;
+    renderSettings();renderDeptTabs();renderSchedule();
+  }catch(e){
+    alert('שגיאה במחיקת המחלקה: '+(e.message||e));
+  }
 }
 async function addShiftType(){
   const n=document.getElementById('ns-nm').value.trim(),t=document.getElementById('ns-tm').value.trim(),c=document.getElementById('ns-cl').value;
