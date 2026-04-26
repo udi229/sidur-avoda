@@ -273,6 +273,10 @@
     color:white;
   }
   @keyframes neonPulseRed{0%,100%{box-shadow:0 0 8px #ff003c,0 0 16px #ff003c66}50%{box-shadow:0 0 20px #ff003c,0 0 40px #ff003caa}}
+  @keyframes vacBadgeBlink{
+    0%,100%{opacity:1;text-shadow:0 0 6px currentColor,0 0 12px currentColor}
+    50%{opacity:0.65;text-shadow:0 0 10px currentColor,0 0 20px currentColor}
+  }
   @keyframes neonPulseBlue{0%,100%{box-shadow:0 0 8px #3b82f6,0 0 16px #3b82f666,inset 0 0 4px #3b82f622}50%{box-shadow:0 0 18px #3b82f6,0 0 36px #3b82f6aa,inset 0 0 8px #3b82f644}}
   @keyframes npbCol{0%,100%{border-color:#3b82f6}50%{border-color:#60a5fa}}
   @keyframes npgCol{0%,100%{border-color:#22c55e}50%{border-color:#86efac}}
@@ -1349,6 +1353,7 @@
       <button class="hub-planet hub-p1" onclick="hubGoZoom(event,'vacation','#cc44ff')">
         <span class="hub-p-icon">🏖</span>
         <span class="hub-p-label" style="color:#cc88ff">חופשות</span>
+        <span class="hub-p-badge" id="vac-hub-badge" style="display:none;color:#cc88ff;font-size:10px;font-weight:700;letter-spacing:0.5px;position:relative;z-index:2;animation:vacBadgeBlink 1.6s ease-in-out infinite;margin-top:2px"></span>
       </button>
       <button class="hub-planet hub-p2" onclick="hubGoZoom(event,'loz','#E8550A')">
         <span class="hub-p-icon">📋</span>
@@ -5261,6 +5266,8 @@ async function loadDB() {
       createdAt:n.created_at
     }));
   } catch(e) { console.warn('loadDB error',e); }
+  // עדכון אוטומטי של הבאדג' בכל טעינה של DB
+  if(typeof updateVacBadge==='function') updateVacBadge();
 }
 
 async function saveDB() {
@@ -6090,28 +6097,103 @@ async function adminDeleteUser(userId){
 // );
 
 async function checkVacAlerts(){
-  if(!currentUser&&!isAdmin) return;
-  const isEfrat = isAdmin && window._mgrType==='secondary';
+  const ce = (typeof currentEmp!=='undefined') ? currentEmp : null;
   const isUdi   = isAdmin && window._mgrType==='primary';
-  const isRep   = !isAdmin && currentUser && Object.values(DB.deptReps).some(e=>e.toLowerCase()===currentUser.id.toLowerCase());
-  if(!isEfrat && !isUdi && !isRep) return;
+  const isEfrat = isAdmin && window._mgrType==='secondary';
 
-  const myId = isUdi ? 'udi-admin' : isEfrat ? 'efratn@kan.org.il' : currentUser.id;
+  let role=null;
+  let myDeptIds=[];
+  let myEmail='';
+  let myId='';
 
-  // בקשות שעדיין pending (לא אושרו ולא נדחו) — מציג תמיד עד הכרעה
-  let pending = DB.requests.filter(r=>r.status==='pending');
+  if(isUdi){
+    role='manager';
+    myId='udi-admin';
+  } else if(isEfrat){
+    role='efrat';
+    myDeptIds = (window.departments||[])
+      .filter(d=>SECONDARY_LEAD_DEPTS.some(n=>d.name.includes(n)))
+      .map(d=>d.id);
+    myId='efratn@kan.org.il';
+  } else if(ce && ce.role==='team_lead' && ce.department_id){
+    role='team_lead';
+    myDeptIds=[ce.department_id];
+    myEmail=(ce.email||'').toLowerCase();
+    myId=ce.email||ce.id||'';
+  } else if(ce && ce.role==='manager'){
+    role='manager';
+    myId=ce.email||ce.id||'';
+  } else {
+    return;
+  }
 
-  if(isRep){
-    const myDepts = Object.entries(DB.deptReps)
-      .filter(([d,email])=>email.toLowerCase()===currentUser.id.toLowerCase())
-      .map(([d])=>d);
-    pending = pending.filter(r=>myDepts.some(d=>normDept(r.dept)===normDept(d)||r.dept===d));
-    // נציג לא רואה בקשות של עצמו, ולא בקשות שכבר המליץ עליהן
-    pending = pending.filter(r=>r.userId!==currentUser.id && !r.recommendation);
+  let pending = (DB.requests||[]).filter(r=>r.status==='pending');
+
+  if(role==='team_lead' || role==='efrat'){
+    const myDeptNames = (window.departments||[])
+      .filter(d=>myDeptIds.includes(d.id))
+      .map(d=>d.name);
+    pending = pending.filter(r=>{
+      const rd = r.dept||'';
+      return myDeptNames.some(n => normDept(rd)===normDept(n) || rd===n || rd.includes(n) || n.includes(rd));
+    });
+    if(myEmail) pending = pending.filter(r=>(r.userId||'').toLowerCase()!==myEmail);
+    pending = pending.filter(r=>!r.recommendation);
   }
 
   if(!pending.length) return;
-  showVacAlert(pending, myId, isRep, isUdi||isEfrat);
+
+  const isRepView = (role==='team_lead' || role==='efrat');
+  showVacAlert(pending, myId, isRepView, role==='manager');
+}
+
+// ═══ VAC BADGE — מציג ספירה של בקשות חדשות על הכפתור בהאב ═══
+async function updateVacBadge(){
+  const badge=document.getElementById('vac-hub-badge');
+  if(!badge) return;
+  
+  const ce=(typeof currentEmp!=='undefined') ? currentEmp : null;
+  const isUdi   = isAdmin && window._mgrType==='primary';
+  const isEfrat = isAdmin && window._mgrType==='secondary';
+  
+  let count=0;
+  
+  if(isUdi || (ce && ce.role==='manager' && ce.id!=='manager-local')){
+    // אודי / מנהל ראשי - כל הבקשות שעוד לא אושרו / לא נדחו
+    count=(DB.requests||[]).filter(r=>r.status==='pending').length;
+  } else if(isEfrat){
+    // אפרת - בקשות במחלקות ניתוב + ע.במאי שעוד לא הומלצו
+    const myDeptNames=(window.departments||[])
+      .filter(d=>SECONDARY_LEAD_DEPTS.some(n=>d.name.includes(n)))
+      .map(d=>d.name);
+    count=(DB.requests||[]).filter(r=>{
+      if(r.status!=='pending') return false;
+      if(r.recommendation) return false;
+      const rd=r.dept||'';
+      return myDeptNames.some(n=>normDept(rd)===normDept(n)||rd===n||rd.includes(n)||n.includes(rd));
+    }).length;
+  } else if(ce && ce.role==='team_lead' && ce.department_id){
+    // ראש צוות - בקשות במחלקה שלו, לא של עצמו, שעוד לא הומלצו
+    const myDept=(window.departments||[]).find(d=>d.id===ce.department_id);
+    const myDeptName=myDept?myDept.name:'';
+    const myEmail=(ce.email||'').toLowerCase();
+    count=(DB.requests||[]).filter(r=>{
+      if(r.status!=='pending') return false;
+      if(r.recommendation) return false;
+      if((r.userId||'').toLowerCase()===myEmail) return false;
+      const rd=r.dept||'';
+      return normDept(rd)===normDept(myDeptName)||rd===myDeptName||rd.includes(myDeptName)||myDeptName.includes(rd);
+    }).length;
+  } else {
+    count=0;
+  }
+  
+  if(count>0){
+    badge.textContent='('+(count===1?'בקשה 1 חדשה':count+' בקשות חדשות')+')';
+    badge.style.display='block';
+  } else {
+    badge.style.display='none';
+  }
 }
 
 let _vacAlertQueue=[], _vacAlertIdx=0;
@@ -6215,7 +6297,7 @@ function initVacRealtime(){
   if(window._vacRtCh) return;
   window._vacRtCh = sb.channel('vac-rt')
     .on('postgres_changes',{event:'*',schema:'public',table:'vac_requests'},async(payload)=>{
-      // טען מחדש ועדכן את הבאדג' (loadDB מפעיל updateVacBadge אוטומטית)
+      // טען מחדש - loadDB מפעיל updateVacBadge אוטומטית
       await loadDB();
       // עבור הוספה - הצג גם פופ-אפ התראה אם רלוונטי
       if(payload?.eventType==='INSERT'){
@@ -7227,7 +7309,6 @@ function showHub(){
   // עדכון אוטומטי של הבאדג' על כפתור החופשות - בלי תלות בכניסה ללוח חופשות
   if(typeof loadDB==='function' && typeof updateVacBadge==='function'){
     loadDB().then(()=>updateVacBadge()).catch(()=>{});
-    // הפעלת realtime כדי שהבאדג' יתעדכן בזמן אמת כשבקשות חדשות נכנסות
     if(typeof initVacRealtime==='function') initVacRealtime();
   }
 }
