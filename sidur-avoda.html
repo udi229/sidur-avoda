@@ -1353,7 +1353,7 @@
       <button class="hub-planet hub-p1" onclick="hubGoZoom(event,'vacation','#cc44ff')">
         <span class="hub-p-icon">🏖</span>
         <span class="hub-p-label" style="color:#cc88ff">חופשות</span>
-        <span class="hub-p-badge" id="vac-hub-badge" style="display:none;color:#cc88ff;font-size:10px;font-weight:700;letter-spacing:0.5px;position:relative;z-index:2;animation:vacBadgeBlink 1.6s ease-in-out infinite;margin-top:2px"></span>
+        <span id="vac-hub-badge" style="display:none;position:absolute;top:-22px;left:50%;transform:translateX(-50%);background:#1a0530;color:#cc88ff;font-size:10px;font-weight:700;letter-spacing:0.5px;padding:4px 10px;border-radius:12px;border:1.5px solid #cc44ff;box-shadow:0 0 12px #cc44ffaa,0 0 24px #cc44ff66;white-space:nowrap;z-index:10;animation:vacBadgeBlink 1.6s ease-in-out infinite;font-family:'Heebo',sans-serif"></span>
       </button>
       <button class="hub-planet hub-p2" onclick="hubGoZoom(event,'loz','#E8550A')">
         <span class="hub-p-icon">📋</span>
@@ -6150,19 +6150,28 @@ async function checkVacAlerts(){
 // ═══ VAC BADGE — מציג ספירה של בקשות חדשות על הכפתור בהאב ═══
 async function updateVacBadge(){
   const badge=document.getElementById('vac-hub-badge');
-  if(!badge) return;
+  if(!badge){ console.log('[vac-badge] element not found'); return; }
   
   const ce=(typeof currentEmp!=='undefined') ? currentEmp : null;
-  const isUdi   = isAdmin && window._mgrType==='primary';
-  const isEfrat = isAdmin && window._mgrType==='secondary';
+  // חשוב: isAdmin מוגדר רק אחרי כניסה ללוח חופשות, לכן נסתמך על isMgr+_mgrType
+  const isUdiMgr   = (typeof isMgr!=='undefined' && isMgr) && window._mgrType==='primary';
+  const isEfratMgr = (typeof isMgr!=='undefined' && isMgr) && window._mgrType==='secondary';
+  
+  // אם DB עוד לא נטען - טען עכשיו
+  if(!DB || !DB.requests){
+    if(typeof loadDB==='function'){
+      try{ await loadDB(); }catch(e){ console.warn('[vac-badge] loadDB failed', e); }
+    }
+  }
   
   let count=0;
+  let role='unknown';
   
-  if(isUdi || (ce && ce.role==='manager' && ce.id!=='manager-local')){
-    // אודי / מנהל ראשי - כל הבקשות שעוד לא אושרו / לא נדחו
+  if(isUdiMgr){
+    role='udi';
     count=(DB.requests||[]).filter(r=>r.status==='pending').length;
-  } else if(isEfrat){
-    // אפרת - בקשות במחלקות ניתוב + ע.במאי שעוד לא הומלצו
+  } else if(isEfratMgr){
+    role='efrat';
     const myDeptNames=(window.departments||[])
       .filter(d=>SECONDARY_LEAD_DEPTS.some(n=>d.name.includes(n)))
       .map(d=>d.name);
@@ -6173,7 +6182,7 @@ async function updateVacBadge(){
       return myDeptNames.some(n=>normDept(rd)===normDept(n)||rd===n||rd.includes(n)||n.includes(rd));
     }).length;
   } else if(ce && ce.role==='team_lead' && ce.department_id){
-    // ראש צוות - בקשות במחלקה שלו, לא של עצמו, שעוד לא הומלצו
+    role='team_lead';
     const myDept=(window.departments||[]).find(d=>d.id===ce.department_id);
     const myDeptName=myDept?myDept.name:'';
     const myEmail=(ce.email||'').toLowerCase();
@@ -6184,12 +6193,18 @@ async function updateVacBadge(){
       const rd=r.dept||'';
       return normDept(rd)===normDept(myDeptName)||rd===myDeptName||rd.includes(myDeptName)||myDeptName.includes(rd);
     }).length;
+  } else if(ce && ce.role==='manager'){
+    role='manager';
+    count=(DB.requests||[]).filter(r=>r.status==='pending').length;
   } else {
+    role='employee';
     count=0;
   }
   
+  console.log('[vac-badge] role='+role+' count='+count+' total_requests='+(DB.requests||[]).length+' isMgr='+(typeof isMgr!=='undefined'?isMgr:'undef')+' mgrType='+window._mgrType);
+  
   if(count>0){
-    badge.textContent='('+(count===1?'בקשה 1 חדשה':count+' בקשות חדשות')+')';
+    badge.textContent=(count===1?'בקשה 1 חדשה':count+' בקשות חדשות');
     badge.style.display='block';
   } else {
     badge.style.display='none';
@@ -6297,9 +6312,8 @@ function initVacRealtime(){
   if(window._vacRtCh) return;
   window._vacRtCh = sb.channel('vac-rt')
     .on('postgres_changes',{event:'*',schema:'public',table:'vac_requests'},async(payload)=>{
-      // טען מחדש - loadDB מפעיל updateVacBadge אוטומטית
+      console.log('[vac-badge] realtime event:', payload?.eventType);
       await loadDB();
-      // עבור הוספה - הצג גם פופ-אפ התראה אם רלוונטי
       if(payload?.eventType==='INSERT'){
         setTimeout(()=>checkVacAlerts(),600);
       }
@@ -7307,10 +7321,18 @@ function showHub(){
   if(exitBtn) exitBtn.classList.add('show');
   hubInitStars();
   // עדכון אוטומטי של הבאדג' על כפתור החופשות - בלי תלות בכניסה ללוח חופשות
-  if(typeof loadDB==='function' && typeof updateVacBadge==='function'){
-    loadDB().then(()=>updateVacBadge()).catch(()=>{});
-    if(typeof initVacRealtime==='function') initVacRealtime();
-  }
+  console.log('[vac-badge] showHub called - triggering badge update');
+  setTimeout(()=>{
+    if(typeof loadDB==='function' && typeof updateVacBadge==='function'){
+      loadDB().then(()=>{
+        console.log('[vac-badge] loadDB done, calling updateVacBadge');
+        updateVacBadge();
+      }).catch(e=>console.warn('[vac-badge] loadDB error',e));
+      if(typeof initVacRealtime==='function') initVacRealtime();
+    } else {
+      console.warn('[vac-badge] loadDB or updateVacBadge missing');
+    }
+  }, 300);
 }
 
 function hubInitStars(){
