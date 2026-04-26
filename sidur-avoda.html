@@ -274,6 +274,14 @@
   }
   @keyframes neonPulseRed{0%,100%{box-shadow:0 0 8px #ff003c,0 0 16px #ff003c66}50%{box-shadow:0 0 20px #ff003c,0 0 40px #ff003caa}}
   @keyframes neonPulseBlue{0%,100%{box-shadow:0 0 8px #3b82f6,0 0 16px #3b82f666,inset 0 0 4px #3b82f622}50%{box-shadow:0 0 18px #3b82f6,0 0 36px #3b82f6aa,inset 0 0 8px #3b82f644}}
+  @keyframes noteNeonBlink{
+    0%,100%{box-shadow:0 0 6px #ff003c,0 0 12px #ff003caa,0 0 18px #ff003c66;border-color:#ff003c}
+    50%{box-shadow:0 0 16px #ff003c,0 0 28px #ff003cdd,0 0 42px #ff003c99;border-color:#ff4d6d}
+  }
+  @keyframes vacBadgeBlink{
+    0%,100%{opacity:1;text-shadow:0 0 6px currentColor,0 0 12px currentColor}
+    50%{opacity:0.65;text-shadow:0 0 10px currentColor,0 0 20px currentColor}
+  }
   @keyframes npbCol{0%,100%{border-color:#3b82f6}50%{border-color:#60a5fa}}
   @keyframes npgCol{0%,100%{border-color:#22c55e}50%{border-color:#86efac}}
   td.hol-j{border-left:2px solid #3b82f6!important;border-right:2px solid #3b82f6!important;border-top:1px solid #e2e8f0!important;border-bottom:1px solid #e2e8f0!important;animation:npbCol 2s ease-in-out infinite;}
@@ -1349,6 +1357,7 @@
       <button class="hub-planet hub-p1" onclick="hubGoZoom(event,'vacation','#cc44ff')">
         <span class="hub-p-icon">🏖</span>
         <span class="hub-p-label" style="color:#cc88ff">חופשות</span>
+        <span class="hub-p-badge" id="vac-hub-badge" style="display:none;color:#cc88ff;font-size:10px;font-weight:700;letter-spacing:0.5px;position:relative;z-index:2;animation:vacBadgeBlink 1.6s ease-in-out infinite;margin-top:2px"></span>
       </button>
       <button class="hub-planet hub-p2" onclick="hubGoZoom(event,'loz','#E8550A')">
         <span class="hub-p-icon">📋</span>
@@ -1678,7 +1687,7 @@
       <div class="preview-date" id="pv-date" style="color:#fff;font-size:14px;font-weight:700;min-width:140px;text-align:center"></div>
       <button onclick="lozViewerDay(1)" style="background:#111;border:2px solid #E8550A;color:#E8550A;border-radius:8px;width:34px;height:34px;font-size:18px;cursor:pointer;font-weight:700">›</button>
     </div>
-    <button class="pv-btn pv-publish" id="pv-publish-btn" onclick="lozTogglePublishFromPreview()" style="display:none"></button>
+    <button class="pv-btn pv-publish" id="pv-publish-btn" onclick="lozTogglePublishFromPreview()" style="display:none !important"></button>
   </div>
   <div id="pv-content"></div>
 </div>
@@ -2345,11 +2354,10 @@ function enterMgr(label='מנהל',type='primary'){
     if(myShiftsBtn) myShiftsBtn.style.display='none';
     updateWeekUI();renderDeptTabs();renderSchedule();renderOnlineList();
     if(typeof window.startPolling==='function') window.startPolling();
-    // התראת חופשה בכניסה למנהל - בכל פעם שנפתחת האפליקציה
     if(typeof loadDB==='function' && typeof checkVacAlerts==='function'){
       await loadDB();
       initVacRealtime();
-      setTimeout(()=>checkVacAlerts(), 1000);
+      setTimeout(()=>{ checkVacAlerts(); if(typeof updateVacBadge==='function') updateVacBadge(); }, 1000);
     }
   });
   // presence for manager — use different key for Udi vs Efrat
@@ -2490,8 +2498,13 @@ async function initApp(user){
         await loadDB();
         initVacRealtime();
         checkVacAlerts();
+        if(typeof updateVacBadge==='function') updateVacBadge();
       }
     }, 1200);
+  } else {
+    // עובד רגיל - הסתר את הבאדג' אם קיים
+    const _vb=document.getElementById('vac-hub-badge');
+    if(_vb) _vb.style.display='none';
   }
   // Track login
   try{
@@ -4106,45 +4119,30 @@ function renderSchedule(){
   const role3=currentEmp?.role||'employee';
   const isTeamLead3=(role3==='team_lead'&&currentEmp?.department_id===activeDeptId)||isSecondaryLead(activeDeptId);
   const isMgrView=isMgr||role3==='manager';
-  // last updated
-  const lastUpdated=deptSchedNote?.updated_at?new Date(deptSchedNote.updated_at).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+  // last updated banner removed per user request
   let noteHtml=`<div style="display:flex;gap:16px;flex-wrap:wrap">`;
-  if(isMgrView){
-    noteHtml=`<div style="background:#f8fafc;border-radius:10px;padding:10px 16px;margin-bottom:12px;font-size:12px;color:#64748b;display:flex;align-items:center;gap:6px">
-      <span>🕐</span><span>עדכון אחרון: <strong style="color:#0f172a">${lastUpdated}</strong></span>
-    </div>`+noteHtml;
-  }
 
-  // team note
+  // team note (ראש צוות / אפרת) — bigger font, RED neon blink when filled
   if(isTeamLead3||isMgrView){
     const tNote=deptSchedNote?.team_note||'';
     const submitted3=deptSchedNote?.team_submitted||false;
+    const hasNote=!!(tNote&&tNote.trim());
+    const neonBorder=hasNote?'2.5px solid #ff003c':'1.5px solid #e2e8f0';
+    const neonAnim=hasNote?'animation:noteNeonBlink 1.4s ease-in-out infinite;':'';
     noteHtml+=`<div style="flex:1;min-width:200px">
-      <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:6px">📝 הערה${isMgrView&&!isTeamLead3?' — '+(deptSchedNote?.team_lead_name||employees.find(e=>e.department_id===activeDeptId&&e.role==='team_lead')?.full_name||'ראש צוות'):' — '+(currentEmp?.full_name||'ראש צוות')}</div>
+      <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:6px">📝 הערה${isMgrView&&!isTeamLead3?' — '+(deptSchedNote?.team_lead_name||employees.find(e=>e.department_id===activeDeptId&&e.role==='team_lead')?.full_name||'ראש צוות'):' — '+(currentEmp?.full_name||'ראש צוות')}</div>
       ${isTeamLead3?
-        `<textarea id="team-note-ta" rows="3" placeholder="הערה לסידור..." style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:13px;outline:none;resize:vertical">${tNote}</textarea>
+        `<textarea id="team-note-ta" rows="3" placeholder="הערה לסידור..." style="width:100%;padding:10px 12px;border:${neonBorder};border-radius:8px;font-family:inherit;font-size:18px;font-weight:600;line-height:1.5;outline:none;resize:vertical;${neonAnim}">${tNote}</textarea>
          <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
            <button onclick="saveTeamNote('${activeDeptId}')" style="background:#0f172a;color:white;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">שמור</button>
            <button onclick="teamSubmit()" style="background:${submitted3?'#059669':'#be123c'};color:white;border:2px solid ${submitted3?'#059669':'#ff003c'};border-radius:20px;padding:6px 18px;font-size:12px;font-weight:900;cursor:pointer;font-family:inherit;box-shadow:0 0 12px ${submitted3?'#05966988':'#ff003c88'};letter-spacing:1px;animation:${submitted3?'none':'onair 1.4s ease-in-out infinite'}">${submitted3?'✓ סיימתי סידור':'סיימתי סידור'}</button>
          </div>` :
-        `<div style="background:#f8fafc;border-radius:8px;padding:10px;font-size:13px;color:${tNote?'#0f172a':'#94a3b8'};min-height:40px">${tNote||'אין הערה'}</div>`
+        `<div style="background:#f8fafc;border-radius:8px;padding:14px;font-size:18px;font-weight:600;line-height:1.5;color:${hasNote?'#0f172a':'#94a3b8'};min-height:60px;border:${neonBorder};${neonAnim}">${tNote||'אין הערה'}</div>`
       }
     </div>`;
   }
+  // manager note removed per user request
 
-
-  // manager note (visible to team_lead too after submission)
-  if(isMgrView||(isTeamLead3&&deptSchedNote?.manager_note)){
-    const mNote=deptSchedNote?.manager_note||'';
-    noteHtml+=`<div style="flex:1;min-width:200px">
-      <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:6px">💬 הערת מנהל</div>
-      ${isMgrView?
-        `<textarea id="mgr-note-ta" rows="3" placeholder="הערה לראש הצוות..." style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:13px;outline:none;resize:vertical">${mNote}</textarea>
-         <button onclick="saveMgrNote('${activeDeptId}')" style="margin-top:6px;background:#0f172a;color:white;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">שמור</button>` :
-        `<div style="background:#eff6ff;border-radius:8px;padding:10px;font-size:13px;color:${mNote?'#1e40af':'#94a3b8'};min-height:40px">${mNote||'אין הערה'}</div>`
-      }
-    </div>`;
-  }
 
   // manager: approve or return buttons
   if(isMgrView&&deptSchedNote?.team_submitted&&deptSchedNote?.status!=='approved'){
@@ -4173,8 +4171,7 @@ function renderSchedule(){
     statDiv.style.cssText='background:white;border-radius:14px;padding:16px 20px;box-shadow:0 1px 8px rgba(0,0,0,0.07);margin-top:14px';
     const deptEmpsForStats=employees.filter(e=>e.department_id===activeDeptId);
     const deptSchedForStats=schedules[activeDeptId];
-    let statsHtml='<div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:10px">📊 סטטיסטיקות עובדים — '+departments.find(d=>d.id===activeDeptId)?.name+'</div>';
-    statsHtml+='<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">';
+    let statsHtml='<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">';
     deptEmpsForStats.forEach(emp=>{
       const cnt=countEmpShifts(emp.full_name,activeDeptId);
       const req=Math.round((emp.position_percent/100)*5);
@@ -4942,10 +4939,26 @@ async function addDept(){
   renderSettings();renderDeptTabs();
 }
 async function delDept(id){
-  if(!confirm('למחוק מחלקה זו?'))return;
-  await sb.from('departments').delete().eq('id',id);
-  await loadAll();if(activeDeptId===id)activeDeptId=departments[0]?.id||null;
-  renderSettings();renderDeptTabs();renderSchedule();
+  const dept=departments.find(d=>d.id===id);
+  if(!dept)return;
+  if(!confirm(`למחוק את מחלקת "${dept.name}"?\n\nשים לב: כל העובדים, הפרילנסרים, הסידורים והבקשות הקשורים למחלקה זו יימחקו גם הם.`))return;
+  try{
+    await sb.from('freelancers').delete().eq('department_id',id);
+    await sb.from('employees').update({department_id:null}).eq('department_id',id);
+    await sb.from('schedules').delete().eq('department_id',id);
+    try{ await sb.from('shift_roles').delete().eq('department_id',id); }catch(_){}
+    try{ await sb.from('requests').delete().eq('department_id',id); }catch(_){}
+    const {error}=await sb.from('departments').delete().eq('id',id);
+    if(error){
+      alert('לא ניתן למחוק את המחלקה.\n\nשגיאה: '+error.message+'\n\nייתכן שיש רשומות נוספות שמקושרות למחלקה.');
+      return;
+    }
+    await loadAll();
+    if(activeDeptId===id)activeDeptId=departments[0]?.id||null;
+    renderSettings();renderDeptTabs();renderSchedule();
+  }catch(e){
+    alert('שגיאה במחיקת המחלקה: '+(e.message||e));
+  }
 }
 async function addShiftType(){
   const n=document.getElementById('ns-nm').value.trim(),t=document.getElementById('ns-tm').value.trim(),c=document.getElementById('ns-cl').value;
@@ -5257,6 +5270,8 @@ async function loadDB() {
       createdAt:n.created_at
     }));
   } catch(e) { console.warn('loadDB error',e); }
+  // עדכון אוטומטי של הבאדג' בכל טעינה של DB
+  if(typeof updateVacBadge==='function') updateVacBadge();
 }
 
 async function saveDB() {
@@ -5345,15 +5360,20 @@ async function enterApp(adminMode=false,viewerMode=false){
   const rBtn=document.querySelector('[data-tab="tab-request"]');
   rBtn.style.opacity='';rBtn.style.pointerEvents='';
   if(isAdmin){
-    document.getElementById('header-name').textContent='🔧 מנהל על';
-    document.getElementById('header-dept').textContent='ניהול';
+    const isEfratAdmin = window._mgrType==='secondary';
+    document.getElementById('header-name').textContent=isEfratAdmin?'אפרת':'🔧 מנהל על';
+    document.getElementById('header-dept').textContent=isEfratAdmin?'מנהלת משנית':'ניהול';
     // Hide employee-only tabs
     document.querySelector('[data-tab="tab-request"]').style.display='none';
     document.querySelector('[data-tab="tab-calendar"]').style.display='none';
-    // Show 3 admin tabs
+    // Show admin tabs - and for Efrat also rep tab
     ['tab-admin-cal-btn','tab-admin-req-btn'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='flex';});
+    if(isEfratAdmin){
+      const rep=document.getElementById('tab-rep-btn');
+      if(rep) rep.style.display='flex';
+    }
     renderAdminTab();showTab('tab-admin-cal',document.getElementById('tab-admin-cal-btn'));
-    setTimeout(()=>checkVacAlerts(),800);
+    setTimeout(()=>{ checkVacAlerts(); if(typeof updateVacBadge==="function") updateVacBadge(); },800);
     initVacRealtime();
   } else if(isViewer){
     document.getElementById('header-name').textContent=currentUser?currentUser.name:'צופה';
@@ -5373,7 +5393,7 @@ async function enterApp(adminMode=false,viewerMode=false){
     
     showTab('tab-request',document.querySelector('[data-tab="tab-request"]'));
     renderDeptCalendar();
-    setTimeout(()=>checkVacAlerts(),800);
+    setTimeout(()=>{ checkVacAlerts(); if(typeof updateVacBadge==="function") updateVacBadge(); },800);
     initVacRealtime();
   }
 }
@@ -5634,23 +5654,50 @@ async function cancelRequest(reqId){
 
 // Rep tab
 function renderRepTab(){
-  if(!currentUser)return;
-  const myEmail=(currentUser.email||currentUser.id||'').toLowerCase();
-  const myDepts=Object.entries(DB.deptReps).filter(([d,email])=>email.toLowerCase()===myEmail).map(([d])=>d);
   const list=document.getElementById('rep-requests-list');
+  if(!list) return;
+  
+  // אפרת נכנסת כ-admin עם _mgrType='secondary' - תהיה נציגה של ניתוב + ע.במאי
+  const isEfrat = (typeof isAdmin!=='undefined' && isAdmin && window._mgrType==='secondary');
+  
+  let myDepts=[];
+  let myEmail='';
+  let myUserId='';
+  
+  if(isEfrat){
+    // אפרת - המחלקות שלה הן ניתוב וע.במאי
+    myDepts = (window.departments||[])
+      .filter(d=>SECONDARY_LEAD_DEPTS.some(n=>d.name.includes(n)))
+      .map(d=>d.name);
+    myEmail='efratn@kan.org.il';
+  } else {
+    if(!currentUser)return;
+    myEmail=(currentUser.email||currentUser.id||'').toLowerCase();
+    myUserId=currentUser.id||'';
+    myDepts=Object.entries(DB.deptReps).filter(([d,email])=>email.toLowerCase()===myEmail).map(([d])=>d);
+  }
+  
   if(!myDepts.length){list.innerHTML='<div class="empty-state"><span class="icon">💼</span><p>אינך מוגדר כנציג מחלקה</p></div>';return;}
   
   // If rep is "כללי", show ALL departments. Otherwise show only their departments.
-  const isGeneralRep = myDepts.includes('כללי');
+  const isGeneralRep = myDepts.includes('כללי') && !isEfrat;
   const repReqs = isGeneralRep 
-    ? DB.requests.filter(r=>r.userId!==currentUser.id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))
-    : DB.requests.filter(r=>myDepts.includes(r.dept)&&r.userId!==currentUser.id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    ? DB.requests.filter(r=>r.userId!==myUserId).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))
+    : DB.requests.filter(r=>{
+        const matchesDept=myDepts.some(d=>r.dept===d||normDept(r.dept)===normDept(d)||(r.dept||'').includes(d)||d.includes(r.dept||''));
+        return matchesDept && r.userId!==myUserId && (r.userId||'').toLowerCase()!==myEmail;
+      }).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   
   if(!repReqs.length){list.innerHTML='<div class="rep-intro" style="background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border:1px solid #A5D6A7"><div class="rep-intro-icon">✅</div><div><h3 style="color:#1B5E20">אין בקשות הממתינות להמלצה</h3><p style="color:#2E7D32">בקשות חדשות יופיעו כאן</p></div></div>';return;}
   
   // Show message if general rep
   list.innerHTML = '';
-  if(isGeneralRep){
+  if(isEfrat){
+    const banner = document.createElement('div');
+    banner.style.cssText='background:linear-gradient(135deg,#fff3e0,#ffe0b2);border:2px solid #ff9800;border-radius:12px;padding:15px;margin-bottom:20px;text-align:center;';
+    banner.innerHTML='<strong style="color:#e65100;font-size:16px">🎬 נציגת מחלקות ניתוב + ע.במאי — המלצה בלבד</strong>';
+    list.appendChild(banner);
+  } else if(isGeneralRep){
     const banner = document.createElement('div');
     banner.style.cssText='background:linear-gradient(135deg,#e3f2fd,#bbdefb);border:2px solid #2196f3;border-radius:12px;padding:15px;margin-bottom:20px;text-align:center;';
     banner.innerHTML='<strong style="color:#1565c0;font-size:16px">⚙️ נציג כללי - רואה בקשות מכל המחלקות</strong>';
@@ -5722,7 +5769,6 @@ async function submitRepAction(reqId, action){
 async function repAction(reqId,action,reason=''){
   const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
   try{
-    // משתמש currentUser של VacApp אם קיים, אחרת currentEmp של האפליקציה הראשית
     const actor = (typeof currentUser!=='undefined' && currentUser && currentUser.name)
       ? currentUser
       : (typeof currentEmp!=='undefined' && currentEmp ? {name:currentEmp.full_name, id:currentEmp.email} : {name:'ראש צוות', id:''});
@@ -5740,6 +5786,7 @@ async function repAction(reqId,action,reason=''){
     showToast(action==='recommended'?'👍 המלצת אישור נשמרה':'👎 המלצת דחייה נשמרה',action==='recommended'?'success':'');
     if(typeof checkNotifications==='function') checkNotifications();
     if(typeof renderRepTab==='function') renderRepTab();
+    if(typeof updateVacBadge==='function') updateVacBadge();
   }catch(e){showToast('שגיאה: '+e.message,'error');}
 }
 
@@ -5925,9 +5972,11 @@ function renderReqTable(){
         <div style="font-size:13px;color:#475569;margin-bottom:8px;background:#f8fafc;border-radius:8px;padding:6px 10px">${r.reason}</div>
         ${recBadge?`<div style="margin-bottom:8px">${recBadge}${r.recommendationReason?` <span style="font-size:12px;color:#64748b">— ${r.recommendationReason}</span>`:''}</div>`:''}
         <div style="display:flex;gap:8px">
-          <button class="action-btn btn-approve" style="flex:1" onclick="adminAction('${r.id}','approved')">✅ אשר</button>
+          ${window._mgrType==='secondary'?
+            `<div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px;text-align:center;color:#64748b;font-size:12px;font-weight:600">👁 צפייה בלבד</div>`:
+            `<button class="action-btn btn-approve" style="flex:1" onclick="adminAction('${r.id}','approved')">✅ אשר</button>
           <button class="action-btn btn-reject" style="flex:1" onclick="adminAction('${r.id}','rejected')">❌ דחה</button>
-          <button class="action-btn" style="background:#fee;color:#c00;border:1px solid #fcc;flex-shrink:0" onclick="adminDeleteRequest('${r.id}')">🗑️</button>
+          <button class="action-btn" style="background:#fee;color:#c00;border:1px solid #fcc;flex-shrink:0" onclick="adminDeleteRequest('${r.id}')">🗑️</button>`}
         </div>
       </div>`;
     }).join('');
@@ -5953,7 +6002,9 @@ function renderReqTable(){
     const[si,sl,sc]=sm[r.status]||sm.pending;
     const rec=r.recommendation?rm[r.recommendation]:null;
     const recWithReason=rec?`<span class="status-badge ${rec[2]}">${rec[0]} ${rec[1]}${r.recommendationReason?` <span style="cursor:pointer;" onclick="alert('סיבת ההמלצה:\\n${r.recommendationReason.replace(/'/g,"\\'")}')">💬</span>`:''}</span>`:'<span style="color:var(--text-light);font-size:12px">—</span>';
-    const acts=`<button class="action-btn btn-approve" onclick="adminAction('${r.id}','approved')">✅</button>
+    const acts=window._mgrType==='secondary'?
+      `<span style="color:#64748b;font-size:12px;font-weight:600;background:#f8fafc;padding:6px 10px;border-radius:6px;border:1px solid #e2e8f0">👁 צפייה</span>`:
+      `<button class="action-btn btn-approve" onclick="adminAction('${r.id}','approved')">✅</button>
       <button class="action-btn btn-reject" onclick="adminAction('${r.id}','rejected')">❌</button>
       <button class="action-btn" style="background:#fee;color:#c00;border:1px solid #fcc" onclick="adminDeleteRequest('${r.id}')">🗑️</button>`;
     return`<tr><td><strong>${r.name}</strong></td><td>${r.dept}</td><td style="font-size:13px">${fmt(r.start)}<br><span style="color:var(--text-light)">עד</span> ${fmt(r.end)}</td><td style="font-size:13px;max-width:250px;word-wrap:break-word;white-space:normal;">${r.reason}</td><td>${recWithReason}</td><td><span class="status-badge ${sc}">${si} ${sl}</span></td><td style="font-size:12px">${formatDateTime(r.createdAt)}</td><td>${acts}</td></tr>`;
@@ -5974,6 +6025,11 @@ async function adminDeleteRequest(reqId){
 }
 
 async function adminAction(reqId,action){
+  // אפרת (מנהלת משנית) לא יכולה לאשר/לדחות בקשות, רק להמליץ דרך טאב הנציג
+  if(window._mgrType==='secondary'){
+    showToast('אין לך הרשאה לאשר או לדחות בקשות. ניתן רק להמליץ דרך מסך נציג מחלקה.','error');
+    return;
+  }
   const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
   const note=document.getElementById('admin-note-'+reqId)?.value||'';
   try{
@@ -5990,6 +6046,7 @@ async function adminAction(reqId,action){
     const ccEmails=[...(repEmail?[repEmail]:[]),'efratn@kan.org.il'].filter(Boolean);
     setTimeout(()=>sendDecisionEmail(req,action,ccEmails),350);
     renderAdminTab();
+    if(typeof updateVacBadge==='function') updateVacBadge();
   }catch(e){showToast('שגיאה: '+e.message,'error');}
 }
 
@@ -6090,24 +6147,20 @@ async function adminDeleteUser(userId){
 // );
 
 async function checkVacAlerts(){
-  // המשתמש יכול להגיע מ-VacApp (currentUser) או מהאפליקציה הראשית (currentEmp)
-  // אנחנו מעדיפים את currentEmp כי הוא נטען תמיד באפליקציה הראשית.
   const ce = (typeof currentEmp!=='undefined') ? currentEmp : null;
   const isUdi   = isAdmin && window._mgrType==='primary';
   const isEfrat = isAdmin && window._mgrType==='secondary';
 
-  // קבע מי מקבל התראות ועל אילו מחלקות
-  let role=null;            // 'manager' | 'efrat' | 'team_lead' | null
-  let myDeptIds=[];         // מחלקות שעליהן מקבלים התראה
-  let myEmail='';           // לזיהוי בקשות של עצמי
-  let myId='';              // מפתח ייחודי למסך ההתראה
+  let role=null;
+  let myDeptIds=[];
+  let myEmail='';
+  let myId='';
 
   if(isUdi){
     role='manager';
     myId='udi-admin';
   } else if(isEfrat){
     role='efrat';
-    // אפרת = ראש צוות של ניתוב + ע.במאי
     myDeptIds = (window.departments||[])
       .filter(d=>SECONDARY_LEAD_DEPTS.some(n=>d.name.includes(n)))
       .map(d=>d.id);
@@ -6121,14 +6174,11 @@ async function checkVacAlerts(){
     role='manager';
     myId=ce.email||ce.id||'';
   } else {
-    // עובד רגיל / לא מזוהה - לא מקבל התראות
     return;
   }
 
-  // בקשות pending בלבד שטרם הוכרעו ולא הומלץ עליהן
   let pending = (DB.requests||[]).filter(r=>r.status==='pending');
 
-  // סנן לפי מחלקה אם רלוונטי
   if(role==='team_lead' || role==='efrat'){
     const myDeptNames = (window.departments||[])
       .filter(d=>myDeptIds.includes(d.id))
@@ -6137,19 +6187,67 @@ async function checkVacAlerts(){
       const rd = r.dept||'';
       return myDeptNames.some(n => normDept(rd)===normDept(n) || rd===n || rd.includes(n) || n.includes(rd));
     });
-    // ראש צוות / אפרת - לא מקבל בקשות של עצמו
     if(myEmail) pending = pending.filter(r=>(r.userId||'').toLowerCase()!==myEmail);
-    // לא מציגים שוב בקשות שכבר הומלץ עליהן
     pending = pending.filter(r=>!r.recommendation);
   }
 
   if(!pending.length) return;
 
-  const isRepView = (role==='team_lead' || role==='efrat'); // הם רואים כפתורי המלצה
+  const isRepView = (role==='team_lead' || role==='efrat');
   showVacAlert(pending, myId, isRepView, role==='manager');
 }
 
 let _vacAlertQueue=[], _vacAlertIdx=0;
+
+// ═══ VAC BADGE — מציג ספירה של בקשות חדשות על הכפתור בהאב ═══
+async function updateVacBadge(){
+  const badge=document.getElementById('vac-hub-badge');
+  if(!badge) return;
+  
+  const ce=(typeof currentEmp!=='undefined') ? currentEmp : null;
+  const isUdi   = isAdmin && window._mgrType==='primary';
+  const isEfrat = isAdmin && window._mgrType==='secondary';
+  
+  let count=0;
+  
+  if(isUdi || (ce && ce.role==='manager' && ce.id!=='manager-local')){
+    // אודי / מנהל ראשי - כל הבקשות שעוד לא אושרו / לא נדחו
+    count=(DB.requests||[]).filter(r=>r.status==='pending').length;
+  } else if(isEfrat){
+    // אפרת - בקשות במחלקות ניתוב + ע.במאי שעוד לא הומלצו
+    const myDeptNames=(window.departments||[])
+      .filter(d=>SECONDARY_LEAD_DEPTS.some(n=>d.name.includes(n)))
+      .map(d=>d.name);
+    count=(DB.requests||[]).filter(r=>{
+      if(r.status!=='pending') return false;
+      if(r.recommendation) return false;
+      const rd=r.dept||'';
+      return myDeptNames.some(n=>normDept(rd)===normDept(n)||rd===n||rd.includes(n)||n.includes(rd));
+    }).length;
+  } else if(ce && ce.role==='team_lead' && ce.department_id){
+    // ראש צוות - בקשות במחלקה שלו, לא של עצמו, שעוד לא הומלצו
+    const myDept=(window.departments||[]).find(d=>d.id===ce.department_id);
+    const myDeptName=myDept?myDept.name:'';
+    const myEmail=(ce.email||'').toLowerCase();
+    count=(DB.requests||[]).filter(r=>{
+      if(r.status!=='pending') return false;
+      if(r.recommendation) return false;
+      if((r.userId||'').toLowerCase()===myEmail) return false;
+      const rd=r.dept||'';
+      return normDept(rd)===normDept(myDeptName)||rd===myDeptName||rd.includes(myDeptName)||myDeptName.includes(rd);
+    }).length;
+  } else {
+    // עובד רגיל - אין באדג'
+    count=0;
+  }
+  
+  if(count>0){
+    badge.textContent='('+(count===1?'בקשה 1 חדשה':count+' בקשות חדשות')+')';
+    badge.style.display='block';
+  } else {
+    badge.style.display='none';
+  }
+}
 
 function showVacAlert(requests, myId, isRep, isManager){
   _vacAlertQueue=requests; _vacAlertIdx=0;
@@ -6202,12 +6300,10 @@ function showVacAlertItem(myId, isRep, isManager){
     bGo.onclick=()=>{
       markAlertSeen(req.id, myId, isRep, isManager);
       setTimeout(()=>{
-        // אם אנחנו באפליקציה הראשית — נווט לטאב חופשות
         const navVac=document.getElementById('nav-vacation');
         if(navVac && navVac.style.display!=='none' && typeof showView==='function'){
           showView('vacation');
         }
-        // אם פנימה ב-VacApp - נסה ללחוץ על טאב נציג
         const btn=document.getElementById('tab-rep-btn');
         if(btn && btn.style.display!=='none') btn.click();
       },400);
@@ -6265,7 +6361,7 @@ function initVacRealtime(){
       // טען מחדש ובדוק אם יש התראה
       await loadDB();
       // המתן רגע קצר כדי לא לחפוף עם toast של שולח הבקשה
-      setTimeout(()=>checkVacAlerts(),600);
+      setTimeout(()=>{ checkVacAlerts(); if(typeof updateVacBadge==="function") updateVacBadge(); },600);
     })
     .subscribe();
 }
@@ -7834,7 +7930,7 @@ async function lozRenderRole(){
     const ov=document.getElementById('preview-overlay');
     if(ov && !ov.classList.contains('open')) ov.classList.remove('open');
     const pvPub=document.getElementById('pv-publish-btn');
-    if(pvPub) pvPub.style.display='';
+    if(pvPub) pvPub.style.display='none';
     const nvw=document.getElementById('loz-viewer-nav-wrap');
     if(nvw) nvw.style.display='none';
     const ep=document.getElementById('loz-editors-panel');
@@ -7849,7 +7945,7 @@ async function lozRenderRole(){
     printDay();
     setTimeout(()=>{
       const pubBtn=document.getElementById('pv-publish-btn');
-      if(pubBtn) pubBtn.style.display='';
+      if(pubBtn) pubBtn.style.display='none';
       const nvw=document.getElementById('loz-viewer-nav-wrap');
       if(nvw) nvw.style.display='flex';
       // כפתורי עריכה + פרסום למנהל בתצוגה מקדימה
