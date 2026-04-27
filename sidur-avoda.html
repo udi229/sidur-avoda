@@ -3435,6 +3435,15 @@ async function saveTeamNote(dId){
     await sb.from('schedules').update({team_note:note}).eq('id',sched.id);
     // Update local
     if(schedules[dId]) schedules[dId].team_note=note;
+    // החל אפקט ניאון אדום מיד אם יש תוכן, או הסר אם ההערה ריקה
+    const hasNote=!!(note&&note.trim());
+    if(hasNote){
+      ta.style.border='2.5px solid #ff003c';
+      ta.style.animation='noteNeonBlink 1.4s ease-in-out infinite';
+    } else {
+      ta.style.border='1.5px solid #e2e8f0';
+      ta.style.animation='';
+    }
     // Show ✓ on button
     if(btn){ const orig=btn.textContent; btn.textContent='✓ נשמר'; btn.style.background='#16a34a'; setTimeout(()=>{ btn.textContent=orig; btn.style.background='#0f172a'; },2000); }
   }catch(e){ if(btn){ btn.textContent='שגיאה'; btn.style.background='#dc2626'; setTimeout(()=>{ btn.textContent='שמור'; btn.style.background='#0f172a'; },2000); } }
@@ -4132,12 +4141,12 @@ function renderSchedule(){
     noteHtml+=`<div style="flex:1;min-width:200px">
       <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:6px">📝 הערה${isMgrView&&!isTeamLead3?' — '+(deptSchedNote?.team_lead_name||employees.find(e=>e.department_id===activeDeptId&&e.role==='team_lead')?.full_name||'ראש צוות'):' — '+(currentEmp?.full_name||'ראש צוות')}</div>
       ${isTeamLead3?
-        `<textarea id="team-note-ta" rows="3" placeholder="הערה לסידור..." style="width:100%;padding:10px 12px;border:${neonBorder};border-radius:8px;font-family:inherit;font-size:18px;font-weight:600;line-height:1.5;outline:none;resize:vertical;${neonAnim}">${tNote}</textarea>
+        `<textarea id="team-note-ta" rows="3" placeholder="הערה לסידור..." style="width:100%;padding:10px 12px;border:${neonBorder};border-radius:8px;font-family:inherit;font-size:18px;font-weight:600;line-height:1.5;outline:none;resize:vertical;text-align:center;${neonAnim}">${tNote}</textarea>
          <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
            <button onclick="saveTeamNote('${activeDeptId}')" style="background:#0f172a;color:white;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">שמור</button>
            <button onclick="teamSubmit()" style="background:${submitted3?'#059669':'#be123c'};color:white;border:2px solid ${submitted3?'#059669':'#ff003c'};border-radius:20px;padding:6px 18px;font-size:12px;font-weight:900;cursor:pointer;font-family:inherit;box-shadow:0 0 12px ${submitted3?'#05966988':'#ff003c88'};letter-spacing:1px;animation:${submitted3?'none':'onair 1.4s ease-in-out infinite'}">${submitted3?'✓ סיימתי סידור':'סיימתי סידור'}</button>
          </div>` :
-        `<div style="background:#f8fafc;border-radius:8px;padding:14px;font-size:18px;font-weight:600;line-height:1.5;color:${hasNote?'#0f172a':'#94a3b8'};min-height:60px;border:${neonBorder};${neonAnim}">${tNote||'אין הערה'}</div>`
+        `<div style="background:#f8fafc;border-radius:8px;padding:14px;font-size:18px;font-weight:600;line-height:1.5;color:${hasNote?'#0f172a':'#94a3b8'};min-height:60px;border:${neonBorder};text-align:center;${neonAnim}">${tNote||'אין הערה'}</div>`
       }
     </div>`;
   }
