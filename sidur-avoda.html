@@ -2354,13 +2354,16 @@ function enterMgr(label='מנהל',type='primary'){
     if(myShiftsBtn) myShiftsBtn.style.display='none';
     updateWeekUI();renderDeptTabs();renderSchedule();renderOnlineList();
     if(typeof window.startPolling==='function') window.startPolling();
-    // התראת חופשה פעם אחת בכניסה למנהל
-    if(!window._vacMgrAlertShown){
-      window._vacMgrAlertShown=true;
-      if(typeof loadDB==='function' && typeof checkVacAlerts==='function'){
-        await loadDB();
-        initVacRealtime();
-        setTimeout(()=>checkVacAlerts(), 1000);
+    // התראת חופשה ועדכון באדג' בכניסה למנהל
+    if(typeof loadDB==='function'){
+      await loadDB();
+      if(typeof initVacRealtime==='function') initVacRealtime();
+      // עדכון מיידי של הבאדג' עכשיו ש-departments טעון
+      if(typeof updateVacBadge==='function') updateVacBadge();
+      // הצגת התראה - פעם אחת בלבד
+      if(!window._vacMgrAlertShown){
+        window._vacMgrAlertShown=true;
+        if(typeof checkVacAlerts==='function') setTimeout(()=>checkVacAlerts(), 1000);
       }
     }
   });
@@ -2502,8 +2505,15 @@ async function initApp(user){
       if(typeof loadDB==='function' && typeof checkVacAlerts==='function'){
         await loadDB();
         initVacRealtime();
+        if(typeof updateVacBadge==='function') updateVacBadge();
         checkVacAlerts();
       }
+    }, 1200);
+  } else if(currentEmp){
+    // עובד רגיל - הסתר את הבאדג' אם קיים
+    setTimeout(()=>{
+      const _vb=document.getElementById('vac-hub-badge');
+      if(_vb) _vb.style.display='none';
     }, 1200);
   }
   // Track login
@@ -4948,10 +4958,26 @@ async function addDept(){
   renderSettings();renderDeptTabs();
 }
 async function delDept(id){
-  if(!confirm('למחוק מחלקה זו?'))return;
-  await sb.from('departments').delete().eq('id',id);
-  await loadAll();if(activeDeptId===id)activeDeptId=departments[0]?.id||null;
-  renderSettings();renderDeptTabs();renderSchedule();
+  const dept=departments.find(d=>d.id===id);
+  if(!dept)return;
+  if(!confirm(`למחוק את מחלקת "${dept.name}"?\n\nשים לב: כל העובדים, הפרילנסרים, הסידורים והבקשות הקשורים למחלקה זו יימחקו גם הם.`))return;
+  try{
+    await sb.from('freelancers').delete().eq('department_id',id);
+    await sb.from('employees').update({department_id:null}).eq('department_id',id);
+    await sb.from('schedules').delete().eq('department_id',id);
+    try{ await sb.from('shift_roles').delete().eq('department_id',id); }catch(_){}
+    try{ await sb.from('requests').delete().eq('department_id',id); }catch(_){}
+    const {error}=await sb.from('departments').delete().eq('id',id);
+    if(error){
+      alert('לא ניתן למחוק את המחלקה.\n\nשגיאה: '+error.message+'\n\nייתכן שיש רשומות נוספות שמקושרות למחלקה.');
+      return;
+    }
+    await loadAll();
+    if(activeDeptId===id)activeDeptId=departments[0]?.id||null;
+    renderSettings();renderDeptTabs();renderSchedule();
+  }catch(e){
+    alert('שגיאה במחיקת המחלקה: '+(e.message||e));
+  }
 }
 async function addShiftType(){
   const n=document.getElementById('ns-nm').value.trim(),t=document.getElementById('ns-tm').value.trim(),c=document.getElementById('ns-cl').value;
@@ -8502,6 +8528,43 @@ function closeContactView(){
 window.addEventListener('DOMContentLoaded', ()=>{
   initSplash();
   setTimeout(loadDeptSel, 300);
+  
+  // ═══ VAC BADGE — מעקב אחרי כל פתיחה של ה-Hub וריענון תקופתי ═══
+  setTimeout(()=>{
+    const hubScreen=document.getElementById('hub-screen');
+    if(!hubScreen) return;
+    
+    const refreshBadge=async()=>{
+      if(!hubScreen.classList.contains('active')) return;
+      if(typeof loadDB==='function' && typeof updateVacBadge==='function'){
+        try{ await loadDB(); }catch(_){}
+        updateVacBadge();
+        if(typeof initVacRealtime==='function') initVacRealtime();
+      }
+    };
+    
+    // עדכון בכל פעם שה-Hub הופך פעיל (גם בחזרה מסידור/חופשות/לוז)
+    const observer=new MutationObserver(muts=>{
+      for(const m of muts){
+        if(m.attributeName==='class' && hubScreen.classList.contains('active')){
+          // ריענון מיידי + retry אחרי שנייה (במקרה ש-departments עדיין לא נטען)
+          setTimeout(refreshBadge, 200);
+          setTimeout(refreshBadge, 1500);
+          setTimeout(refreshBadge, 3000);
+        }
+      }
+    });
+    observer.observe(hubScreen,{attributes:true,attributeFilter:['class']});
+    
+    // אם ה-Hub כבר פעיל בעת ההתקנה - הפעל ריענון מיד
+    if(hubScreen.classList.contains('active')){
+      setTimeout(refreshBadge, 500);
+      setTimeout(refreshBadge, 2500);
+    }
+    
+    // ריענון תקופתי כל 15 שניות אם ה-Hub פעיל
+    setInterval(refreshBadge, 15000);
+  }, 1500);
 });
 
 </script>
