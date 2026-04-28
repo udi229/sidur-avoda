@@ -5666,17 +5666,48 @@ async function cancelRequest(reqId){
 
 // Rep tab
 function renderRepTab(){
-  if(!currentUser)return;
-  const myEmail=(currentUser.email||currentUser.id||'').toLowerCase();
-  const myDepts=Object.entries(DB.deptReps).filter(([d,email])=>email.toLowerCase()===myEmail).map(([d])=>d);
   const list=document.getElementById('rep-requests-list');
+  if(!list) return;
+  
+  // זיהוי מי המשתמש הנוכחי - תומך ב-3 מקרים
+  const isEfratAdm = (typeof isAdmin!=='undefined' && isAdmin) && window._mgrType==='secondary';
+  let myEmail='';
+  let myUserId='';
+  let myDepts=[];
+  
+  if(isEfratAdm){
+    // אפרת - מחלקות ניתוב + ע.במאי
+    const SEC = (typeof SECONDARY_LEAD_DEPTS!=='undefined') ? SECONDARY_LEAD_DEPTS : ['נתב','ע.במאי'];
+    myDepts = (window.departments||[])
+      .filter(d=>SEC.some(n=>d.name.includes(n)))
+      .map(d=>d.name);
+    myEmail='efratn@kan.org.il';
+  } else if(typeof currentUser!=='undefined' && currentUser){
+    // נציג רגיל בלוח חופשות
+    myEmail=(currentUser.email||currentUser.id||'').toLowerCase();
+    myUserId=currentUser.id||'';
+    myDepts=Object.entries(DB.deptReps).filter(([d,email])=>email.toLowerCase()===myEmail).map(([d])=>d);
+  } else if(typeof currentEmp!=='undefined' && currentEmp && currentEmp.role==='team_lead'){
+    // ראש צוות שנכנס מהסידור הראשי
+    myEmail=(currentEmp.email||'').toLowerCase();
+    myUserId=currentEmp.email||currentEmp.id||'';
+    const myDept=(window.departments||[]).find(d=>d.id===currentEmp.department_id);
+    if(myDept) myDepts=[myDept.name];
+  } else {
+    list.innerHTML='<div class="empty-state"><span class="icon">💼</span><p>אינך מוגדר כנציג מחלקה</p></div>';
+    return;
+  }
+  
   if(!myDepts.length){list.innerHTML='<div class="empty-state"><span class="icon">💼</span><p>אינך מוגדר כנציג מחלקה</p></div>';return;}
   
   // If rep is "כללי", show ALL departments. Otherwise show only their departments.
-  const isGeneralRep = myDepts.includes('כללי');
+  const isGeneralRep = myDepts.includes('כללי') && !isEfratAdm;
   const repReqs = isGeneralRep 
-    ? DB.requests.filter(r=>r.userId!==currentUser.id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))
-    : DB.requests.filter(r=>myDepts.includes(r.dept)&&r.userId!==currentUser.id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    ? DB.requests.filter(r=>(r.userId||'').toLowerCase()!==myEmail).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))
+    : DB.requests.filter(r=>{
+        const matchesDept = myDepts.some(d=>r.dept===d||(typeof normDept==='function'&&normDept(r.dept)===normDept(d))||(r.dept||'').includes(d)||d.includes(r.dept||''));
+        return matchesDept && (r.userId||'').toLowerCase()!==myEmail;
+      }).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   
   if(!repReqs.length){list.innerHTML='<div class="rep-intro" style="background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border:1px solid #A5D6A7"><div class="rep-intro-icon">✅</div><div><h3 style="color:#1B5E20">אין בקשות הממתינות להמלצה</h3><p style="color:#2E7D32">בקשות חדשות יופיעו כאן</p></div></div>';return;}
   
@@ -5754,21 +5785,46 @@ async function submitRepAction(reqId, action){
 async function repAction(reqId,action,reason=''){
   const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
   try{
+    // קבלת שם הממליץ - תומך ב-3 מקרים:
+    // 1. נציג רגיל בלוח חופשות (currentUser של VacApp)
+    // 2. אפרת כ-admin (window._mgrType==='secondary')
+    // 3. ראש צוות שנכנס מהסידור הראשי (currentEmp)
+    let recName='ראש צוות';
+    try {
+      if(window._mgrType==='secondary'){
+        recName='אפרת';
+      } else if(window._mgrType==='primary'){
+        recName='אודי';
+      } else if(typeof currentUser!=='undefined' && currentUser && currentUser.name){
+        recName=currentUser.name;
+      } else if(typeof currentEmp!=='undefined' && currentEmp && currentEmp.full_name){
+        recName=currentEmp.full_name;
+      }
+    } catch(_) { recName='ראש צוות'; }
+    const recFirstName=(recName||'ראש צוות').toString().split(' ')[0];
+    const reqName=(req.name||'עובד').toString();
+    const reqDept=(req.dept||'').toString();
+    
     await sb.from('vac_requests').update({
       recommendation:action, recommendation_reason:reason,
-      recommended_by:currentUser.name.split(' ')[0]
+      recommended_by:recFirstName
     }).eq('id',reqId);
     const reasonText=reason?` (${reason})`:'';
     await sb.from('vac_notifications').insert({
       id:Date.now().toString()+'r', user_id:'admin',
-      message:`💼 נציג ${currentUser.name} ${action==='recommended'?'ממליץ לאשר':'לא ממליץ'} את בקשת ${req.name} (${req.dept})${reasonText}`,
+      message:`💼 ${recName} ${action==='recommended'?'ממליץ/ה לאשר':'לא ממליץ/ה'} את בקשת ${reqName} (${reqDept})${reasonText}`,
       type:'recommendation', read:false
     });
     await loadDB();
     showToast(action==='recommended'?'👍 המלצת אישור נשמרה':'👎 המלצת דחייה נשמרה',action==='recommended'?'success':'');
-    checkNotifications();
-    renderRepTab();
-  }catch(e){showToast('שגיאה: '+e.message,'error');}
+    try { if(typeof checkNotifications==='function') checkNotifications(); } catch(_){}
+    try { if(typeof renderRepTab==='function') renderRepTab(); } catch(_){}
+    try { if(typeof renderAdminTab==='function') renderAdminTab(); } catch(_){}
+    try { if(typeof updateVacBadge==='function') updateVacBadge(); } catch(_){}
+  }catch(e){
+    console.error('repAction error:', e);
+    showToast('שגיאה: '+e.message,'error');
+  }
 }
 
 // Calendar
@@ -5935,6 +5991,17 @@ function renderReqTable(){
   const sm={pending:['⏳','ממתין','pending'],approved:['✅','אושרה','approved'],rejected:['❌','נדחתה','rejected']};
   const rm={recommended:['👍','מומלץ','recommended'],not_recommended:['👎','לא מומלץ','not-recommended']};
   const isMobile=window.innerWidth<640;
+  
+  // אפרת רואה את כל הבקשות, אבל יכולה להמליץ רק על המחלקות שלה (ניתוב + ע.במאי)
+  const isEfrat = window._mgrType==='secondary';
+  const efratDeptNames = isEfrat ? (window.departments||[])
+    .filter(d=>{const SEC=(typeof SECONDARY_LEAD_DEPTS!=='undefined')?SECONDARY_LEAD_DEPTS:['נתב','ע.במאי'];return SEC.some(n=>d.name.includes(n));})
+    .map(d=>d.name) : [];
+  const canEfratRecommend = (reqDept) => {
+    if(!isEfrat) return false;
+    const rd=reqDept||'';
+    return efratDeptNames.some(n=>rd===n||(typeof normDept==='function'&&normDept(rd)===normDept(n))||rd.includes(n)||n.includes(rd));
+  };
 
   if(isMobile){
     // Mobile — כרטיסיות
@@ -5955,12 +6022,17 @@ function renderReqTable(){
         </div>
         <div style="font-size:13px;color:#475569;margin-bottom:6px">📅 ${fmt(r.start)} — ${fmt(r.end)}</div>
         <div style="font-size:13px;color:#475569;margin-bottom:8px;background:#f8fafc;border-radius:8px;padding:6px 10px">${r.reason}</div>
-        ${recBadge?`<div style="margin-bottom:8px">${recBadge}${r.recommendationReason?` <span style="font-size:12px;color:#64748b">— ${r.recommendationReason}</span>`:''}</div>`:''}
-        <div style="display:flex;gap:8px">
+        ${recBadge?`<div style="margin-bottom:8px">${recBadge}${r.recommendedBy?` <span style="font-size:12px;color:#0f172a;font-weight:700">(${r.recommendedBy})</span>`:''}${r.recommendationReason?` <span style="font-size:12px;color:#64748b">— ${r.recommendationReason}</span>`:''}</div>`:''}
+        ${isEfrat?
+          (canEfratRecommend(r.dept) && r.status==='pending'?`<div style="display:flex;gap:8px">
+            <button class="action-btn btn-recommend" style="flex:1" onclick="openRepReasonModal('${r.id}','recommended')">👍 ממליצה</button>
+            <button class="action-btn btn-not-recommend" style="flex:1" onclick="openRepReasonModal('${r.id}','not_recommended')">👎 לא ממליצה</button>
+          </div>`:`<div style="text-align:center;padding:6px;color:#64748b;font-size:12px;background:#f8fafc;border-radius:8px">👁 צפייה בלבד</div>`)
+        :`<div style="display:flex;gap:8px">
           <button class="action-btn btn-approve" style="flex:1" onclick="adminAction('${r.id}','approved')">✅ אשר</button>
           <button class="action-btn btn-reject" style="flex:1" onclick="adminAction('${r.id}','rejected')">❌ דחה</button>
           <button class="action-btn" style="background:#fee;color:#c00;border:1px solid #fcc;flex-shrink:0" onclick="adminDeleteRequest('${r.id}')">🗑️</button>
-        </div>
+        </div>`}
       </div>`;
     }).join('');
     // Replace table with cards div
@@ -5984,8 +6056,12 @@ function renderReqTable(){
   tb.innerHTML=sorted.map(r=>{
     const[si,sl,sc]=sm[r.status]||sm.pending;
     const rec=r.recommendation?rm[r.recommendation]:null;
-    const recWithReason=rec?`<span class="status-badge ${rec[2]}">${rec[0]} ${rec[1]}${r.recommendationReason?` <span style="cursor:pointer;" onclick="alert('סיבת ההמלצה:\\n${r.recommendationReason.replace(/'/g,"\\'")}')">💬</span>`:''}</span>`:'<span style="color:var(--text-light);font-size:12px">—</span>';
-    const acts=`<button class="action-btn btn-approve" onclick="adminAction('${r.id}','approved')">✅</button>
+    const recWithReason=rec?`<span class="status-badge ${rec[2]}">${rec[0]} ${rec[1]}${r.recommendationReason?` <span style="cursor:pointer;" onclick="alert('סיבת ההמלצה:\\n${r.recommendationReason.replace(/'/g,"\\'")}')">💬</span>`:''}</span>${r.recommendedBy?`<div style="font-size:11px;color:#475569;margin-top:3px;font-weight:700">— ${r.recommendedBy}</div>`:''}`:'<span style="color:var(--text-light);font-size:12px">—</span>';
+    const acts=isEfrat?
+      (canEfratRecommend(r.dept) && r.status==='pending'?`<button class="action-btn btn-recommend" onclick="openRepReasonModal('${r.id}','recommended')" title="ממליצה לאשר">👍</button>
+      <button class="action-btn btn-not-recommend" onclick="openRepReasonModal('${r.id}','not_recommended')" title="לא ממליצה">👎</button>`
+      :`<span style="color:#94a3b8;font-size:12px">👁 צפייה</span>`)
+    :`<button class="action-btn btn-approve" onclick="adminAction('${r.id}','approved')">✅</button>
       <button class="action-btn btn-reject" onclick="adminAction('${r.id}','rejected')">❌</button>
       <button class="action-btn" style="background:#fee;color:#c00;border:1px solid #fcc" onclick="adminDeleteRequest('${r.id}')">🗑️</button>`;
     return`<tr><td><strong>${r.name}</strong></td><td>${r.dept}</td><td style="font-size:13px">${fmt(r.start)}<br><span style="color:var(--text-light)">עד</span> ${fmt(r.end)}</td><td style="font-size:13px;max-width:250px;word-wrap:break-word;white-space:normal;">${r.reason}</td><td>${recWithReason}</td><td><span class="status-badge ${sc}">${si} ${sl}</span></td><td style="font-size:12px">${formatDateTime(r.createdAt)}</td><td>${acts}</td></tr>`;
@@ -6006,6 +6082,11 @@ async function adminDeleteRequest(reqId){
 }
 
 async function adminAction(reqId,action){
+  // אפרת (מנהלת משנית) לא יכולה לאשר/לדחות בקשות, רק להמליץ
+  if(window._mgrType==='secondary'){
+    showToast('אין לך הרשאה לאשר או לדחות בקשות. ניתן רק להמליץ.','error');
+    return;
+  }
   const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
   const note=document.getElementById('admin-note-'+reqId)?.value||'';
   try{
@@ -6020,9 +6101,13 @@ async function adminAction(reqId,action){
     showToast(action==='approved'?'✅ הבקשה אושרה!':'❌ הבקשה נדחתה!',action==='approved'?'success':'error');
     const repEmail=DB.deptReps[req.dept];
     const ccEmails=[...(repEmail?[repEmail]:[]),'efratn@kan.org.il'].filter(Boolean);
-    setTimeout(()=>sendDecisionEmail(req,action,ccEmails),350);
-    renderAdminTab();
-  }catch(e){showToast('שגיאה: '+e.message,'error');}
+    setTimeout(()=>{ try{ sendDecisionEmail(req,action,ccEmails); }catch(_){}},350);
+    try { renderAdminTab(); } catch(_){}
+    try { if(typeof updateVacBadge==='function') updateVacBadge(); } catch(_){}
+  }catch(e){
+    console.error('adminAction error:',e);
+    showToast('שגיאה: '+e.message,'error');
+  }
 }
 
 function renderDeptGrid(){
@@ -6339,6 +6424,13 @@ function initVacRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'vac_requests'},async(payload)=>{
       console.log('[vac-badge] realtime event:', payload?.eventType);
       await loadDB();
+      // רענן את כל המסכים הרלוונטיים שאולי פתוחים כעת
+      if(typeof renderAdminTab==='function') renderAdminTab();
+      if(typeof renderRepTab==='function') renderRepTab();
+      if(typeof renderDeptCalendar==='function') renderDeptCalendar();
+      if(typeof renderViewerCalendar==='function') renderViewerCalendar();
+      if(typeof renderMyRequests==='function') renderMyRequests();
+      if(typeof checkNotifications==='function') checkNotifications();
       if(payload?.eventType==='INSERT'){
         setTimeout(()=>checkVacAlerts(),600);
       }
