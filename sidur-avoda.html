@@ -551,6 +551,9 @@
     .cal-day .holiday-label { display:none; }
     /* תגיות עם שמות במקום נקודות - קטן ודק כדי להיכנס */
     .req-ev { font-size:8px !important; font-weight:700 !important; padding:1px 2px !important; line-height:1.1 !important; flex:0 0 100% !important; min-width:0 !important; max-width:100% !important; border-radius:2px !important; margin:0 0 1px 0 !important; overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap !important; height:auto !important; width:auto !important; }
+    /* הגדלה קלה של פונט שמות בסידור הרגיל (לא במשולב) - מובייל בלבד */
+    /* הסידור הרגיל הוא בתוך .tbl-wrap, המשולב ישירות בתוך #sched-wrap */
+    .tbl-wrap .emp-tag { font-size:15px !important; padding:4px 6px !important; }
   }
   .cal-day.today .cal-day-num { color:var(--orange); }
   .cal-event { font-size:12px; font-weight:700; padding:2px 4px; border-radius:3px; margin-bottom:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; line-height:1.3; display:inline-block; max-width:100%; }
@@ -3996,7 +3999,7 @@ function renderSchedule(){
           :isEmpHighlighted
           ?'background:#fff0f0!important;color:#ff2200!important;border:2px solid #ff2200!important;box-shadow:0 0 8px #ff220088,0 0 14px #ff220044;font-weight:900;text-shadow:0 0 6px #ff220088;'
           :'';
-        const tagFontSize = uniqueNames.length >= 2 ? '13px' : '18px';
+        const tagFontSize = uniqueNames.length >= 2 ? '14px' : '19px';
         html+=`<span class="emp-tag" data-emp="${name}" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder};font-size:${tagFontSize};${neonStyle}">
           ${firstName}
           ${ed?`<span class="remove-tag" onclick="removeName('${dept.id}','${shift.id}',${d},'${escapedName}')">×</span>`:''}
@@ -4065,7 +4068,8 @@ function renderSchedule(){
             :isEmpHighlighted2
             ?'background:#fff0f0!important;color:#ff2200!important;border:2px solid #ff2200!important;box-shadow:0 0 8px #ff220088,0 0 14px #ff220044;font-weight:900;text-shadow:0 0 6px #ff220088;'
             :'';
-          html+=`<span class="emp-tag" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder};${neonStyle2}">
+          const tagFontSize2 = (roles.length>=2 || roleNames.length>=2) ? '14px' : '19px';
+          html+=`<span class="emp-tag" style="background:${tagBg};color:${tagColor};border:1px solid ${tagBorder};font-size:${tagFontSize2};${neonStyle2}">
             ${firstName}
             ${ed?`<span class="remove-tag" onclick="removeName('${dept.id}','${roleKey}',${d},'${escapedName}')">×</span>`:''}
           </span>`;
