@@ -5191,7 +5191,6 @@ function sendDecisionEmail(req, action, ccEmails) {
   if(req.recommendedBy && req.recommendationReason) {
     recSection = `\n\n💬 המלצת ${req.recommendedBy}:\n"${req.recommendationReason}"`;
   } else if(req.recommendation) {
-    // If has recommendation but no reason
     const recText = req.recommendation === 'recommended' ? 'ממליץ לאשר' : 'לא ממליץ';
     recSection = `\n\n💬 המלצה: ${recText}`;
   }
@@ -5204,25 +5203,28 @@ function sendDecisionEmail(req, action, ccEmails) {
     ? `שלום ${req.name},\n\nשמחים לעדכן אותך כי בקשת החופשה שלך אושרה ✅\n\nפרטי הבקשה:\n━━━━━━━━━━━━━━━\n👤 שם: ${req.name}\n🏢 מחלקה: ${req.dept}\n📅 תאריך התחלה: ${fmt(req.start)}\n📅 תאריך סיום: ${fmt(req.end)}\n📝 סיבה: ${req.reason}${recSection}\n━━━━━━━━━━━━━━━\n\nחופשה נעימה!\n🎬 צוות האולפן`
     : `שלום ${req.name},\n\nלצערנו, בקשת החופשה שלך נדחתה ❌\n\nפרטי הבקשה:\n━━━━━━━━━━━━━━━\n👤 שם: ${req.name}\n🏢 מחלקה: ${req.dept}\n📅 תאריך התחלה: ${fmt(req.start)}\n📅 תאריך סיום: ${fmt(req.end)}\n📝 סיבה: ${req.reason}${recSection}\n━━━━━━━━━━━━━━━\n\nלשאלות ופניות נוספות, אנא פנה/י למנהל הישיר.\n🎬 צוות האולפן`;
   
-  // Build TO list - include employee + all CC emails
+  // נמען ראשי = המבקש
   const requesterEmail = req.email || req.userId || '';
-  let allToEmails = requesterEmail ? [requesterEmail] : [];
-  if(ccEmails && ccEmails.length > 0) {
-    allToEmails = allToEmails.concat(ccEmails);
+  // מכותבים = ראש צוות + אפרת (כמו שעבר ב-ccEmails)
+  const ccList = (ccEmails || []).filter(Boolean);
+  const ccUnique = [...new Set(ccList)].filter(e => e !== requesterEmail);
+  
+  console.log('📧 TO:', requesterEmail, 'CC:', ccUnique);
+  
+  // mailto: הפורמט הסטנדרטי - עובד בכל לקוח מייל בכל מערכת הפעלה
+  let mailto = `mailto:${encodeURIComponent(requesterEmail)}`;
+  const params = [];
+  if(ccUnique.length > 0) {
+    params.push(`cc=${encodeURIComponent(ccUnique.join(','))}`);
   }
-  // Remove duplicates and empty
-  allToEmails = [...new Set(allToEmails.filter(Boolean))];
+  params.push(`subject=${encodeURIComponent(subject)}`);
+  params.push(`body=${encodeURIComponent(body)}`);
+  mailto += '?' + params.join('&');
   
-  const toString = allToEmails.join(';');
-  console.log('📧 All TO emails:', toString);
+  console.log('📧 mailto URL length:', mailto.length);
   
-  // Build Outlook URL - put everyone in TO since CC doesn't work in deeplink
-  let outlookUrl = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(toString)}`;
-  outlookUrl += `&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  
-  console.log('📧 Final URL:', outlookUrl);
-  
-  window.open(outlookUrl, '_blank');
+  // פתיחת לקוח המייל - בדסקטופ זה ייפתח Outlook/Gmail/וכו', במובייל אפליקציית המייל
+  window.location.href = mailto;
 }
 // ============ STORAGE — Firebase Firestore ============
 // Firebase loaded via CDN in head
