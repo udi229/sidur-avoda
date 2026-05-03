@@ -9550,39 +9550,28 @@ function galRefreshHubButton(){
 
 // ---------- Open / close gallery view ----------
 function galOpen(e){
-  console.log('[gallery] galOpen called', {canView:galCanView(), permsLoaded:galPermsLoaded, currentEmp, isMgr, mgrType:window._mgrType});
+  console.log('[gallery] galOpen called', {canView:galCanView(), permsLoaded:galPermsLoaded});
   if(e) e.stopPropagation();
   if(!galCanView()){
     console.warn('[gallery] cannot view — permission denied');
     return;
   }
-  document.getElementById('hub-screen')?.classList.remove('active');
+  // Safety: if gallery not yet relocated to body, do it now
   const v = document.getElementById('view-gallery');
-  console.log('[gallery] view-gallery element:', v);
+  if(v && v.parentNode !== document.body){
+    console.log('[gallery] Relocating to body before opening');
+    document.body.appendChild(v);
+    const lb = document.getElementById('gal-lightbox');
+    if(lb && lb.parentNode !== document.body) document.body.appendChild(lb);
+    const ed = document.getElementById('gal-editor');
+    if(ed && ed.parentNode !== document.body) document.body.appendChild(ed);
+  }
   if(!v){
     alert('שגיאה: לא נמצא אלמנט view-gallery');
     return;
   }
+  document.getElementById('hub-screen')?.classList.remove('active');
   v.classList.add('active');
-  // FORCE everything visible
-  v.style.cssText = `
-    display:block !important;
-    position:fixed !important;
-    top:0 !important; left:0 !important; right:0 !important; bottom:0 !important;
-    width:100vw !important; height:100vh !important;
-    z-index:99999 !important;
-    background:radial-gradient(ellipse at center,#0a0614 0%,#02020a 70%) !important;
-    overflow-y:auto !important;
-    border:5px solid red !important;
-  `;
-  // Diagnostic: also write huge text in the middle
-  const wall = document.getElementById('gal-wall');
-  if(wall) wall.innerHTML = '<div style="color:white;font-size:3rem;text-align:center;padding:80px;">טוען גלריה...</div>';
-  
-  console.log('[gallery] view-gallery rect:', v.getBoundingClientRect());
-  console.log('[gallery] view-gallery offsetParent:', v.offsetParent);
-  console.log('[gallery] body children count:', document.body.children.length);
-  
   galLoadPrograms();
   const addBtn = document.getElementById('gal-add-prog-btn');
   if(addBtn) addBtn.classList.toggle('hidden', !galCanEdit());
@@ -10173,6 +10162,21 @@ async function galSaveMasterView(){
 // Boot: load perms when user signs in / hub appears
 // =============================================================
 (function galBoot(){
+  // FIRST: ensure gallery elements are direct children of <body>
+  // (otherwise they may be nested inside hidden parents)
+  function relocateToBody(){
+    ['view-gallery', 'gal-lightbox', 'gal-editor'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el && el.parentNode !== document.body){
+        console.log('[gallery] Relocating', id, 'from', el.parentNode?.tagName, 'to body');
+        document.body.appendChild(el);
+      }
+    });
+  }
+  document.addEventListener('DOMContentLoaded', relocateToBody);
+  // Also try immediately in case DOM is already loaded
+  if(document.readyState !== 'loading') relocateToBody();
+  
   // Load perms after main app initializes (employees etc. loaded)
   let attempts = 0;
   const tryLoad = async () => {
