@@ -1342,113 +1342,111 @@
   display:none; /* shown only when permitted */
   font-family:inherit;
   pointer-events:auto;
-  animation:hubTvWobble 2.8s ease-in-out infinite;
 }
 .hub-tv-btn.active{ display:block; }
-.hub-tv-btn:hover{
-  animation:none;
-  transform:scale(1.10);
-}
+.hub-tv-btn:hover{ transform:scale(1.08); }
 .hub-tv-btn{ transition:transform .25s cubic-bezier(.2,.9,.3,1.4); }
-
-@keyframes hubTvWobble{
-  0%, 100%   { transform:translate(0, 0) rotate(0deg); }
-  10%        { transform:translate(-1px, 1px) rotate(-0.5deg); }
-  20%        { transform:translate(1px, -1px) rotate(0.5deg); }
-  30%        { transform:translate(-1px, 0) rotate(-0.3deg); }
-  40%        { transform:translate(1px, 1px) rotate(0.3deg); }
-  50%        { transform:translate(0, -1px) rotate(0deg); }
-  60%        { transform:translate(-2px, 0) rotate(-0.6deg); }
-  70%        { transform:translate(1px, 1px) rotate(0.4deg); }
-  80%        { transform:translate(0, -1px) rotate(-0.2deg); }
-  90%        { transform:translate(-1px, 0) rotate(0.3deg); }
-}
 
 @media (max-width:600px){
   .hub-tv-btn{ bottom:16px; left:16px; }
 }
 
+/* Soft white-neon glow halo around the whole TV */
 .hub-tv-glow{
   position:absolute;
-  inset:-14px;
-  background:radial-gradient(circle, rgba(0,245,255,0.40), transparent 70%);
+  inset:-12px;
+  background:radial-gradient(circle, rgba(255,255,255,0.30), transparent 70%);
   border-radius:50%;
   z-index:-1;
-  animation:hubTvGlow 3s ease-in-out infinite;
+  animation:hubTvGlow 3.5s ease-in-out infinite;
   pointer-events:none;
 }
-@keyframes hubTvGlow{ 0%,100%{opacity:.55;} 50%{opacity:1;} }
+@keyframes hubTvGlow{ 0%,100%{opacity:.5;} 50%{opacity:.95;} }
 
-.hub-tv-antennas{
-  position:absolute;
-  top:-22px; left:50%;
-  width:54px; height:22px;
-  transform:translateX(-50%);
-  pointer-events:none;
-}
-.hub-tv-antennas::before,
-.hub-tv-antennas::after{
-  content:''; position:absolute; bottom:0;
-  width:2px; height:22px;
-  background:linear-gradient(180deg,#aaa,#444);
-  transform-origin:bottom center;
-}
-.hub-tv-antennas::before{ left:14px; transform:rotate(-25deg); }
-.hub-tv-antennas::after{ right:14px; transform:rotate(25deg); }
-.hub-tv-ant-l, .hub-tv-ant-r{
-  position:absolute; width:6px; height:6px; border-radius:50%;
-  background:#bbb;
-  top:-21px;
-  pointer-events:none;
-}
-.hub-tv-ant-l{ left:8px; }
-.hub-tv-ant-r{ right:8px; }
+/* Antennas removed — keep selectors so existing HTML doesn't break visuals */
+.hub-tv-antennas, .hub-tv-ant-l, .hub-tv-ant-r{ display:none; }
 
+/* Body of the TV — white neon frame */
 .hub-tv-body{
   width:80px; height:60px;
-  background:linear-gradient(180deg,#2a2520 0%,#1a1612 50%,#0a0806 100%);
+  background:linear-gradient(180deg,#1a1a22 0%,#0a0a14 100%);
   border-radius:8px;
   padding:5px;
+  border:2px solid #fff;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.08),
-    0 6px 18px rgba(0,0,0,.7);
+    0 0 0 1px rgba(255,255,255,0.4),
+    0 0 12px rgba(255,255,255,0.7),
+    0 0 24px rgba(255,255,255,0.4),
+    inset 0 0 8px rgba(255,255,255,0.15);
   position:relative;
   pointer-events:none;
 }
+
+/* Screen */
 .hub-tv-screen{
   width:100%; height:100%;
   background:#000;
-  border-radius:4px;
+  border-radius:3px;
   overflow:hidden;
   position:relative;
-  box-shadow:inset 0 0 6px rgba(0,255,255,.45);
   pointer-events:none;
 }
+
+/* Content inside screen — soft glow that fades in/out (the "blink") */
 .hub-tv-screen-content{
   position:absolute; inset:0;
-  background:
-    repeating-linear-gradient(0deg, rgba(0,0,0,.3) 0, rgba(0,0,0,.3) 1px, transparent 1px, transparent 2px),
-    linear-gradient(180deg,#ff00cc 0%,#00f5ff 50%,#ffd60a 100%);
-  animation:hubTvFlicker 3s infinite;
+  background:radial-gradient(ellipse at center,
+    rgba(255,255,255,0.85) 0%,
+    rgba(220,240,255,0.55) 25%,
+    rgba(150,200,255,0.20) 50%,
+    rgba(0,0,0,0) 80%);
+  animation:hubTvBlink 4s ease-in-out infinite;
   pointer-events:none;
+  mix-blend-mode:screen;
 }
-@keyframes hubTvFlicker{
-  0%,90%,100%{ opacity:.85; }
-  91%{ opacity:.5; }
-  92%{ opacity:.9; }
+@keyframes hubTvBlink{
+  0%   { opacity:0; }
+  35%  { opacity:0; }     /* off */
+  50%  { opacity:1; }     /* fully lit */
+  65%  { opacity:1; }
+  100% { opacity:0; }     /* fading out */
 }
+
+/* Subtle scanlines on the screen for CRT feel */
+.hub-tv-screen::after{
+  content:'';
+  position:absolute; inset:0;
+  background:repeating-linear-gradient(0deg,
+    rgba(0,0,0,0.35) 0px, rgba(0,0,0,0.35) 1px,
+    transparent 1px, transparent 2px);
+  pointer-events:none;
+  z-index:2;
+}
+
+/* Label "פריימים" — white neon */
 .hub-tv-label{
   position:absolute;
   bottom:calc(100% + 18px);
   left:50%;
   transform:translateX(-50%);
-  font-size:13px; color:#00f5ff;
-  text-shadow:0 0 8px #00f5ff;
+  font-size:13px;
+  color:#fff;
+  text-shadow:
+    0 0 4px #fff,
+    0 0 8px #fff,
+    0 0 14px rgba(255,255,255,0.8),
+    0 0 22px rgba(255,255,255,0.5);
   font-family:'Courier New',monospace;
   letter-spacing:2px;
   white-space:nowrap;
   font-weight:700;
   pointer-events:none;
+  animation:hubLabelFlicker 5s ease-in-out infinite;
+}
+@keyframes hubLabelFlicker{
+  0%, 92%, 100% { opacity:1; }
+  93%           { opacity:0.55; }
+  94%           { opacity:1; }
 }
 
 /* ============== GALLERY: full-screen view ============== */
