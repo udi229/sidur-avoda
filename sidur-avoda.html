@@ -1392,8 +1392,44 @@
   pointer-events:none;
 }
 
-/* Content inside screen — soft glow that fades in/out (the "blink") */
+/* Slot where the dynamic image stack lives */
 .hub-tv-screen-content{
+  position:absolute; inset:0;
+  pointer-events:none;
+}
+
+/* Each program cover sits stacked; only the one with .visible shows */
+.hub-tv-frame{
+  position:absolute; inset:0;
+  background-size:cover;
+  background-position:center;
+  opacity:0;
+  transition:opacity 0.5s ease;
+}
+.hub-tv-frame.visible{ opacity:1; }
+
+/* "Power off" overlay between frames — shrinks to a horizontal line then dot */
+.hub-tv-poweroff{
+  position:absolute; inset:0;
+  background:#000;
+  z-index:5;
+  opacity:0;
+  pointer-events:none;
+}
+.hub-tv-poweroff.flashing{
+  animation:hubTvPowerOff 0.6s ease-in-out forwards;
+}
+@keyframes hubTvPowerOff{
+  /* CRT shutdown: fade in black, collapse vertically to a line, then to a dot */
+  0%   { opacity:0; transform:scaleY(1) scaleX(1); background:#000; }
+  20%  { opacity:1; transform:scaleY(1) scaleX(1); background:#000; }
+  60%  { opacity:1; transform:scaleY(0.04) scaleX(1); background:#fff; }
+  85%  { opacity:1; transform:scaleY(0.04) scaleX(0.04); background:#fff; }
+  100% { opacity:1; transform:scaleY(0.04) scaleX(0); background:#fff; }
+}
+
+/* Empty/idle state — soft white pulse like before */
+.hub-tv-idle{
   position:absolute; inset:0;
   background:radial-gradient(ellipse at center,
     rgba(255,255,255,0.85) 0%,
@@ -1401,15 +1437,14 @@
     rgba(150,200,255,0.20) 50%,
     rgba(0,0,0,0) 80%);
   animation:hubTvBlink 4s ease-in-out infinite;
-  pointer-events:none;
   mix-blend-mode:screen;
 }
 @keyframes hubTvBlink{
   0%   { opacity:0; }
-  35%  { opacity:0; }     /* off */
-  50%  { opacity:1; }     /* fully lit */
+  35%  { opacity:0; }
+  50%  { opacity:1; }
   65%  { opacity:1; }
-  100% { opacity:0; }     /* fading out */
+  100% { opacity:0; }
 }
 
 /* Subtle scanlines on the screen for CRT feel */
@@ -1420,7 +1455,7 @@
     rgba(0,0,0,0.35) 0px, rgba(0,0,0,0.35) 1px,
     transparent 1px, transparent 2px);
   pointer-events:none;
-  z-index:2;
+  z-index:6;
 }
 
 /* Label "פריימים" — white neon */
@@ -2355,12 +2390,11 @@
 
   <button class="hub-tv-btn" id="hub-gallery-btn" onclick="galOpen(event)" aria-label="פריימים">
     <div class="hub-tv-glow"></div>
-    <div class="hub-tv-antennas"></div>
-    <div class="hub-tv-ant-l"></div>
-    <div class="hub-tv-ant-r"></div>
     <div class="hub-tv-body">
       <div class="hub-tv-screen">
-        <div class="hub-tv-screen-content"></div>
+        <div class="hub-tv-screen-content" id="hub-tv-frames"></div>
+        <div class="hub-tv-idle" id="hub-tv-idle"></div>
+        <div class="hub-tv-poweroff" id="hub-tv-poweroff"></div>
       </div>
     </div>
     <div class="hub-tv-label">פריימים</div>
@@ -9911,9 +9945,102 @@ function galRefreshHubButton(){
   if(!galPermsLoaded){ btn.classList.remove('active'); return; }
   if(galCanView()){
     btn.classList.add('active');
+    galStartHubSlideshow();
   } else {
     btn.classList.remove('active');
+    galStopHubSlideshow();
   }
+}
+
+// ---------- Hub TV button: cycle through program covers ----------
+let galHubSlideTimer = null;
+let galHubCoverUrls = [];
+let galHubSlideIdx = 0;
+
+async function galLoadHubCovers(){
+  // Pull every program with a cover image, get their thumb URLs
+  try{
+    const { data: progs, error: pErr } = await sb
+      .from('gallery_programs')
+      .select('id, cover_image_id')
+      .not('cover_image_id', 'is', null);
+    if(pErr || !progs || progs.length===0){ galHubCoverUrls = []; return; }
+    const ids = progs.map(p => p.cover_image_id).filter(Boolean);
+    if(ids.length===0){ galHubCoverUrls = []; return; }
+    const { data: imgs, error: iErr } = await sb
+      .from('gallery_images')
+      .select('id, thumb_path')
+      .in('id', ids);
+    if(iErr || !imgs){ galHubCoverUrls = []; return; }
+    galHubCoverUrls = imgs.map(im =>
+      sb.storage.from('gallery-images').getPublicUrl(im.thumb_path).data.publicUrl
+    );
+  }catch(err){
+    console.error('[gallery] load hub covers failed:', err);
+    galHubCoverUrls = [];
+  }
+}
+
+async function galStartHubSlideshow(){
+  // Already running? Don't double-start.
+  if(galHubSlideTimer) return;
+  await galLoadHubCovers();
+  const idleEl = document.getElementById('hub-tv-idle');
+  const framesEl = document.getElementById('hub-tv-frames');
+  if(!framesEl) return;
+  // No covers? Keep the idle pulse (which is already in the DOM).
+  if(galHubCoverUrls.length === 0){
+    if(idleEl) idleEl.style.display = '';
+    framesEl.innerHTML = '';
+    return;
+  }
+  // Hide idle, render frames stacked
+  if(idleEl) idleEl.style.display = 'none';
+  framesEl.innerHTML = '';
+  galHubCoverUrls.forEach((url, i) => {
+    const f = document.createElement('div');
+    f.className = 'hub-tv-frame' + (i === 0 ? ' visible' : '');
+    f.style.backgroundImage = `url('${url}')`;
+    framesEl.appendChild(f);
+  });
+  galHubSlideIdx = 0;
+  // Start the cycle
+  galHubSlideTimer = setInterval(galHubAdvanceSlide, 2000);
+}
+
+function galStopHubSlideshow(){
+  if(galHubSlideTimer){ clearInterval(galHubSlideTimer); galHubSlideTimer = null; }
+}
+
+function galHubAdvanceSlide(){
+  const framesEl = document.getElementById('hub-tv-frames');
+  const power = document.getElementById('hub-tv-poweroff');
+  if(!framesEl || galHubCoverUrls.length === 0) return;
+  const frames = framesEl.querySelectorAll('.hub-tv-frame');
+  if(frames.length === 0) return;
+  // Trigger CRT power-off animation
+  if(power){
+    power.classList.remove('flashing');
+    // force reflow so the animation restarts
+    void power.offsetWidth;
+    power.classList.add('flashing');
+  }
+  // Halfway through the power-off (around 350ms in), swap the frame
+  setTimeout(() => {
+    frames.forEach(f => f.classList.remove('visible'));
+    galHubSlideIdx = (galHubSlideIdx + 1) % frames.length;
+    frames[galHubSlideIdx].classList.add('visible');
+  }, 380);
+  // Clear the power-off overlay after it finishes
+  setTimeout(() => {
+    if(power) power.classList.remove('flashing');
+  }, 650);
+}
+
+// Refresh slideshow whenever programs or covers change
+function galRefreshHubSlideshow(){
+  galStopHubSlideshow();
+  if(galCanView()) galStartHubSlideshow();
 }
 
 // ---------- Open / close gallery view ----------
@@ -10188,6 +10315,7 @@ async function galDeleteProgram(programId){
     if(error) throw error;
     galPrograms = galPrograms.filter(x => x.id !== programId);
     galRenderWall();
+    galRefreshHubSlideshow();
   }catch(err){
     alert('שגיאה במחיקה: '+err.message);
   }
@@ -10593,6 +10721,7 @@ async function galSaveEditor(){
 
     galCloseEditor();
     await galLoadPrograms();
+    galRefreshHubSlideshow();
   }catch(err){
     alert('שגיאה בשמירה: '+err.message);
   }
