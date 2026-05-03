@@ -9579,25 +9579,39 @@ async function galLoadPrograms(){
   const wall = document.getElementById('gal-wall');
   wall.innerHTML = '<div class="gal-empty">טוען גלריה...</div>';
   try{
+    console.log('[gallery] Loading programs from Supabase...');
     const { data: progs, error: pErr } = await sb
       .from('gallery_programs')
       .select('*')
       .order('sort_order',{ascending:true})
       .order('created_at',{ascending:true});
-    if(pErr) throw pErr;
+    if(pErr){
+      console.error('[gallery] gallery_programs error:', pErr);
+      throw new Error('טבלת gallery_programs: ' + pErr.message);
+    }
+    console.log('[gallery] Programs loaded:', progs?.length || 0);
 
     const { data: imgs, error: iErr } = await sb
       .from('gallery_images')
       .select('*')
       .order('sort_order',{ascending:true})
       .order('uploaded_at',{ascending:true});
-    if(iErr) throw iErr;
+    if(iErr){
+      console.error('[gallery] gallery_images error:', iErr);
+      throw new Error('טבלת gallery_images: ' + iErr.message);
+    }
+    console.log('[gallery] Images loaded:', imgs?.length || 0);
 
     // Resolve public URLs once
     const enrich = (img)=>{
-      const fullUrl = sb.storage.from('gallery-images').getPublicUrl(img.full_path).data.publicUrl;
-      const thumbUrl = sb.storage.from('gallery-images').getPublicUrl(img.thumb_path).data.publicUrl;
-      return { ...img, full_url: fullUrl, thumb_url: thumbUrl };
+      try {
+        const fullUrl = sb.storage.from('gallery-images').getPublicUrl(img.full_path).data.publicUrl;
+        const thumbUrl = sb.storage.from('gallery-images').getPublicUrl(img.thumb_path).data.publicUrl;
+        return { ...img, full_url: fullUrl, thumb_url: thumbUrl };
+      } catch(e){
+        console.error('[gallery] Storage URL error:', e);
+        return { ...img, full_url:'', thumb_url:'' };
+      }
     };
 
     const byProg = {};
@@ -9613,7 +9627,18 @@ async function galLoadPrograms(){
     galRenderWall();
   }catch(err){
     console.error('[gallery] load programs failed:', err);
-    wall.innerHTML = '<div class="gal-empty">שגיאה בטעינת הגלריה</div>';
+    wall.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#ff6080;font-family:'Heebo',sans-serif;">
+        <div style="font-size:1.5rem;margin-bottom:12px">⚠️ שגיאה בטעינת הגלריה</div>
+        <div style="color:#ffaa80;font-size:0.95rem;margin-bottom:8px">${galEsc(err.message || String(err))}</div>
+        <div style="color:#888;font-size:0.85rem;margin-top:20px;font-family:'Courier New',monospace">
+          פתח את הקונסול (F12) לפרטים מלאים
+        </div>
+        <button onclick="galLoadPrograms()" style="margin-top:20px;padding:10px 24px;background:#00f5ff;color:#001020;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit">
+          נסה שוב
+        </button>
+      </div>
+    `;
   }
 }
 
