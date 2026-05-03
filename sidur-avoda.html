@@ -9564,16 +9564,26 @@ function galOpen(e){
     return;
   }
   v.classList.add('active');
-  // Force visibility just in case
-  v.style.display = 'block';
-  v.style.zIndex = '99999';
-  v.style.background = 'radial-gradient(ellipse at center,#0a0614 0%,#02020a 70%)';
-  console.log('[gallery] view-gallery classes after add:', v.className);
-  console.log('[gallery] view-gallery computed display:', window.getComputedStyle(v).display);
-  console.log('[gallery] view-gallery computed z-index:', window.getComputedStyle(v).zIndex);
-  console.log('[gallery] view-gallery innerHTML length:', v.innerHTML.length);
+  // FORCE everything visible
+  v.style.cssText = `
+    display:block !important;
+    position:fixed !important;
+    top:0 !important; left:0 !important; right:0 !important; bottom:0 !important;
+    width:100vw !important; height:100vh !important;
+    z-index:99999 !important;
+    background:radial-gradient(ellipse at center,#0a0614 0%,#02020a 70%) !important;
+    overflow-y:auto !important;
+    border:5px solid red !important;
+  `;
+  // Diagnostic: also write huge text in the middle
+  const wall = document.getElementById('gal-wall');
+  if(wall) wall.innerHTML = '<div style="color:white;font-size:3rem;text-align:center;padding:80px;">טוען גלריה...</div>';
+  
+  console.log('[gallery] view-gallery rect:', v.getBoundingClientRect());
+  console.log('[gallery] view-gallery offsetParent:', v.offsetParent);
+  console.log('[gallery] body children count:', document.body.children.length);
+  
   galLoadPrograms();
-  // Toggle "+ new program" button by edit permission
   const addBtn = document.getElementById('gal-add-prog-btn');
   if(addBtn) addBtn.classList.toggle('hidden', !galCanEdit());
 }
