@@ -1605,7 +1605,7 @@
     padding:16px 12px 40px;
   }
   .crt{
-    padding:6px 6px 26px;
+    padding:6px;
     border-radius:7px;
   }
   .crt-edit-btn, .crt-del-btn{
@@ -1619,13 +1619,6 @@
   .prog-name .name{ font-size:.7rem; }
   .prog-name .meta{ font-size:.45rem; }
   .img-count{ font-size:.5rem; padding:1px 4px; top:4px; right:4px; }
-  .crt-panel{
-    bottom:4px; left:6px; right:6px;
-    padding:3px 5px;
-  }
-  .crt-knob{ width:9px; height:9px; }
-  .crt-brand{ font-size:.4rem; letter-spacing:1px; }
-  .crt-power-led{ width:4px; height:4px; }
 }
 .gal-empty{
   text-align:center;
@@ -1641,7 +1634,7 @@
   position:relative;
   background:linear-gradient(180deg,#2a2520 0%,#1a1612 50%,#0a0806 100%);
   border-radius:10px;
-  padding:10px 10px 38px;
+  padding:10px;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.08),
     inset 0 -2px 4px rgba(0,0,0,.6),
@@ -1649,8 +1642,17 @@
     0 0 0 1px rgba(255,255,255,.04);
   transition:transform .3s cubic-bezier(.2,.9,.3,1.4);
   cursor:pointer;
+  animation:crtFloat var(--float-dur, 5s) ease-in-out infinite;
+  animation-delay:var(--float-delay, 0s);
 }
-.crt:hover{ transform:translateY(-4px) scale(1.03); }
+@keyframes crtFloat{
+  0%, 100% { transform:translateY(0); }
+  50%      { transform:translateY(-6px); }
+}
+.crt:hover{
+  animation:none;
+  transform:translateY(-6px) scale(1.04);
+}
 .crt:hover .screen-glow{ opacity:.7; }
 .crt::before{
   content:''; position:absolute; inset:0; border-radius:10px;
@@ -1699,52 +1701,6 @@
 .screen-img{
   position:absolute; inset:0; width:100%; height:100%;
   object-fit:cover; z-index:1;
-  animation:tvJitter 4s steps(1) infinite, tvBrightness 3.2s ease-in-out infinite;
-}
-@keyframes tvJitter{
-  /* Tracking instability — small vertical/horizontal shifts at irregular intervals */
-  0%, 100%   { transform:translate(0, 0); }
-  17%        { transform:translate(0, -1px); }
-  18%        { transform:translate(-1px, 0); }
-  19%        { transform:translate(0, 0); }
-  43%        { transform:translate(0, 1px); }
-  44%        { transform:translate(1px, 1px); }
-  45%        { transform:translate(0, 0); }
-  72%        { transform:translate(0, -1px); }
-  73%        { transform:translate(0, 0); }
-  88%        { transform:translate(-1px, 0); }
-  89%        { transform:translate(0, 0); }
-}
-@keyframes tvBrightness{
-  /* CRT signal strength variations */
-  0%, 100% { filter:brightness(1) contrast(1); }
-  20%      { filter:brightness(1.06) contrast(1.04); }
-  40%      { filter:brightness(0.96) contrast(1.02); }
-  60%      { filter:brightness(1.02) contrast(0.98); }
-  80%      { filter:brightness(0.98) contrast(1.05); }
-}
-
-/* Roll-bar effect: a subtle horizontal band sweeping down */
-.screen-img + .screen-rollbar{
-  position:absolute;
-  left:0; right:0;
-  height:14%;
-  background:linear-gradient(180deg,
-    transparent 0%,
-    rgba(255,255,255,0.05) 40%,
-    rgba(255,255,255,0.12) 50%,
-    rgba(255,255,255,0.05) 60%,
-    transparent 100%);
-  z-index:2;
-  pointer-events:none;
-  mix-blend-mode:screen;
-  animation:rollBar 7s linear infinite;
-}
-@keyframes rollBar{
-  0%   { top:-15%; opacity:0; }
-  10%  { opacity:1; }
-  90%  { opacity:1; }
-  100% { top:115%; opacity:0; }
 }
 .screen-empty{
   position:absolute; inset:0;
@@ -10229,13 +10185,19 @@ function galRenderWall(){
       : (p.images[0] || null);
     const tv = document.createElement('div');
     tv.className = 'crt';
+    // Each TV floats with a slightly different duration (4.5–6.5s) and delay
+    // so the wall has organic, asynchronous motion instead of marching in unison.
+    const floatDur = (4.5 + (i % 5) * 0.5).toFixed(2); // 4.5, 5.0, 5.5, 6.0, 6.5, repeat
+    const floatDelay = ((i * 0.7) % 3).toFixed(2);     // 0, 0.7, 1.4, 2.1, 0.8, ...
+    tv.style.setProperty('--float-dur', floatDur + 's');
+    tv.style.setProperty('--float-delay', '-' + floatDelay + 's'); // negative = pre-offset
     tv.innerHTML = `
       <button class="crt-edit-btn ${canEdit?'show':''}" title="ערוך" data-edit="${p.id}">✎</button>
       <button class="crt-del-btn ${canEdit?'show':''}" title="מחק תוכנית" data-del="${p.id}">🗑</button>
       <div class="screen-frame">
         <div class="screen">
           ${cover
-            ? `<img class="screen-img" src="${cover.thumb_url}" alt=""><div class="screen-rollbar"></div>`
+            ? `<img class="screen-img" src="${cover.thumb_url}" alt="">`
             : `<div class="screen-empty">
                 <div class="noise"></div>
                 <div>NO SIGNAL</div>
@@ -10250,14 +10212,6 @@ function galRenderWall(){
             ${p.meta ? `<div class="meta">${galEsc(p.meta)}</div>` : ''}
           </div>
         </div>
-      </div>
-      <div class="crt-panel">
-        <div class="crt-knobs">
-          <div class="crt-knob" style="transform:rotate(${30+i*40}deg)"></div>
-          <div class="crt-knob" style="transform:rotate(${-20+i*30}deg)"></div>
-        </div>
-        <div class="crt-brand">SONY · TRINITRON</div>
-        <div class="crt-power-led"></div>
       </div>
     `;
     tv.addEventListener('click', (ev) => {
