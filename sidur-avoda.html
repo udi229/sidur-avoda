@@ -1328,6 +1328,650 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DSEG7+Classic:ital,wght@0,400;0,700&display=swap" rel="stylesheet">
+
+<style id="gallery-styles">
+/* ============== GALLERY: TV button on hub ============== */
+.hub-tv-btn{
+  position:fixed;
+  top:22%;
+  left:22%;
+  cursor:pointer;
+  z-index:9999;
+  background:none;
+  border:none;
+  padding:0;
+  display:none; /* shown only when permitted */
+  font-family:inherit;
+  pointer-events:auto;
+  animation:hubTvWobble 2.8s ease-in-out infinite;
+}
+.hub-tv-btn.active{ display:block; }
+.hub-tv-btn:hover{
+  animation:none;
+  transform:scale(1.10);
+}
+.hub-tv-btn{ transition:transform .25s cubic-bezier(.2,.9,.3,1.4); }
+
+@keyframes hubTvWobble{
+  0%, 100%   { transform:translate(0, 0) rotate(0deg); }
+  10%        { transform:translate(-1px, 1px) rotate(-0.5deg); }
+  20%        { transform:translate(1px, -1px) rotate(0.5deg); }
+  30%        { transform:translate(-1px, 0) rotate(-0.3deg); }
+  40%        { transform:translate(1px, 1px) rotate(0.3deg); }
+  50%        { transform:translate(0, -1px) rotate(0deg); }
+  60%        { transform:translate(-2px, 0) rotate(-0.6deg); }
+  70%        { transform:translate(1px, 1px) rotate(0.4deg); }
+  80%        { transform:translate(0, -1px) rotate(-0.2deg); }
+  90%        { transform:translate(-1px, 0) rotate(0.3deg); }
+}
+
+@media (max-width:600px){
+  .hub-tv-btn{ top:14px; left:14px; }
+}
+
+.hub-tv-glow{
+  position:absolute;
+  inset:-14px;
+  background:radial-gradient(circle, rgba(0,245,255,0.40), transparent 70%);
+  border-radius:50%;
+  z-index:-1;
+  animation:hubTvGlow 3s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes hubTvGlow{ 0%,100%{opacity:.55;} 50%{opacity:1;} }
+
+.hub-tv-antennas{
+  position:absolute;
+  top:-22px; left:50%;
+  width:54px; height:22px;
+  transform:translateX(-50%);
+  pointer-events:none;
+}
+.hub-tv-antennas::before,
+.hub-tv-antennas::after{
+  content:''; position:absolute; bottom:0;
+  width:2px; height:22px;
+  background:linear-gradient(180deg,#aaa,#444);
+  transform-origin:bottom center;
+}
+.hub-tv-antennas::before{ left:14px; transform:rotate(-25deg); }
+.hub-tv-antennas::after{ right:14px; transform:rotate(25deg); }
+.hub-tv-ant-l, .hub-tv-ant-r{
+  position:absolute; width:6px; height:6px; border-radius:50%;
+  background:#bbb;
+  top:-21px;
+  pointer-events:none;
+}
+.hub-tv-ant-l{ left:8px; }
+.hub-tv-ant-r{ right:8px; }
+
+.hub-tv-body{
+  width:80px; height:60px;
+  background:linear-gradient(180deg,#2a2520 0%,#1a1612 50%,#0a0806 100%);
+  border-radius:8px;
+  padding:5px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 6px 18px rgba(0,0,0,.7);
+  position:relative;
+  pointer-events:none;
+}
+.hub-tv-screen{
+  width:100%; height:100%;
+  background:#000;
+  border-radius:4px;
+  overflow:hidden;
+  position:relative;
+  box-shadow:inset 0 0 6px rgba(0,255,255,.45);
+  pointer-events:none;
+}
+.hub-tv-screen-content{
+  position:absolute; inset:0;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.3) 0, rgba(0,0,0,.3) 1px, transparent 1px, transparent 2px),
+    linear-gradient(180deg,#ff00cc 0%,#00f5ff 50%,#ffd60a 100%);
+  animation:hubTvFlicker 3s infinite;
+  pointer-events:none;
+}
+@keyframes hubTvFlicker{
+  0%,90%,100%{ opacity:.85; }
+  91%{ opacity:.5; }
+  92%{ opacity:.9; }
+}
+.hub-tv-label{
+  position:absolute; top:78px; left:50%;
+  transform:translateX(-50%);
+  font-size:13px; color:#00f5ff;
+  text-shadow:0 0 8px #00f5ff;
+  font-family:'Courier New',monospace;
+  letter-spacing:2px;
+  white-space:nowrap;
+  font-weight:700;
+  pointer-events:none;
+}
+
+/* ============== GALLERY: full-screen view ============== */
+#view-gallery{
+  display:none;
+  position:fixed; inset:0;
+  background:radial-gradient(ellipse at center,#0a0614 0%,#02020a 70%);
+  z-index:9990;
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+#view-gallery.active{ display:block; }
+#view-gallery::before{
+  content:''; position:fixed; inset:0;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,0) 0,rgba(0,0,0,0) 3px,rgba(0,0,0,.12) 3px,rgba(0,0,0,.12) 4px);
+  pointer-events:none; z-index:1; mix-blend-mode:multiply;
+}
+.gal-topbar{
+  position:sticky; top:0; z-index:10;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 20px;
+  background:linear-gradient(180deg,rgba(0,0,0,.85),rgba(0,0,0,.5));
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid rgba(0,245,255,.15);
+}
+.gal-title{
+  font-family:'Courier New',monospace;
+  font-size:1.1rem; font-weight:900; letter-spacing:5px;
+  color:#00f5ff;
+  text-shadow:0 0 8px #00f5ff,0 0 16px #00f5ff;
+}
+.gal-back{
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.2);
+  color:#fff;
+  padding:7px 14px;
+  border-radius:18px;
+  font-size:.85rem;
+  cursor:pointer;
+  font-family:inherit;
+  transition:all .2s;
+}
+.gal-back:hover{ background:rgba(255,255,255,.15); }
+.gal-add-prog{
+  background:linear-gradient(135deg,#00f5ff,#00aaff);
+  color:#001020;
+  border:none;
+  padding:7px 16px;
+  border-radius:18px;
+  font-weight:700; font-size:.85rem;
+  cursor:pointer;
+  font-family:inherit;
+  box-shadow:0 0 12px rgba(0,245,255,.5);
+  transition:all .2s;
+}
+.gal-add-prog:hover{ box-shadow:0 0 20px rgba(0,245,255,.8); transform:translateY(-1px); }
+.gal-add-prog.hidden{ display:none; }
+
+.gal-wall{
+  max-width:1400px; margin:0 auto;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  gap:24px 20px;
+  padding:24px 20px 60px;
+  position:relative; z-index:2;
+}
+.gal-empty{
+  text-align:center;
+  color:#666;
+  font-family:'Courier New',monospace;
+  padding:60px 20px;
+  font-size:.9rem;
+  letter-spacing:2px;
+}
+
+/* CRT TV unit */
+.crt{
+  position:relative;
+  background:linear-gradient(180deg,#2a2520 0%,#1a1612 50%,#0a0806 100%);
+  border-radius:10px;
+  padding:10px 10px 38px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -2px 4px rgba(0,0,0,.6),
+    0 8px 22px rgba(0,0,0,.7),
+    0 0 0 1px rgba(255,255,255,.04);
+  transition:transform .3s cubic-bezier(.2,.9,.3,1.4);
+  cursor:pointer;
+}
+.crt:hover{ transform:translateY(-4px) scale(1.03); }
+.crt:hover .screen-glow{ opacity:.7; }
+.crt::before{
+  content:''; position:absolute; inset:0; border-radius:10px;
+  background:repeating-linear-gradient(90deg,rgba(0,0,0,0) 0,rgba(0,0,0,0) 2px,rgba(255,200,150,.025) 2px,rgba(255,200,150,.025) 3px);
+  pointer-events:none;
+}
+.crt-edit-btn{
+  position:absolute; top:6px; left:6px;
+  width:24px; height:24px; border-radius:50%;
+  background:rgba(0,245,255,.15);
+  border:1px solid rgba(0,245,255,.5);
+  color:#00f5ff;
+  font-size:.7rem; cursor:pointer; z-index:10;
+  display:none; align-items:center; justify-content:center;
+  transition:all .2s; backdrop-filter:blur(4px);
+}
+.crt-edit-btn.show{ display:flex; }
+.crt-edit-btn:hover{ background:rgba(0,245,255,.4); box-shadow:0 0 10px #00f5ff; transform:scale(1.15); }
+
+.crt-del-btn{
+  position:absolute; top:6px; left:36px;
+  width:24px; height:24px; border-radius:50%;
+  background:rgba(255,40,80,.15);
+  border:1px solid rgba(255,40,80,.5);
+  color:#ff4060;
+  font-size:.7rem; cursor:pointer; z-index:10;
+  display:none; align-items:center; justify-content:center;
+  transition:all .2s; backdrop-filter:blur(4px);
+}
+.crt-del-btn.show{ display:flex; }
+.crt-del-btn:hover{ background:rgba(255,40,80,.4); box-shadow:0 0 10px #ff4060; }
+
+.screen-frame{
+  position:relative; background:#000;
+  border-radius:14px / 18px;
+  padding:6px;
+  box-shadow:inset 0 0 0 2px #1a1a1a, inset 0 0 10px rgba(0,0,0,.9);
+  overflow:hidden;
+}
+.screen{
+  position:relative; aspect-ratio:4/3;
+  border-radius:11px / 15px;
+  overflow:hidden; background:#000;
+  box-shadow:inset 0 0 25px rgba(0,0,0,.9), inset 0 0 4px rgba(0,255,255,.3);
+}
+.screen-img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; }
+.screen-empty{
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  z-index:1; gap:8px;
+  color:rgba(255,255,255,.3);
+  font-family:'Courier New',monospace;
+  font-size:.7rem; letter-spacing:2px;
+  background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.02),rgba(255,255,255,.02) 2px,transparent 2px,transparent 4px),
+    radial-gradient(ellipse at center,#0a1a2a 0%,#000 80%);
+}
+.screen-empty .noise{
+  width:60%; height:6px;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.4) 0,rgba(255,255,255,.4) 2px,transparent 2px,transparent 4px);
+  animation:noiseShift .1s steps(2) infinite;
+}
+@keyframes noiseShift{ 0%{transform:translateX(0);} 100%{transform:translateX(4px);} }
+.scanlines{
+  position:absolute; inset:0;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,0) 0,rgba(0,0,0,0) 2px,rgba(0,0,0,.4) 2px,rgba(0,0,0,.4) 3px);
+  pointer-events:none; z-index:5;
+}
+.screen-glow{
+  position:absolute; inset:0;
+  background:radial-gradient(ellipse at center,rgba(0,255,255,.18) 0%,rgba(0,0,0,0) 60%);
+  pointer-events:none; z-index:6; opacity:.3;
+  transition:opacity .3s; mix-blend-mode:screen;
+}
+.prog-name{
+  position:absolute; bottom:8px; left:8px; right:8px;
+  z-index:7;
+  background:rgba(0,0,0,.85);
+  padding:5px 8px; border-radius:3px;
+  border:1px solid rgba(0,245,255,.4);
+  box-shadow:0 0 10px rgba(0,245,255,.25);
+  text-align:center; pointer-events:none;
+}
+.prog-name .name{
+  font-family:'Heebo',sans-serif;
+  font-weight:800; font-size:.85rem;
+  color:#00f5ff;
+  text-shadow:0 0 6px #00f5ff;
+  direction:rtl;
+}
+.prog-name .meta{
+  font-size:.55rem; color:#aaa; margin-top:2px;
+  letter-spacing:1px; font-family:'Courier New',monospace;
+}
+.img-count{
+  position:absolute; top:6px; right:6px; z-index:7;
+  background:rgba(0,0,0,.8); color:#fff;
+  font-size:.6rem; padding:2px 6px; border-radius:10px;
+  font-family:'Courier New',monospace;
+  border:1px solid rgba(255,255,255,.2);
+}
+.vignette{
+  position:absolute; inset:0; z-index:8;
+  pointer-events:none;
+  background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.4) 100%);
+  border-radius:11px / 15px;
+}
+.crt-panel{
+  position:absolute; bottom:6px; left:10px; right:10px;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:6px 8px;
+  background:linear-gradient(180deg,#1a1612,#0a0806);
+  border-radius:5px;
+  border:1px solid rgba(255,255,255,.05);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+}
+.crt-knobs{ display:flex; gap:6px; }
+.crt-knob{
+  width:14px; height:14px; border-radius:50%;
+  background:radial-gradient(circle at 30% 30%,#555,#1a1a1a);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.2),inset 0 -1px 1px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.6);
+  position:relative;
+}
+.crt-knob::after{
+  content:''; position:absolute; top:1px; left:50%;
+  width:1.2px; height:4px; background:#ddd;
+  border-radius:1px; transform:translateX(-50%);
+}
+.crt-brand{
+  font-family:'Courier New',monospace;
+  font-size:.5rem; color:#7a7a8a;
+  letter-spacing:2px; font-weight:700;
+}
+.crt-power-led{
+  width:5px; height:5px; border-radius:50%;
+  background:#00ff88;
+  box-shadow:0 0 6px #00ff88,0 0 12px rgba(0,255,136,.5);
+  animation:crtPwrPulse 3s infinite;
+}
+@keyframes crtPwrPulse{ 0%,100%{opacity:1;} 50%{opacity:.6;} }
+
+/* ============== Lightbox ============== */
+.gal-lightbox{
+  position:fixed; inset:0; background:#000;
+  z-index:10000;
+  display:none; flex-direction:column;
+  align-items:center; justify-content:center;
+}
+.gal-lightbox.open{ display:flex; }
+.lb-header{
+  position:absolute; top:0; left:0; right:0;
+  padding:16px 24px;
+  display:flex; align-items:center; justify-content:space-between;
+  z-index:10;
+  background:linear-gradient(180deg,rgba(0,0,0,.8),transparent);
+}
+.lb-title{
+  font-family:'Heebo',sans-serif; font-weight:800; font-size:1.1rem;
+  color:#fff; text-shadow:0 0 8px rgba(255,255,255,.5);
+}
+.lb-counter{
+  font-family:'Courier New',monospace;
+  font-size:.85rem; color:#888; letter-spacing:2px;
+}
+.lb-close{
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.2);
+  color:#fff;
+  width:36px; height:36px; border-radius:50%;
+  cursor:pointer; font-size:1.2rem;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .2s;
+}
+.lb-close:hover{ background:rgba(255,255,255,.15); transform:rotate(90deg); }
+.lb-stage{
+  position:relative; max-width:85vw; max-height:75vh;
+  display:flex; align-items:center; justify-content:center;
+}
+.lb-img{
+  max-width:85vw; max-height:75vh;
+  object-fit:contain; border-radius:4px;
+  box-shadow:
+    0 0 30px rgba(255,255,255,.6),
+    0 0 60px rgba(255,255,255,.4),
+    0 0 100px rgba(255,255,255,.2),
+    0 0 0 2px rgba(255,255,255,.9);
+  animation:lbNeonPulse 3s ease-in-out infinite;
+}
+@keyframes lbNeonPulse{
+  0%,100%{
+    box-shadow:
+      0 0 30px rgba(255,255,255,.6),
+      0 0 60px rgba(255,255,255,.4),
+      0 0 100px rgba(255,255,255,.2),
+      0 0 0 2px rgba(255,255,255,.9);
+  }
+  50%{
+    box-shadow:
+      0 0 40px rgba(255,255,255,.8),
+      0 0 80px rgba(255,255,255,.5),
+      0 0 130px rgba(255,255,255,.3),
+      0 0 0 2px rgba(255,255,255,1);
+  }
+}
+.lb-nav{
+  position:absolute; top:50%;
+  transform:translateY(-50%);
+  width:50px; height:50px; border-radius:50%;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.3);
+  color:#fff; font-size:1.5rem;
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .2s; z-index:11;
+}
+.lb-nav:hover{ background:rgba(255,255,255,.2); box-shadow:0 0 20px rgba(255,255,255,.4); transform:translateY(-50%) scale(1.1); }
+.lb-prev{ right:30px; }
+.lb-next{ left:30px; }
+.lb-thumbs{
+  position:absolute; bottom:20px; left:50%;
+  transform:translateX(-50%);
+  display:flex; gap:8px;
+  padding:10px 14px;
+  background:rgba(255,255,255,.04);
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.1);
+  max-width:90vw; overflow-x:auto; z-index:11;
+}
+.lb-thumb{
+  width:50px; height:50px; border-radius:4px;
+  overflow:hidden; cursor:pointer;
+  border:2px solid transparent; flex-shrink:0;
+  transition:all .2s; background:#111;
+}
+.lb-thumb img{ width:100%; height:100%; object-fit:cover; }
+.lb-thumb:hover{ border-color:rgba(255,255,255,.5); }
+.lb-thumb.active{
+  border-color:#fff;
+  box-shadow:0 0 12px rgba(255,255,255,.7);
+}
+
+/* ============== Editor modal ============== */
+.gal-editor{
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.85);
+  z-index:10001;
+  display:none; align-items:center; justify-content:center;
+  padding:20px; backdrop-filter:blur(8px);
+}
+.gal-editor.open{ display:flex; }
+.gal-editor-box{
+  background:linear-gradient(180deg,#15151f,#0a0a14);
+  border:1px solid rgba(0,245,255,.3);
+  border-radius:14px;
+  padding:24px;
+  width:100%; max-width:520px;
+  max-height:90vh; overflow-y:auto;
+  box-shadow:0 0 40px rgba(0,245,255,.2);
+}
+.gal-ed-title{
+  color:#00f5ff;
+  text-shadow:0 0 8px #00f5ff;
+  font-family:'Courier New',monospace;
+  font-size:1.05rem; letter-spacing:2px;
+  margin-bottom:18px;
+  padding-bottom:10px;
+  border-bottom:1px solid rgba(0,245,255,.2);
+  display:flex; justify-content:space-between; align-items:center;
+}
+.gal-ed-section{ margin-bottom:16px; }
+.gal-ed-label{
+  display:block;
+  color:#aab; font-size:.8rem;
+  margin-bottom:6px; font-weight:600;
+}
+.gal-ed-input{
+  width:100%; padding:9px 12px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:6px;
+  color:#fff;
+  font-family:inherit; font-size:.9rem;
+  outline:none; transition:border .2s;
+}
+.gal-ed-input:focus{
+  border-color:#00f5ff;
+  box-shadow:0 0 0 3px rgba(0,245,255,.15);
+}
+.gal-ed-thumbs{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(80px,1fr));
+  gap:8px; margin-bottom:12px;
+}
+.gal-ed-thumb{
+  position:relative; aspect-ratio:1;
+  border-radius:6px; overflow:hidden;
+  background:#111;
+  border:1px solid rgba(255,255,255,.1);
+}
+.gal-ed-thumb img{ width:100%; height:100%; object-fit:cover; }
+.gal-ed-thumb-del{
+  position:absolute; top:4px; right:4px;
+  width:20px; height:20px; border-radius:50%;
+  background:rgba(255,0,80,.9);
+  color:#fff; border:none; cursor:pointer;
+  font-size:.8rem;
+  display:flex; align-items:center; justify-content:center;
+  line-height:1;
+}
+.gal-ed-thumb.is-cover::after{
+  content:'★';
+  position:absolute; bottom:4px; left:4px;
+  color:#ffd60a;
+  text-shadow:0 0 4px #000;
+  font-size:.9rem;
+}
+.gal-ed-cover-btn{
+  position:absolute; bottom:4px; right:4px;
+  width:20px; height:20px; border-radius:4px;
+  background:rgba(0,0,0,.7); color:#fff;
+  border:1px solid rgba(255,255,255,.3);
+  cursor:pointer; font-size:.7rem;
+  display:flex; align-items:center; justify-content:center;
+}
+.gal-ed-cover-btn:hover{ background:rgba(255,214,10,.4); border-color:#ffd60a; }
+.gal-ed-upload{
+  display:block; width:100%;
+  padding:12px;
+  background:rgba(0,245,255,.08);
+  border:1.5px dashed rgba(0,245,255,.4);
+  border-radius:8px;
+  color:#00f5ff;
+  text-align:center; cursor:pointer;
+  font-weight:600; transition:all .2s;
+}
+.gal-ed-upload:hover{
+  background:rgba(0,245,255,.15);
+  border-color:#00f5ff;
+}
+.gal-ed-upload input{ display:none; }
+.gal-up-progress{
+  margin-top:12px; padding:12px;
+  background:rgba(0,245,255,.04);
+  border:1px solid rgba(0,245,255,.2);
+  border-radius:8px;
+}
+.gal-up-text{
+  font-size:.8rem; color:#00f5ff;
+  margin-bottom:8px;
+  font-family:'Courier New',monospace;
+  letter-spacing:1px;
+}
+.gal-up-bar{
+  width:100%; height:6px;
+  background:rgba(255,255,255,.08);
+  border-radius:3px; overflow:hidden;
+}
+.gal-up-fill{
+  height:100%; width:0%;
+  background:linear-gradient(90deg,#00f5ff,#00ff88);
+  box-shadow:0 0 10px #00f5ff;
+  transition:width .2s;
+}
+.gal-up-stats{
+  font-size:.7rem; color:#888; margin-top:6px;
+  font-family:'Courier New',monospace;
+  display:flex; justify-content:space-between;
+}
+.gal-ed-actions{
+  display:flex; gap:10px; justify-content:flex-end;
+  margin-top:18px; padding-top:14px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.gal-btn{
+  padding:9px 18px; border-radius:8px; border:none;
+  font-family:inherit; font-weight:700;
+  font-size:.85rem; cursor:pointer; transition:all .2s;
+}
+.gal-btn-primary{
+  background:#00f5ff; color:#001020;
+  box-shadow:0 0 12px rgba(0,245,255,.5);
+}
+.gal-btn-primary:hover{
+  box-shadow:0 0 20px rgba(0,245,255,.8);
+  transform:translateY(-1px);
+}
+.gal-btn-ghost{
+  background:transparent; color:#aaa;
+  border:1px solid rgba(255,255,255,.15);
+}
+.gal-btn-ghost:hover{
+  background:rgba(255,255,255,.05);
+  color:#fff;
+}
+
+/* ============== Settings: gallery permissions tab ============== */
+.gal-perm-row{
+  display:flex; align-items:center; gap:12px;
+  padding:10px 12px;
+  border-radius:8px;
+  background:#f8fafc;
+  margin-bottom:6px;
+  border:1px solid #e2e8f0;
+}
+.gal-perm-row:hover{ background:#f1f5f9; }
+.gal-perm-name{
+  flex:1; font-weight:600; font-size:14px; color:#0f172a;
+}
+.gal-perm-dept{
+  font-size:11px; color:#94a3b8; margin-right:8px;
+}
+.gal-perm-toggle{
+  display:flex; align-items:center; gap:6px;
+  font-size:13px; color:#475569; cursor:pointer;
+  user-select:none;
+}
+.gal-perm-toggle input{ cursor:pointer; }
+.gal-master-toggle{
+  display:flex; align-items:center; gap:12px;
+  padding:12px 14px;
+  background:linear-gradient(135deg,rgba(0,212,255,.08),rgba(0,170,255,.04));
+  border:1.5px solid rgba(0,212,255,.3);
+  border-radius:10px;
+  margin-bottom:14px;
+  cursor:pointer;
+}
+.gal-master-toggle input{ width:18px; height:18px; cursor:pointer; }
+.gal-master-toggle-label{
+  font-weight:700; font-size:14px; color:#0369a1;
+}
+.gal-master-toggle-hint{
+  flex:1; font-size:12px; color:#64748b;
+}
+</style>
 </head>
 <body>
 
@@ -1382,6 +2026,19 @@
       <span class="hub-sun-sub">סידור עבודה</span>
     </button>
   </div>
+
+  <button class="hub-tv-btn" id="hub-gallery-btn" onclick="galOpen(event)" aria-label="גלריה">
+    <div class="hub-tv-glow"></div>
+    <div class="hub-tv-antennas"></div>
+    <div class="hub-tv-ant-l"></div>
+    <div class="hub-tv-ant-r"></div>
+    <div class="hub-tv-body">
+      <div class="hub-tv-screen">
+        <div class="hub-tv-screen-content"></div>
+      </div>
+    </div>
+    <div class="hub-tv-label">גלריה</div>
+  </button>
 
   <button class="hub-btn-exit" id="hub-exit-btn" onclick="hubExit()">
     <span class="exit-icon">🚪</span>
@@ -1674,6 +2331,24 @@
         </div>
         <div id="loz-editors-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
       </div>
+
+      <div class="set-sec collapsed" id="gallery-settings-sec" style="display:none">
+  <h3 onclick="toggleSetSec(this)">📺 גלריה — הרשאות</h3>
+  <div class="set-sec-body">
+    <div class="notice n-info" style="margin-bottom:14px">
+      💡 ברירת מחדל: אף אחד לא רואה את הגלריה. הפעל את הכפתור הראשי כדי להציג לכולם, או סמן ידנית עורכים (עורך = רואה אוטומטית).
+    </div>
+    <label class="gal-master-toggle">
+      <input type="checkbox" id="gal-master-view" onchange="galSaveMasterView()" />
+      <div>
+        <div class="gal-master-toggle-label">כל העובדים רואים את הגלריה</div>
+      </div>
+      <div class="gal-master-toggle-hint">כשמכובה, רק עובדים עם הרשאת עריכה רואים את הכפתור</div>
+    </label>
+    <div style="margin-top:16px;font-weight:700;color:#475569;font-size:13px;margin-bottom:8px">עורכים מורשים:</div>
+    <div id="gal-perm-list"></div>
+  </div>
+</div>
 
     </div>
   </div>
@@ -8739,6 +9414,713 @@ window.addEventListener('DOMContentLoaded', ()=>{
   }, 1500);
 });
 
+</script>
+
+<!-- Gallery view -->
+<div id="view-gallery">
+  <div class="gal-topbar">
+    <button class="gal-back" onclick="galClose()">← חזור</button>
+    <div class="gal-title">◢◤ STUDIO GALLERY ◥◣</div>
+    <button class="gal-add-prog" id="gal-add-prog-btn" onclick="galNewProgram()">+ תוכנית חדשה</button>
+  </div>
+  <div class="gal-wall" id="gal-wall"></div>
+</div>
+
+<!-- Lightbox -->
+<div class="gal-lightbox" id="gal-lightbox">
+  <div class="lb-header">
+    <div>
+      <div class="lb-title" id="lbTitle">—</div>
+      <div class="lb-counter" id="lbCounter">0 / 0</div>
+    </div>
+    <button class="lb-close" onclick="galCloseLightbox()">×</button>
+  </div>
+  <div class="lb-stage"><img class="lb-img" id="lbImg" alt=""></div>
+  <button class="lb-nav lb-prev" onclick="galLbStep(-1)">‹</button>
+  <button class="lb-nav lb-next" onclick="galLbStep(1)">›</button>
+  <div class="lb-thumbs" id="lbThumbs"></div>
+</div>
+
+<!-- Editor -->
+<div class="gal-editor" id="gal-editor">
+  <div class="gal-editor-box">
+    <div class="gal-ed-title">
+      <span>✎ עריכת גלריה</span>
+      <button class="lb-close" onclick="galCloseEditor()">×</button>
+    </div>
+    <div class="gal-ed-section">
+      <label class="gal-ed-label">שם התוכנית</label>
+      <input type="text" class="gal-ed-input" id="galEdName" />
+    </div>
+    <div class="gal-ed-section">
+      <label class="gal-ed-label">פרטים (מחלקה / מנחה)</label>
+      <input type="text" class="gal-ed-input" id="galEdMeta" />
+    </div>
+    <div class="gal-ed-section">
+      <label class="gal-ed-label">תמונות בגלריה (★ = תמונת פרונט)</label>
+      <div class="gal-ed-thumbs" id="galEdThumbs"></div>
+      <label class="gal-ed-upload">
+        + הוסף תמונות (יכווצו אוטומטית)
+        <input type="file" accept="image/*" multiple id="galEdUpload">
+      </label>
+      <div class="gal-up-progress" id="galUpProg" style="display:none;">
+        <div class="gal-up-text" id="galUpText">מכווץ תמונות...</div>
+        <div class="gal-up-bar"><div class="gal-up-fill" id="galUpFill"></div></div>
+        <div class="gal-up-stats" id="galUpStats"></div>
+      </div>
+    </div>
+    <div class="gal-ed-actions">
+      <button class="gal-btn gal-btn-ghost" onclick="galCloseEditor()">ביטול</button>
+      <button class="gal-btn gal-btn-primary" onclick="galSaveEditor()">שמור</button>
+    </div>
+  </div>
+</div>
+
+
+<script id="gallery-logic">
+// =============================================================
+// GALLERY FEATURE — FRONTEND LOGIC
+// =============================================================
+
+// ---------- State ----------
+let galPrograms = [];        // [{id,name,meta,cover_image_id,sort_order,images:[{id,full_path,thumb_path,full_url,thumb_url}]}]
+let galPermissions = {};     // { employee_id: {can_edit:bool} }
+let galSettings = { viewable_to_all: false };
+let galPermsLoaded = false;
+
+// Working draft when editing
+let galEditingProgramId = null;
+let galDraft = null;         // {name, meta, images:[{id?, full_url, thumb_url, isNew, file?}], coverIndex}
+let galPendingDeleteImageIds = [];
+
+// Lightbox state
+let galLbProgramId = null;
+let galLbIndex = 0;
+
+// ---------- Permission helpers ----------
+function galCanView(){
+  if(!currentEmp) return false;
+  if(isMgr) return true;
+  // Edit implies view
+  if(galPermissions[currentEmp.id]?.can_edit) return true;
+  return galSettings.viewable_to_all === true;
+}
+
+function galCanEdit(){
+  if(!currentEmp) return false;
+  if(isMgr) return true;
+  return galPermissions[currentEmp.id]?.can_edit === true;
+}
+
+// Only primary manager (PIN 2209) sees the settings tab
+function galCanManagePerms(){
+  return isMgr && window._mgrType !== 'secondary';
+}
+
+// ---------- Load / refresh permissions+settings ----------
+async function galLoadPerms(){
+  try{
+    const [{data: settings}, {data: perms}] = await Promise.all([
+      sb.from('gallery_settings').select('*').eq('id',1).maybeSingle(),
+      sb.from('gallery_permissions').select('*'),
+    ]);
+    galSettings = settings || { viewable_to_all:false };
+    galPermissions = {};
+    (perms||[]).forEach(p => { galPermissions[p.employee_id] = { can_edit: p.can_edit }; });
+    galPermsLoaded = true;
+    galRefreshHubButton();
+  }catch(err){
+    console.error('[gallery] load perms failed:', err);
+    galPermsLoaded = true;
+  }
+}
+
+// ---------- Hub button visibility ----------
+function galRefreshHubButton(){
+  const btn = document.getElementById('hub-gallery-btn');
+  if(!btn) return;
+  if(!galPermsLoaded){ btn.classList.remove('active'); return; }
+  if(galCanView()){
+    btn.classList.add('active');
+  } else {
+    btn.classList.remove('active');
+  }
+}
+
+// ---------- Open / close gallery view ----------
+function galOpen(e){
+  console.log('[gallery] galOpen called', {canView:galCanView(), permsLoaded:galPermsLoaded, currentEmp, isMgr, mgrType:window._mgrType});
+  if(e) e.stopPropagation();
+  if(!galCanView()){
+    console.warn('[gallery] cannot view — permission denied');
+    return;
+  }
+  document.getElementById('hub-screen')?.classList.remove('active');
+  const v = document.getElementById('view-gallery');
+  v.classList.add('active');
+  galLoadPrograms();
+  // Toggle "+ new program" button by edit permission
+  document.getElementById('gal-add-prog-btn')
+    .classList.toggle('hidden', !galCanEdit());
+}
+
+function galClose(){
+  document.getElementById('view-gallery').classList.remove('active');
+  // Return to hub
+  if(typeof showHub === 'function'){
+    showHub();
+  } else {
+    document.getElementById('hub-screen')?.classList.add('active');
+  }
+}
+
+// ---------- Programs: load + render ----------
+async function galLoadPrograms(){
+  const wall = document.getElementById('gal-wall');
+  wall.innerHTML = '<div class="gal-empty">טוען גלריה...</div>';
+  try{
+    const { data: progs, error: pErr } = await sb
+      .from('gallery_programs')
+      .select('*')
+      .order('sort_order',{ascending:true})
+      .order('created_at',{ascending:true});
+    if(pErr) throw pErr;
+
+    const { data: imgs, error: iErr } = await sb
+      .from('gallery_images')
+      .select('*')
+      .order('sort_order',{ascending:true})
+      .order('uploaded_at',{ascending:true});
+    if(iErr) throw iErr;
+
+    // Resolve public URLs once
+    const enrich = (img)=>{
+      const fullUrl = sb.storage.from('gallery-images').getPublicUrl(img.full_path).data.publicUrl;
+      const thumbUrl = sb.storage.from('gallery-images').getPublicUrl(img.thumb_path).data.publicUrl;
+      return { ...img, full_url: fullUrl, thumb_url: thumbUrl };
+    };
+
+    const byProg = {};
+    (imgs||[]).forEach(img=>{
+      (byProg[img.program_id] = byProg[img.program_id] || []).push(enrich(img));
+    });
+
+    galPrograms = (progs||[]).map(p => ({
+      ...p,
+      images: byProg[p.id] || []
+    }));
+
+    galRenderWall();
+  }catch(err){
+    console.error('[gallery] load programs failed:', err);
+    wall.innerHTML = '<div class="gal-empty">שגיאה בטעינת הגלריה</div>';
+  }
+}
+
+function galRenderWall(){
+  const wall = document.getElementById('gal-wall');
+  if(galPrograms.length === 0){
+    wall.innerHTML = `<div class="gal-empty">
+      אין עדיין תוכניות בגלריה.${galCanEdit()?'<br>לחץ על "+ תוכנית חדשה" כדי להתחיל.':''}
+    </div>`;
+    return;
+  }
+  const canEdit = galCanEdit();
+  wall.innerHTML = '';
+  galPrograms.forEach((p, i) => {
+    const cover = p.cover_image_id
+      ? p.images.find(x => x.id === p.cover_image_id)
+      : (p.images[0] || null);
+    const tv = document.createElement('div');
+    tv.className = 'crt';
+    tv.innerHTML = `
+      <button class="crt-edit-btn ${canEdit?'show':''}" title="ערוך" data-edit="${p.id}">✎</button>
+      <button class="crt-del-btn ${canEdit?'show':''}" title="מחק תוכנית" data-del="${p.id}">🗑</button>
+      <div class="screen-frame">
+        <div class="screen">
+          ${cover
+            ? `<img class="screen-img" src="${cover.thumb_url}" alt="">`
+            : `<div class="screen-empty">
+                <div class="noise"></div>
+                <div>NO SIGNAL</div>
+                <div class="noise"></div>
+              </div>`}
+          <div class="scanlines"></div>
+          <div class="screen-glow"></div>
+          <div class="vignette"></div>
+          ${p.images.length>0 ? `<div class="img-count">${p.images.length} 📷</div>` : ''}
+          <div class="prog-name">
+            <div class="name">${galEsc(p.name)}</div>
+            ${p.meta ? `<div class="meta">${galEsc(p.meta)}</div>` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="crt-panel">
+        <div class="crt-knobs">
+          <div class="crt-knob" style="transform:rotate(${30+i*40}deg)"></div>
+          <div class="crt-knob" style="transform:rotate(${-20+i*30}deg)"></div>
+        </div>
+        <div class="crt-brand">SONY · TRINITRON</div>
+        <div class="crt-power-led"></div>
+      </div>
+    `;
+    tv.addEventListener('click', (ev) => {
+      if(ev.target.closest('.crt-edit-btn')){
+        ev.stopPropagation();
+        galOpenEditor(p.id);
+        return;
+      }
+      if(ev.target.closest('.crt-del-btn')){
+        ev.stopPropagation();
+        galDeleteProgram(p.id);
+        return;
+      }
+      if(p.images.length === 0){
+        if(canEdit) galOpenEditor(p.id);
+        return;
+      }
+      galOpenLightbox(p.id, 0);
+    });
+    wall.appendChild(tv);
+  });
+}
+
+function galEsc(s){
+  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---------- New program ----------
+async function galNewProgram(){
+  if(!galCanEdit()) return;
+  const name = prompt('שם התוכנית החדשה:');
+  if(!name || !name.trim()) return;
+  try{
+    const { data, error } = await sb.from('gallery_programs')
+      .insert({ name:name.trim(), meta:'', sort_order: galPrograms.length })
+      .select().single();
+    if(error) throw error;
+    galPrograms.push({ ...data, images:[] });
+    galRenderWall();
+    galOpenEditor(data.id);
+  }catch(err){
+    alert('שגיאה ביצירת תוכנית: '+err.message);
+  }
+}
+
+// ---------- Delete program ----------
+async function galDeleteProgram(programId){
+  if(!galCanEdit()) return;
+  const p = galPrograms.find(x => x.id === programId);
+  if(!p) return;
+  if(!confirm(`למחוק את "${p.name}" וכל ${p.images.length} התמונות שלה?`)) return;
+  try{
+    // Delete storage files first
+    const paths = [];
+    p.images.forEach(img => { paths.push(img.full_path); paths.push(img.thumb_path); });
+    if(paths.length > 0){
+      await sb.storage.from('gallery-images').remove(paths);
+    }
+    // Cascade-deletes images via FK
+    const { error } = await sb.from('gallery_programs').delete().eq('id', programId);
+    if(error) throw error;
+    galPrograms = galPrograms.filter(x => x.id !== programId);
+    galRenderWall();
+  }catch(err){
+    alert('שגיאה במחיקה: '+err.message);
+  }
+}
+
+// ---------- Lightbox ----------
+function galOpenLightbox(programId, idx){
+  const p = galPrograms.find(x=>x.id===programId);
+  if(!p || p.images.length===0) return;
+  galLbProgramId = programId;
+  galLbIndex = idx || 0;
+  document.getElementById('lbTitle').textContent = p.name;
+  galRenderLightbox();
+  document.getElementById('gal-lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function galRenderLightbox(){
+  const p = galPrograms.find(x=>x.id===galLbProgramId);
+  if(!p) return;
+  const img = p.images[galLbIndex];
+  document.getElementById('lbImg').src = img.full_url;
+  document.getElementById('lbCounter').textContent = `${galLbIndex+1} / ${p.images.length}`;
+  const thumbs = document.getElementById('lbThumbs');
+  thumbs.innerHTML = '';
+  p.images.forEach((im, i) => {
+    const t = document.createElement('div');
+    t.className = 'lb-thumb' + (i===galLbIndex?' active':'');
+    t.innerHTML = `<img src="${im.thumb_url}" alt="">`;
+    t.onclick = () => { galLbIndex = i; galRenderLightbox(); };
+    thumbs.appendChild(t);
+  });
+}
+
+function galLbStep(dir){
+  const p = galPrograms.find(x=>x.id===galLbProgramId);
+  if(!p) return;
+  galLbIndex = (galLbIndex + dir + p.images.length) % p.images.length;
+  galRenderLightbox();
+}
+
+function galCloseLightbox(){
+  document.getElementById('gal-lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Keyboard nav
+document.addEventListener('keydown', (e) => {
+  const lb = document.getElementById('gal-lightbox');
+  if(!lb || !lb.classList.contains('open')) return;
+  if(e.key === 'Escape') galCloseLightbox();
+  if(e.key === 'ArrowLeft') galLbStep(1);  // RTL: next
+  if(e.key === 'ArrowRight') galLbStep(-1);
+});
+
+// ---------- Editor ----------
+function galOpenEditor(programId){
+  if(!galCanEdit()) return;
+  const p = galPrograms.find(x => x.id===programId);
+  if(!p) return;
+  galEditingProgramId = programId;
+  galPendingDeleteImageIds = [];
+  galDraft = {
+    name: p.name,
+    meta: p.meta || '',
+    images: p.images.map(im => ({
+      id: im.id,
+      full_path: im.full_path,
+      thumb_path: im.thumb_path,
+      full_url: im.full_url,
+      thumb_url: im.thumb_url,
+      isNew: false
+    })),
+    coverIndex: Math.max(0, p.images.findIndex(im => im.id === p.cover_image_id))
+  };
+  if(galDraft.coverIndex < 0) galDraft.coverIndex = 0;
+  document.getElementById('galEdName').value = galDraft.name;
+  document.getElementById('galEdMeta').value = galDraft.meta;
+  galRenderEdThumbs();
+  document.getElementById('gal-editor').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function galCloseEditor(){
+  document.getElementById('gal-editor').classList.remove('open');
+  document.body.style.overflow = '';
+  galEditingProgramId = null;
+  galDraft = null;
+  galPendingDeleteImageIds = [];
+  document.getElementById('galUpProg').style.display = 'none';
+}
+
+function galRenderEdThumbs(){
+  const c = document.getElementById('galEdThumbs');
+  c.innerHTML = '';
+  if(galDraft.images.length === 0){
+    c.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#666;padding:20px;font-size:.85rem;">אין תמונות. הוסף למטה.</div>';
+    return;
+  }
+  galDraft.images.forEach((im, i) => {
+    const t = document.createElement('div');
+    t.className = 'gal-ed-thumb' + (i === galDraft.coverIndex ? ' is-cover' : '');
+    const previewUrl = im.thumb_url || im.full_url;
+    t.innerHTML = `
+      <img src="${previewUrl}" alt="">
+      <button class="gal-ed-thumb-del" title="מחק">×</button>
+      <button class="gal-ed-cover-btn" title="הגדר כתמונת פרונט">★</button>
+    `;
+    t.querySelector('.gal-ed-thumb-del').onclick = (e) => {
+      e.stopPropagation();
+      const removed = galDraft.images.splice(i,1)[0];
+      if(removed && removed.id && !removed.isNew){
+        galPendingDeleteImageIds.push({ id: removed.id, full_path: removed.full_path, thumb_path: removed.thumb_path });
+      }
+      if(galDraft.coverIndex >= galDraft.images.length){
+        galDraft.coverIndex = Math.max(0, galDraft.images.length-1);
+      }
+      galRenderEdThumbs();
+    };
+    t.querySelector('.gal-ed-cover-btn').onclick = (e) => {
+      e.stopPropagation();
+      galDraft.coverIndex = i;
+      galRenderEdThumbs();
+    };
+    c.appendChild(t);
+  });
+}
+
+// ---------- Image compression ----------
+async function galCompressImage(file, maxDim, quality){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if(width > maxDim || height > maxDim){
+        if(width > height){ height = Math.round(height*maxDim/width); width = maxDim; }
+        else              { width  = Math.round(width *maxDim/height); height = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, width, height);
+      // Try WebP, fall back to JPEG
+      canvas.toBlob(b => {
+        if(b && b.type==='image/webp'){ URL.revokeObjectURL(img.src); resolve({blob:b, ext:'webp'}); }
+        else { canvas.toBlob(b2 => { URL.revokeObjectURL(img.src); resolve({blob:b2, ext:'jpg'}); }, 'image/jpeg', quality); }
+      }, 'image/webp', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(img.src); reject(new Error('Image load failed')); };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// Upload listener
+document.addEventListener('DOMContentLoaded', () => {
+  const up = document.getElementById('galEdUpload');
+  if(up){
+    up.addEventListener('change', galHandleUpload);
+  }
+});
+
+async function galHandleUpload(e){
+  const files = Array.from(e.target.files || []);
+  if(files.length === 0) return;
+  const upProg  = document.getElementById('galUpProg');
+  const upText  = document.getElementById('galUpText');
+  const upFill  = document.getElementById('galUpFill');
+  const upStats = document.getElementById('galUpStats');
+  upProg.style.display = 'block';
+
+  let totalOrig = 0, totalFull = 0, totalThumb = 0;
+
+  for(let i=0; i<files.length; i++){
+    const file = files[i];
+    const origKB = Math.round(file.size/1024);
+    totalOrig += origKB;
+
+    upText.textContent = `מכווץ תמונה ${i+1} מתוך ${files.length}...`;
+    upFill.style.width = `${(i/files.length)*100}%`;
+    upStats.innerHTML = `<span>${galEsc(file.name).substring(0,25)}</span><span>${origKB}KB → ?</span>`;
+
+    try{
+      const full  = await galCompressImage(file, 1600, 0.82);
+      const thumb = await galCompressImage(file, 400,  0.75);
+      const fullKB = Math.round(full.blob.size/1024);
+      const thumbKB = Math.round(thumb.blob.size/1024);
+      totalFull += fullKB; totalThumb += thumbKB;
+
+      // Upload to Supabase Storage
+      const stamp = Date.now()+'_'+Math.random().toString(36).slice(2,8);
+      const fullPath  = `full/${galEditingProgramId}/${stamp}.${full.ext}`;
+      const thumbPath = `thumb/${galEditingProgramId}/${stamp}.${thumb.ext}`;
+      const [fUp, tUp] = await Promise.all([
+        sb.storage.from('gallery-images').upload(fullPath, full.blob,  { contentType:`image/${full.ext}`,  upsert:false }),
+        sb.storage.from('gallery-images').upload(thumbPath,thumb.blob, { contentType:`image/${thumb.ext}`, upsert:false }),
+      ]);
+      if(fUp.error) throw fUp.error;
+      if(tUp.error) throw tUp.error;
+
+      const fullUrl  = sb.storage.from('gallery-images').getPublicUrl(fullPath).data.publicUrl;
+      const thumbUrl = sb.storage.from('gallery-images').getPublicUrl(thumbPath).data.publicUrl;
+
+      // Insert DB row immediately so it survives even if user closes without saving
+      const { data: row, error: rowErr } = await sb.from('gallery_images').insert({
+        program_id: galEditingProgramId,
+        full_path: fullPath,
+        thumb_path: thumbPath,
+        sort_order: galDraft.images.length,
+        uploaded_by: currentEmp?.full_name || null
+      }).select().single();
+      if(rowErr) throw rowErr;
+
+      galDraft.images.push({
+        id: row.id,
+        full_path: fullPath,
+        thumb_path: thumbPath,
+        full_url: fullUrl,
+        thumb_url: thumbUrl,
+        isNew: true
+      });
+
+      upStats.innerHTML = `<span>${galEsc(file.name).substring(0,25)}</span><span>${origKB}KB → ${fullKB}+${thumbKB}KB</span>`;
+    }catch(err){
+      console.error('[gallery] upload failed:', file.name, err);
+      upStats.innerHTML = `<span style="color:#ff6080">שגיאה: ${galEsc(file.name)}</span>`;
+    }
+  }
+
+  upFill.style.width = '100%';
+  const compTotal = totalFull + totalThumb;
+  const savedPct  = totalOrig > 0 ? Math.round((1 - compTotal/totalOrig) * 100) : 0;
+  upText.textContent = `✓ הסתיים — ${files.length} תמונות`;
+  upStats.innerHTML = `<span>מקור: ${(totalOrig/1024).toFixed(2)}MB</span><span>אחרי כיווץ: ${(compTotal/1024).toFixed(2)}MB (${savedPct}% חיסכון)</span>`;
+
+  galRenderEdThumbs();
+  e.target.value = '';
+  setTimeout(() => { upProg.style.display = 'none'; }, 4000);
+}
+
+// Save edits
+async function galSaveEditor(){
+  if(!galDraft) return;
+  const name = document.getElementById('galEdName').value.trim();
+  const meta = document.getElementById('galEdMeta').value.trim();
+  if(!name){ alert('שם תוכנית חובה'); return; }
+
+  try{
+    // 1) Delete pending images (storage + DB rows)
+    if(galPendingDeleteImageIds.length > 0){
+      const ids = galPendingDeleteImageIds.map(x=>x.id);
+      const paths = [];
+      galPendingDeleteImageIds.forEach(x => { paths.push(x.full_path); paths.push(x.thumb_path); });
+      await sb.storage.from('gallery-images').remove(paths);
+      await sb.from('gallery_images').delete().in('id', ids);
+    }
+
+    // 2) Update sort order on remaining images
+    for(let i=0; i<galDraft.images.length; i++){
+      const im = galDraft.images[i];
+      if(im.id){
+        await sb.from('gallery_images').update({ sort_order:i }).eq('id', im.id);
+      }
+    }
+
+    // 3) Update program with cover & metadata
+    const cover = galDraft.images[galDraft.coverIndex];
+    const { error: upErr } = await sb.from('gallery_programs').update({
+      name, meta,
+      cover_image_id: cover ? cover.id : null,
+      updated_at: new Date().toISOString()
+    }).eq('id', galEditingProgramId);
+    if(upErr) throw upErr;
+
+    galCloseEditor();
+    await galLoadPrograms();
+  }catch(err){
+    alert('שגיאה בשמירה: '+err.message);
+  }
+}
+
+// Click outside editor/lightbox to close
+document.addEventListener('click', (e) => {
+  if(e.target.id === 'gal-editor') galCloseEditor();
+  if(e.target.id === 'gal-lightbox') galCloseLightbox();
+});
+
+// =============================================================
+// SETTINGS TAB — gallery permissions
+// =============================================================
+function galShowSettingsSection(){
+  const sec = document.getElementById('gallery-settings-sec');
+  if(!sec) return;
+  if(galCanManagePerms()){
+    sec.style.display = '';
+    galRenderPermsList();
+  } else {
+    sec.style.display = 'none';
+  }
+}
+
+function galRenderPermsList(){
+  const masterToggle = document.getElementById('gal-master-view');
+  if(masterToggle) masterToggle.checked = !!galSettings.viewable_to_all;
+  const list = document.getElementById('gal-perm-list');
+  if(!list) return;
+  if(!Array.isArray(employees) || employees.length===0){
+    list.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:10px">אין עובדים רשומים</div>';
+    return;
+  }
+  list.innerHTML = '';
+  // Build a quick department-name lookup
+  const deptName = {};
+  if(typeof departments !== 'undefined' && Array.isArray(departments)){
+    departments.forEach(d => { deptName[d.id] = d.name; });
+  }
+  employees.forEach(emp => {
+    const canEdit = !!galPermissions[emp.id]?.can_edit;
+    const dn = deptName[emp.department_id] || '—';
+    const row = document.createElement('div');
+    row.className = 'gal-perm-row';
+    row.innerHTML = `
+      <div class="gal-perm-name">${galEsc(emp.full_name)}</div>
+      <div class="gal-perm-dept">${galEsc(dn)}</div>
+      <label class="gal-perm-toggle">
+        <input type="checkbox" data-emp="${emp.id}" ${canEdit?'checked':''}>
+        ✎ עורך
+      </label>
+    `;
+    row.querySelector('input').addEventListener('change', (e) => {
+      galToggleEmpEdit(emp.id, e.target.checked);
+    });
+    list.appendChild(row);
+  });
+}
+
+async function galToggleEmpEdit(empId, val){
+  try{
+    if(val){
+      await sb.from('gallery_permissions').upsert({
+        employee_id: empId, can_edit: true, updated_at: new Date().toISOString()
+      });
+      galPermissions[empId] = { can_edit: true };
+    } else {
+      await sb.from('gallery_permissions').delete().eq('employee_id', empId);
+      delete galPermissions[empId];
+    }
+    galRefreshHubButton();
+  }catch(err){
+    alert('שגיאה בעדכון הרשאה: '+err.message);
+    await galLoadPerms();
+    galRenderPermsList();
+  }
+}
+
+async function galSaveMasterView(){
+  const checked = document.getElementById('gal-master-view').checked;
+  try{
+    await sb.from('gallery_settings').upsert({
+      id:1, viewable_to_all: checked, updated_at: new Date().toISOString()
+    });
+    galSettings.viewable_to_all = checked;
+    galRefreshHubButton();
+  }catch(err){
+    alert('שגיאה בשמירה: '+err.message);
+  }
+}
+
+// =============================================================
+// Boot: load perms when user signs in / hub appears
+// =============================================================
+(function galBoot(){
+  // Load perms after main app initializes (employees etc. loaded)
+  let attempts = 0;
+  const tryLoad = async () => {
+    attempts++;
+    if(typeof sb === 'undefined' || !currentEmp){
+      if(attempts < 30) setTimeout(tryLoad, 500);
+      return;
+    }
+    await galLoadPerms();
+    galRefreshHubButton();
+    galShowSettingsSection();
+  };
+  document.addEventListener('DOMContentLoaded', () => setTimeout(tryLoad, 800));
+  // Also re-run when settings view is opened (user might have just logged in)
+  const origShowView = window.showView;
+  if(typeof origShowView === 'function'){
+    window.showView = function(v, e){
+      const r = origShowView.apply(this, arguments);
+      if(v === 'settings') galShowSettingsSection();
+      return r;
+    };
+  }
+})();
 </script>
 </body>
 </html>
