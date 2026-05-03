@@ -1439,7 +1439,7 @@
 }
 .hub-tv-label{
   position:absolute;
-  bottom:calc(100% + 8px);
+  bottom:calc(100% + 18px);
   left:50%;
   transform:translateX(-50%);
   font-size:13px; color:#00f5ff;
@@ -1507,6 +1507,55 @@
 }
 .gal-add-prog:hover{ box-shadow:0 0 20px rgba(0,245,255,.8); transform:translateY(-1px); }
 .gal-add-prog.hidden{ display:none; }
+
+/* Edit-mode toggle button */
+.gal-edit-toggle{
+  display:flex; align-items:center; gap:8px;
+  padding:6px 12px 6px 8px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:18px;
+  color:#bbb;
+  font-family:inherit;
+  font-size:.78rem;
+  font-weight:600;
+  cursor:pointer;
+  transition:all .2s;
+}
+.gal-edit-toggle:hover{
+  background:rgba(255,255,255,.08);
+  border-color:rgba(255,255,255,.3);
+  color:#fff;
+}
+.gal-edit-toggle-dot{
+  width:9px; height:9px; border-radius:50%;
+  background:#666;
+  box-shadow:none;
+  transition:all .25s;
+}
+.gal-edit-toggle.on{
+  background:rgba(255,170,0,.12);
+  border-color:rgba(255,170,0,.5);
+  color:#ffaa00;
+  box-shadow:0 0 12px rgba(255,170,0,.3);
+}
+.gal-edit-toggle.on .gal-edit-toggle-dot{
+  background:#ffaa00;
+  box-shadow:0 0 8px #ffaa00, 0 0 14px rgba(255,170,0,.5);
+  animation:editPulse 1.6s ease-in-out infinite;
+}
+.gal-edit-toggle.on .gal-edit-toggle-label::before{
+  content:'● ';
+  color:#ffaa00;
+}
+@keyframes editPulse{
+  0%, 100%{ box-shadow:0 0 8px #ffaa00, 0 0 14px rgba(255,170,0,.5); }
+  50%{ box-shadow:0 0 14px #ffaa00, 0 0 22px rgba(255,170,0,.7); }
+}
+@media (max-width:600px){
+  .gal-edit-toggle .gal-edit-toggle-label{ display:none; }
+  .gal-edit-toggle{ padding:6px; }
+}
 
 .gal-wall{
   max-width:1400px; margin:0 auto;
@@ -2306,7 +2355,7 @@
     </button>
   </div>
 
-  <button class="hub-tv-btn" id="hub-gallery-btn" onclick="galOpen(event)" aria-label="גלריה">
+  <button class="hub-tv-btn" id="hub-gallery-btn" onclick="galOpen(event)" aria-label="פריימים">
     <div class="hub-tv-glow"></div>
     <div class="hub-tv-antennas"></div>
     <div class="hub-tv-ant-l"></div>
@@ -2316,7 +2365,7 @@
         <div class="hub-tv-screen-content"></div>
       </div>
     </div>
-    <div class="hub-tv-label">גלריה</div>
+    <div class="hub-tv-label">פריימים</div>
   </button>
 
   <button class="hub-btn-exit" id="hub-exit-btn" onclick="hubExit()">
@@ -9699,8 +9748,14 @@ window.addEventListener('DOMContentLoaded', ()=>{
 <div id="view-gallery">
   <div class="gal-topbar">
     <button class="gal-back" onclick="galClose()">← חזור</button>
-    <div class="gal-title">◢◤ STUDIO GALLERY ◥◣</div>
-    <button class="gal-add-prog" id="gal-add-prog-btn" onclick="galNewProgram()">+ תוכנית חדשה</button>
+    <div class="gal-title">◢◤ STUDIO BROADCAST ◥◣</div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="gal-edit-toggle" id="gal-edit-toggle" onclick="galToggleEditMode()" style="display:none">
+        <span class="gal-edit-toggle-dot"></span>
+        <span class="gal-edit-toggle-label">מצב עריכה</span>
+      </button>
+      <button class="gal-add-prog" id="gal-add-prog-btn" onclick="galNewProgram()">+ תוכנית חדשה</button>
+    </div>
   </div>
   <div class="gal-wall" id="gal-wall"></div>
 </div>
@@ -9794,6 +9849,7 @@ let galPrograms = [];        // [{id,name,meta,cover_image_id,sort_order,images:
 let galPermissions = {};     // { employee_id: {can_edit:bool} }
 let galSettings = { viewable_to_all: false };
 let galPermsLoaded = false;
+let galEditMode = false;     // editor toggle: when off, even editors see read-only view
 
 // Working draft when editing
 let galEditingProgramId = null;
@@ -9817,6 +9873,14 @@ function galCanEdit(){
   if(!currentEmp) return false;
   if(isMgr) return true;
   return galPermissions[currentEmp.id]?.can_edit === true;
+}
+
+// True only when user has edit rights AND has toggled edit mode ON.
+// All UI elements (edit pencils, delete buttons, "+ new program" etc.)
+// should check this. The hard checks inside save/delete functions still
+// use galCanEdit() as a permission gate.
+function galEditEnabled(){
+  return galEditMode && galCanEdit();
 }
 
 // Only primary manager (PIN 2209) sees the settings tab
@@ -9878,9 +9942,40 @@ function galOpen(e){
   }
   document.getElementById('hub-screen')?.classList.remove('active');
   v.classList.add('active');
+  // Reset edit mode every time gallery opens (default: viewing)
+  galEditMode = false;
+  galRefreshEditToggle();
   galLoadPrograms();
   const addBtn = document.getElementById('gal-add-prog-btn');
-  if(addBtn) addBtn.classList.toggle('hidden', !galCanEdit());
+  if(addBtn) addBtn.classList.toggle('hidden', !galEditEnabled());
+}
+
+function galRefreshEditToggle(){
+  const btn = document.getElementById('gal-edit-toggle');
+  if(!btn) return;
+  // Show toggle only if user has edit permission
+  if(galCanEdit()){
+    btn.style.display = 'flex';
+    btn.classList.toggle('on', galEditMode);
+    btn.querySelector('.gal-edit-toggle-label').textContent = galEditMode ? 'מצב עריכה' : 'מצב צפייה';
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+function galToggleEditMode(){
+  if(!galCanEdit()) return; // safety
+  galEditMode = !galEditMode;
+  galRefreshEditToggle();
+  // Re-render to show/hide edit buttons
+  galRenderWall();
+  // Also refresh the "+ new program" button visibility
+  const addBtn = document.getElementById('gal-add-prog-btn');
+  if(addBtn) addBtn.classList.toggle('hidden', !galEditEnabled());
+  // If lightbox is open, refresh it too
+  if(document.getElementById('gal-lightbox')?.classList.contains('open')){
+    galRenderGrid();
+  }
 }
 
 function galClose(){
@@ -9964,7 +10059,7 @@ async function galLoadPrograms(){
 function galRenderWall(){
   const wall = document.getElementById('gal-wall');
   if(galPrograms.length === 0){
-    const canEdit = galCanEdit();
+    const canEdit = galEditEnabled();
     wall.innerHTML = `
       <div style="grid-column:1/-1;text-align:center;padding:80px 20px 60px;color:#fff;">
         <div style="font-size:4rem;margin-bottom:20px;opacity:0.6;filter:drop-shadow(0 0 16px #00f5ff);">📺</div>
@@ -9995,7 +10090,7 @@ function galRenderWall(){
       </div>`;
     return;
   }
-  const canEdit = galCanEdit();
+  const canEdit = galEditEnabled();
   wall.innerHTML = '';
   galPrograms.forEach((p, i) => {
     const cover = p.cover_image_id
@@ -10142,7 +10237,7 @@ function galRenderGrid(){
   
   const grid = document.getElementById('lbGrid');
   grid.innerHTML = '';
-  const canEdit = galCanEdit();
+  const canEdit = galEditEnabled();
   slice.forEach((img, i) => {
     const globalIdx = start + i;
     const card = document.createElement('div');
