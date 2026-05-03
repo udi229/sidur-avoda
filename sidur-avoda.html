@@ -1458,6 +1458,7 @@
   z-index:9990;
   overflow-y:auto;
   overflow-x:hidden;
+  color:#e8e8ee;
 }
 #view-gallery.active{ display:block; }
 #view-gallery::before{
@@ -9557,11 +9558,24 @@ function galOpen(e){
   }
   document.getElementById('hub-screen')?.classList.remove('active');
   const v = document.getElementById('view-gallery');
+  console.log('[gallery] view-gallery element:', v);
+  if(!v){
+    alert('שגיאה: לא נמצא אלמנט view-gallery');
+    return;
+  }
   v.classList.add('active');
+  // Force visibility just in case
+  v.style.display = 'block';
+  v.style.zIndex = '99999';
+  v.style.background = 'radial-gradient(ellipse at center,#0a0614 0%,#02020a 70%)';
+  console.log('[gallery] view-gallery classes after add:', v.className);
+  console.log('[gallery] view-gallery computed display:', window.getComputedStyle(v).display);
+  console.log('[gallery] view-gallery computed z-index:', window.getComputedStyle(v).zIndex);
+  console.log('[gallery] view-gallery innerHTML length:', v.innerHTML.length);
   galLoadPrograms();
   // Toggle "+ new program" button by edit permission
-  document.getElementById('gal-add-prog-btn')
-    .classList.toggle('hidden', !galCanEdit());
+  const addBtn = document.getElementById('gal-add-prog-btn');
+  if(addBtn) addBtn.classList.toggle('hidden', !galCanEdit());
 }
 
 function galClose(){
