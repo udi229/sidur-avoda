@@ -1515,17 +1515,35 @@
   text-shadow:0 0 8px #00f5ff,0 0 16px #00f5ff;
 }
 .gal-back{
-  background:rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.2);
-  color:#fff;
-  padding:7px 14px;
-  border-radius:18px;
-  font-size:.85rem;
+  background:transparent;
+  border:2px solid #ff1a1a;
+  color:#ff1a1a;
+  border-radius:20px;
+  padding:7px 16px;
+  font-family:'Heebo',sans-serif;
+  font-size:14px;
+  font-weight:900;
   cursor:pointer;
-  font-family:inherit;
-  transition:all .2s;
+  text-shadow:0 0 8px #ff1a1a88;
+  box-shadow:0 0 12px rgba(255,26,26,.3), inset 0 0 8px rgba(255,26,26,.15);
+  letter-spacing:1px;
+  animation:galBackNeonBlink 1.2s ease-in-out infinite;
+  transition:background .2s, box-shadow .2s;
 }
-.gal-back:hover{ background:rgba(255,255,255,.15); }
+.gal-back:hover{
+  background:rgba(255,26,26,.15);
+  box-shadow:0 0 18px rgba(255,26,26,.6), inset 0 0 10px rgba(255,26,26,.25);
+}
+@keyframes galBackNeonBlink{
+  0%, 100% {
+    text-shadow:0 0 8px #ff1a1a88;
+    box-shadow:0 0 12px rgba(255,26,26,.3), inset 0 0 8px rgba(255,26,26,.15);
+  }
+  50% {
+    text-shadow:0 0 12px #ff1a1a, 0 0 20px #ff1a1a99;
+    box-shadow:0 0 20px rgba(255,26,26,.6), inset 0 0 12px rgba(255,26,26,.3);
+  }
+}
 .gal-add-prog{
   background:linear-gradient(135deg,#00f5ff,#00aaff);
   color:#001020;
@@ -1692,19 +1710,34 @@
 .screen-img{
   position:absolute; inset:0; width:100%; height:100%;
   object-fit:cover; z-index:1;
-  animation:vhsDrop var(--vhs-dur, 7s) steps(1, end) infinite;
-  animation-delay:var(--vhs-delay, 0s);
 }
-@keyframes vhsDrop{
-  /* Most of the time the image is steady; once per cycle it "drops"
-     a few pixels for a fraction of a second, then snaps back —
-     like a tracking glitch on an old VHS tape. */
-  0%, 100%   { transform:translateY(0); }
-  91%        { transform:translateY(0); }
-  92%        { transform:translateY(8px); }   /* drop */
-  94%        { transform:translateY(8px); }
-  95%        { transform:translateY(-2px); }  /* tiny overshoot */
-  96%        { transform:translateY(0); }
+
+/* Roll-bar: a soft bright band that sweeps down a screen.
+   Activated by adding .rolling to the .screen element. */
+.screen-rollbar{
+  position:absolute;
+  left:0; right:0;
+  height:18%;
+  top:-20%;
+  background:linear-gradient(180deg,
+    transparent 0%,
+    rgba(255,255,255,0.04) 30%,
+    rgba(255,255,255,0.16) 50%,
+    rgba(255,255,255,0.04) 70%,
+    transparent 100%);
+  z-index:4;
+  pointer-events:none;
+  mix-blend-mode:screen;
+  opacity:0;
+}
+.screen.rolling .screen-rollbar{
+  animation:rollBar 1.6s ease-in-out forwards;
+}
+@keyframes rollBar{
+  0%   { top:-20%; opacity:0; }
+  10%  { opacity:1; }
+  90%  { opacity:1; }
+  100% { top:120%; opacity:0; }
 }
 .screen-empty{
   position:absolute; inset:0;
@@ -10071,6 +10104,7 @@ function galToggleEditMode(){
 
 function galClose(){
   document.getElementById('view-gallery').classList.remove('active');
+  galStopRollBars();
   // Return to hub
   if(typeof showHub === 'function'){
     showHub();
@@ -10189,19 +10223,13 @@ function galRenderWall(){
       : (p.images[0] || null);
     const tv = document.createElement('div');
     tv.className = 'crt';
-    // Each screen gets a different VHS drop timing so the wall doesn't glitch in unison.
-    // Duration: 6–10s, delay offsets so different TVs drop at different moments.
-    const vhsDur = (6 + (i % 5) * 1).toFixed(2);     // 6, 7, 8, 9, 10, repeat
-    const vhsDelay = ((i * 1.3) % 8).toFixed(2);     // staggers when each starts
-    tv.style.setProperty('--vhs-dur', vhsDur + 's');
-    tv.style.setProperty('--vhs-delay', '-' + vhsDelay + 's'); // negative = pre-offset
     tv.innerHTML = `
       <button class="crt-edit-btn ${canEdit?'show':''}" title="ערוך" data-edit="${p.id}">✎</button>
       <button class="crt-del-btn ${canEdit?'show':''}" title="מחק תוכנית" data-del="${p.id}">🗑</button>
       <div class="screen-frame">
         <div class="screen">
           ${cover
-            ? `<img class="screen-img" src="${cover.thumb_url}" alt="">`
+            ? `<img class="screen-img" src="${cover.thumb_url}" alt=""><div class="screen-rollbar"></div>`
             : `<div class="screen-empty">
                 <div class="noise"></div>
                 <div>NO SIGNAL</div>
@@ -10237,6 +10265,41 @@ function galRenderWall(){
     });
     wall.appendChild(tv);
   });
+  // Restart random roll-bar effect on the new wall
+  galStartRollBars();
+}
+
+// === Random roll-bar scheduler ===
+let galRollBarTimer = null;
+
+function galStartRollBars(){
+  galStopRollBars();
+  scheduleNextRoll();
+}
+
+function galStopRollBars(){
+  if(galRollBarTimer){ clearTimeout(galRollBarTimer); galRollBarTimer = null; }
+}
+
+function scheduleNextRoll(){
+  // Random gap between 2.5–6 seconds
+  const delay = 2500 + Math.random() * 3500;
+  galRollBarTimer = setTimeout(() => {
+    triggerRandomRollBar();
+    scheduleNextRoll();
+  }, delay);
+}
+
+function triggerRandomRollBar(){
+  // Find all visible screens that aren't already rolling
+  const screens = document.querySelectorAll('#gal-wall .screen');
+  if(screens.length === 0) return;
+  // Pick a random one
+  const target = screens[Math.floor(Math.random() * screens.length)];
+  if(!target || target.classList.contains('rolling')) return;
+  target.classList.add('rolling');
+  // Remove the class after the animation finishes (matches the 1.6s in CSS)
+  setTimeout(() => target.classList.remove('rolling'), 1700);
 }
 
 function galEsc(s){
