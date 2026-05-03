@@ -8552,17 +8552,23 @@ function showHub(){
   hubInitStars();
   // עדכון אוטומטי של הבאדג' על כפתור החופשות - בלי תלות בכניסה ללוח חופשות
   console.log('[vac-badge] showHub called - triggering badge update');
-  setTimeout(()=>{
+  // Retry quietly until loadDB/updateVacBadge are available (they load async)
+  let _vacRetries = 0;
+  function tryUpdateVacBadge(){
     if(typeof loadDB==='function' && typeof updateVacBadge==='function'){
       loadDB().then(()=>{
         console.log('[vac-badge] loadDB done, calling updateVacBadge');
         updateVacBadge();
       }).catch(e=>console.warn('[vac-badge] loadDB error',e));
       if(typeof initVacRealtime==='function') initVacRealtime();
+    } else if(_vacRetries < 10){
+      _vacRetries++;
+      setTimeout(tryUpdateVacBadge, 500);
     } else {
-      console.warn('[vac-badge] loadDB or updateVacBadge missing');
+      console.warn('[vac-badge] loadDB or updateVacBadge still missing after 5s — skipping');
     }
-  }, 300);
+  }
+  setTimeout(tryUpdateVacBadge, 300);
 }
 
 function hubInitStars(){
@@ -10004,8 +10010,8 @@ async function galStartHubSlideshow(){
     framesEl.appendChild(f);
   });
   galHubSlideIdx = 0;
-  // Start the cycle
-  galHubSlideTimer = setInterval(galHubAdvanceSlide, 2000);
+  // Start the cycle (4 seconds per image)
+  galHubSlideTimer = setInterval(galHubAdvanceSlide, 4000);
 }
 
 function galStopHubSlideshow(){
