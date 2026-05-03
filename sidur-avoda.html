@@ -1515,6 +1515,35 @@
   padding:24px 20px 60px;
   position:relative; z-index:2;
 }
+@media (max-width:600px){
+  .gal-wall{
+    grid-template-columns:repeat(2, 1fr);
+    gap:14px 12px;
+    padding:16px 12px 40px;
+  }
+  .crt{
+    padding:6px 6px 26px;
+    border-radius:7px;
+  }
+  .crt-edit-btn, .crt-del-btn{
+    width:20px; height:20px; font-size:.6rem;
+  }
+  .crt-del-btn{ left:30px; }
+  .prog-name{
+    bottom:5px; left:5px; right:5px;
+    padding:3px 5px;
+  }
+  .prog-name .name{ font-size:.7rem; }
+  .prog-name .meta{ font-size:.45rem; }
+  .img-count{ font-size:.5rem; padding:1px 4px; top:4px; right:4px; }
+  .crt-panel{
+    bottom:4px; left:6px; right:6px;
+    padding:3px 5px;
+  }
+  .crt-knob{ width:9px; height:9px; }
+  .crt-brand{ font-size:.4rem; letter-spacing:1px; }
+  .crt-power-led{ width:4px; height:4px; }
+}
 .gal-empty{
   text-align:center;
   color:#666;
@@ -1584,7 +1613,56 @@
   overflow:hidden; background:#000;
   box-shadow:inset 0 0 25px rgba(0,0,0,.9), inset 0 0 4px rgba(0,255,255,.3);
 }
-.screen-img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; }
+.screen-img{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; z-index:1;
+  animation:tvJitter 4s steps(1) infinite, tvBrightness 3.2s ease-in-out infinite;
+}
+@keyframes tvJitter{
+  /* Tracking instability — small vertical/horizontal shifts at irregular intervals */
+  0%, 100%   { transform:translate(0, 0); }
+  17%        { transform:translate(0, -1px); }
+  18%        { transform:translate(-1px, 0); }
+  19%        { transform:translate(0, 0); }
+  43%        { transform:translate(0, 1px); }
+  44%        { transform:translate(1px, 1px); }
+  45%        { transform:translate(0, 0); }
+  72%        { transform:translate(0, -1px); }
+  73%        { transform:translate(0, 0); }
+  88%        { transform:translate(-1px, 0); }
+  89%        { transform:translate(0, 0); }
+}
+@keyframes tvBrightness{
+  /* CRT signal strength variations */
+  0%, 100% { filter:brightness(1) contrast(1); }
+  20%      { filter:brightness(1.06) contrast(1.04); }
+  40%      { filter:brightness(0.96) contrast(1.02); }
+  60%      { filter:brightness(1.02) contrast(0.98); }
+  80%      { filter:brightness(0.98) contrast(1.05); }
+}
+
+/* Roll-bar effect: a subtle horizontal band sweeping down */
+.screen-img + .screen-rollbar{
+  position:absolute;
+  left:0; right:0;
+  height:14%;
+  background:linear-gradient(180deg,
+    transparent 0%,
+    rgba(255,255,255,0.05) 40%,
+    rgba(255,255,255,0.12) 50%,
+    rgba(255,255,255,0.05) 60%,
+    transparent 100%);
+  z-index:2;
+  pointer-events:none;
+  mix-blend-mode:screen;
+  animation:rollBar 7s linear infinite;
+}
+@keyframes rollBar{
+  0%   { top:-15%; opacity:0; }
+  10%  { opacity:1; }
+  90%  { opacity:1; }
+  100% { top:115%; opacity:0; }
+}
 .screen-empty{
   position:absolute; inset:0;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -1685,15 +1763,15 @@
   position:fixed; inset:0; background:#000;
   z-index:10000;
   display:none; flex-direction:column;
-  align-items:center; justify-content:center;
 }
 .gal-lightbox.open{ display:flex; }
 .lb-header{
-  position:absolute; top:0; left:0; right:0;
+  position:relative;
   padding:16px 24px;
   display:flex; align-items:center; justify-content:space-between;
   z-index:10;
-  background:linear-gradient(180deg,rgba(0,0,0,.8),transparent);
+  background:linear-gradient(180deg,rgba(0,0,0,.95),rgba(0,0,0,.6));
+  border-bottom:1px solid rgba(0,245,255,.15);
 }
 .lb-title{
   font-family:'Heebo',sans-serif; font-weight:800; font-size:1.1rem;
@@ -1713,19 +1791,189 @@
   transition:all .2s;
 }
 .lb-close:hover{ background:rgba(255,255,255,.15); transform:rotate(90deg); }
-.lb-stage{
-  position:relative; max-width:85vw; max-height:75vh;
-  display:flex; align-items:center; justify-content:center;
+
+/* === GRID VIEW (default) === */
+.lb-grid-wrap{
+  flex:1;
+  overflow-y:auto;
+  padding:24px;
+  position:relative;
 }
-.lb-img{
-  max-width:85vw; max-height:75vh;
-  object-fit:contain; border-radius:4px;
+.lb-grid{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:20px;
+  max-width:1200px;
+  margin:0 auto;
+}
+@media (max-width:768px){
+  .lb-grid{ grid-template-columns:repeat(2, 1fr); gap:14px; }
+  .lb-grid-wrap{ padding:16px; }
+}
+.lb-card{
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:10px;
+  overflow:hidden;
+  cursor:pointer;
+  transition:all .25s cubic-bezier(.2,.9,.3,1.4);
+  display:flex;
+  flex-direction:column;
+}
+.lb-card:hover{
+  transform:translateY(-4px);
+  border-color:rgba(255,255,255,.4);
+  box-shadow:0 0 24px rgba(255,255,255,.25), 0 0 48px rgba(255,255,255,.1);
+}
+.lb-card-img-wrap{
+  position:relative;
+  width:100%;
+  aspect-ratio:4/3;
+  background:#111;
+  overflow:hidden;
+}
+.lb-card-img{
+  width:100%; height:100%;
+  object-fit:cover;
+  transition:transform .3s;
+}
+.lb-card:hover .lb-card-img{ transform:scale(1.05); }
+.lb-card-desc{
+  padding:10px 12px;
+  font-size:.85rem;
+  color:#ccc;
+  font-family:'Heebo',sans-serif;
+  min-height:38px;
+  background:rgba(0,0,0,.4);
+  border-top:1px solid rgba(255,255,255,.06);
+  position:relative;
+}
+.lb-card-desc:empty::before{
+  content:'(אין תיאור)';
+  color:#555;
+  font-style:italic;
+  font-size:.8rem;
+}
+.lb-card-edit-desc{
+  position:absolute;
+  top:6px;
+  left:6px;
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:rgba(0,245,255,.2);
+  border:1px solid rgba(0,245,255,.5);
+  color:#00f5ff;
+  font-size:.65rem;
+  cursor:pointer;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:5;
+  backdrop-filter:blur(4px);
+}
+.lb-card-edit-desc.show{ display:flex; }
+.lb-card-edit-desc:hover{ background:rgba(0,245,255,.4); }
+
+/* Pagination */
+.lb-pager{
+  display:flex; align-items:center; justify-content:center; gap:14px;
+  padding:18px 12px;
+  background:linear-gradient(0deg,rgba(0,0,0,.95),rgba(0,0,0,.6));
+  border-top:1px solid rgba(0,245,255,.1);
+}
+.lb-page-btn{
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.2);
+  color:#fff;
+  width:40px; height:40px; border-radius:50%;
+  cursor:pointer; font-size:1.1rem;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .2s;
+}
+.lb-page-btn:hover:not(:disabled){
+  background:rgba(0,245,255,.15);
+  border-color:#00f5ff;
+  box-shadow:0 0 12px rgba(0,245,255,.4);
+}
+.lb-page-btn:disabled{
+  opacity:.3; cursor:not-allowed;
+}
+.lb-page-info{
+  color:#aaa;
+  font-family:'Courier New',monospace;
+  font-size:.9rem;
+  letter-spacing:2px;
+  min-width:80px;
+  text-align:center;
+}
+
+/* === FULL IMAGE VIEW (when clicking a thumbnail) === */
+.lb-full{
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.95);
+  z-index:10005;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:40px 20px;
+}
+.lb-full.open{ display:flex; }
+.lb-full-stage{
+  position:relative;
+  max-width:90vw;
+  max-height:80vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+.lb-full-img{
+  max-width:90vw;
+  max-height:75vh;
+  object-fit:contain;
+  border-radius:4px;
   box-shadow:
     0 0 30px rgba(255,255,255,.6),
     0 0 60px rgba(255,255,255,.4),
     0 0 100px rgba(255,255,255,.2),
     0 0 0 2px rgba(255,255,255,.9);
   animation:lbNeonPulse 3s ease-in-out infinite;
+}
+.lb-full-desc{
+  margin-top:18px;
+  padding:10px 18px;
+  background:rgba(0,0,0,.7);
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:8px;
+  color:#fff;
+  font-family:'Heebo',sans-serif;
+  font-size:.95rem;
+  max-width:90vw;
+  text-align:center;
+}
+.lb-full-desc:empty{ display:none; }
+.lb-full-close{
+  position:absolute;
+  top:20px;
+  left:20px;
+  background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.3);
+  color:#fff;
+  width:42px; height:42px; border-radius:50%;
+  cursor:pointer; font-size:1.4rem;
+  display:flex; align-items:center; justify-content:center;
+  z-index:10;
+  transition:all .2s;
+}
+.lb-full-close:hover{ background:rgba(255,255,255,.25); transform:rotate(90deg); }
+.lb-full-counter{
+  position:absolute;
+  top:30px;
+  right:30px;
+  color:#888;
+  font-family:'Courier New',monospace;
+  font-size:.9rem;
+  letter-spacing:2px;
 }
 @keyframes lbNeonPulse{
   0%,100%{
@@ -1743,7 +1991,7 @@
       0 0 0 2px rgba(255,255,255,1);
   }
 }
-.lb-nav{
+.lb-full-nav{
   position:absolute; top:50%;
   transform:translateY(-50%);
   width:50px; height:50px; border-radius:50%;
@@ -1754,30 +2002,59 @@
   display:flex; align-items:center; justify-content:center;
   transition:all .2s; z-index:11;
 }
-.lb-nav:hover{ background:rgba(255,255,255,.2); box-shadow:0 0 20px rgba(255,255,255,.4); transform:translateY(-50%) scale(1.1); }
-.lb-prev{ right:30px; }
-.lb-next{ left:30px; }
-.lb-thumbs{
-  position:absolute; bottom:20px; left:50%;
-  transform:translateX(-50%);
-  display:flex; gap:8px;
-  padding:10px 14px;
-  background:rgba(255,255,255,.04);
+.lb-full-nav:hover{ background:rgba(255,255,255,.2); box-shadow:0 0 20px rgba(255,255,255,.4); transform:translateY(-50%) scale(1.1); }
+.lb-full-prev{ right:30px; }
+.lb-full-next{ left:30px; }
+
+/* Description editor modal */
+.lb-desc-modal{
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.8);
+  z-index:10010;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  backdrop-filter:blur(8px);
+}
+.lb-desc-modal.open{ display:flex; }
+.lb-desc-box{
+  background:linear-gradient(180deg,#15151f,#0a0a14);
+  border:1px solid rgba(0,245,255,.3);
   border-radius:12px;
-  border:1px solid rgba(255,255,255,.1);
-  max-width:90vw; overflow-x:auto; z-index:11;
+  padding:22px;
+  width:100%;
+  max-width:440px;
+  box-shadow:0 0 40px rgba(0,245,255,.2);
 }
-.lb-thumb{
-  width:50px; height:50px; border-radius:4px;
-  overflow:hidden; cursor:pointer;
-  border:2px solid transparent; flex-shrink:0;
-  transition:all .2s; background:#111;
+.lb-desc-box h3{
+  color:#00f5ff;
+  font-family:'Courier New',monospace;
+  font-size:1rem;
+  letter-spacing:2px;
+  margin-bottom:14px;
+  text-shadow:0 0 6px #00f5ff;
 }
-.lb-thumb img{ width:100%; height:100%; object-fit:cover; }
-.lb-thumb:hover{ border-color:rgba(255,255,255,.5); }
-.lb-thumb.active{
-  border-color:#fff;
-  box-shadow:0 0 12px rgba(255,255,255,.7);
+.lb-desc-box textarea{
+  width:100%;
+  min-height:80px;
+  padding:10px 12px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:6px;
+  color:#fff;
+  font-family:inherit;
+  font-size:.95rem;
+  outline:none;
+  resize:vertical;
+}
+.lb-desc-box textarea:focus{
+  border-color:#00f5ff;
+  box-shadow:0 0 0 3px rgba(0,245,255,.15);
+}
+.lb-desc-actions{
+  display:flex; gap:10px; justify-content:flex-end;
+  margin-top:14px;
 }
 
 /* ============== Editor modal ============== */
@@ -9427,19 +9704,47 @@ window.addEventListener('DOMContentLoaded', ()=>{
   <div class="gal-wall" id="gal-wall"></div>
 </div>
 
-<!-- Lightbox -->
+<!-- Lightbox: GRID view -->
 <div class="gal-lightbox" id="gal-lightbox">
   <div class="lb-header">
     <div>
       <div class="lb-title" id="lbTitle">—</div>
-      <div class="lb-counter" id="lbCounter">0 / 0</div>
+      <div class="lb-counter" id="lbCounter">0 תמונות</div>
     </div>
     <button class="lb-close" onclick="galCloseLightbox()">×</button>
   </div>
-  <div class="lb-stage"><img class="lb-img" id="lbImg" alt=""></div>
-  <button class="lb-nav lb-prev" onclick="galLbStep(-1)">‹</button>
-  <button class="lb-nav lb-next" onclick="galLbStep(1)">›</button>
-  <div class="lb-thumbs" id="lbThumbs"></div>
+  <div class="lb-grid-wrap">
+    <div class="lb-grid" id="lbGrid"></div>
+  </div>
+  <div class="lb-pager" id="lbPager">
+    <button class="lb-page-btn" id="lbPageNext" onclick="galPageStep(1)">›</button>
+    <div class="lb-page-info" id="lbPageInfo">1 / 1</div>
+    <button class="lb-page-btn" id="lbPagePrev" onclick="galPageStep(-1)">‹</button>
+  </div>
+</div>
+
+<!-- Full-image view (clicking on a card) -->
+<div class="lb-full" id="lb-full">
+  <button class="lb-full-close" onclick="galCloseFull()">×</button>
+  <div class="lb-full-counter" id="lbFullCounter">1 / 1</div>
+  <div class="lb-full-stage">
+    <img class="lb-full-img" id="lbFullImg" alt="">
+    <div class="lb-full-desc" id="lbFullDesc"></div>
+  </div>
+  <button class="lb-full-nav lb-full-prev" onclick="galFullStep(-1)">‹</button>
+  <button class="lb-full-nav lb-full-next" onclick="galFullStep(1)">›</button>
+</div>
+
+<!-- Description editor -->
+<div class="lb-desc-modal" id="lb-desc-modal">
+  <div class="lb-desc-box">
+    <h3>✎ תיאור התמונה</h3>
+    <textarea id="lbDescInput" placeholder="כתוב תיאור..."></textarea>
+    <div class="lb-desc-actions">
+      <button class="gal-btn gal-btn-ghost" onclick="galCloseDesc()">ביטול</button>
+      <button class="gal-btn gal-btn-primary" onclick="galSaveDesc()">שמור</button>
+    </div>
+  </div>
 </div>
 
 <!-- Editor -->
@@ -9703,7 +10008,7 @@ function galRenderWall(){
       <div class="screen-frame">
         <div class="screen">
           ${cover
-            ? `<img class="screen-img" src="${cover.thumb_url}" alt="">`
+            ? `<img class="screen-img" src="${cover.thumb_url}" alt=""><div class="screen-rollbar"></div>`
             : `<div class="screen-empty">
                 <div class="noise"></div>
                 <div>NO SIGNAL</div>
@@ -9794,54 +10099,182 @@ async function galDeleteProgram(programId){
   }
 }
 
-// ---------- Lightbox ----------
+// ---------- Lightbox: Grid view with pagination ----------
+const LB_PAGE_SIZE = 6;
+let galLbPage = 0;
+let galLbFullIdx = 0;  // index in full-image view
+let galDescEditingImageId = null;
+
 function galOpenLightbox(programId, idx){
   const p = galPrograms.find(x=>x.id===programId);
   if(!p || p.images.length===0) return;
   galLbProgramId = programId;
-  galLbIndex = idx || 0;
+  galLbPage = 0;
   document.getElementById('lbTitle').textContent = p.name;
-  galRenderLightbox();
-  document.getElementById('gal-lightbox').classList.add('open');
+  galRenderGrid();
+  // Make sure lightbox is direct child of body
+  const lb = document.getElementById('gal-lightbox');
+  if(lb && lb.parentNode !== document.body) document.body.appendChild(lb);
+  lb.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
 
-function galRenderLightbox(){
+function galRenderGrid(){
   const p = galPrograms.find(x=>x.id===galLbProgramId);
   if(!p) return;
-  const img = p.images[galLbIndex];
-  document.getElementById('lbImg').src = img.full_url;
-  document.getElementById('lbCounter').textContent = `${galLbIndex+1} / ${p.images.length}`;
-  const thumbs = document.getElementById('lbThumbs');
-  thumbs.innerHTML = '';
-  p.images.forEach((im, i) => {
-    const t = document.createElement('div');
-    t.className = 'lb-thumb' + (i===galLbIndex?' active':'');
-    t.innerHTML = `<img src="${im.thumb_url}" alt="">`;
-    t.onclick = () => { galLbIndex = i; galRenderLightbox(); };
-    thumbs.appendChild(t);
+  const total = p.images.length;
+  const totalPages = Math.max(1, Math.ceil(total / LB_PAGE_SIZE));
+  if(galLbPage >= totalPages) galLbPage = totalPages - 1;
+  if(galLbPage < 0) galLbPage = 0;
+  
+  document.getElementById('lbCounter').textContent = `${total} תמונות`;
+  document.getElementById('lbPageInfo').textContent = `${galLbPage+1} / ${totalPages}`;
+  document.getElementById('lbPagePrev').disabled = galLbPage === 0;
+  document.getElementById('lbPageNext').disabled = galLbPage >= totalPages - 1;
+  
+  // Hide pager if only 1 page
+  document.getElementById('lbPager').style.display = totalPages > 1 ? 'flex' : 'none';
+  
+  const start = galLbPage * LB_PAGE_SIZE;
+  const end = Math.min(start + LB_PAGE_SIZE, total);
+  const slice = p.images.slice(start, end);
+  
+  const grid = document.getElementById('lbGrid');
+  grid.innerHTML = '';
+  const canEdit = galCanEdit();
+  slice.forEach((img, i) => {
+    const globalIdx = start + i;
+    const card = document.createElement('div');
+    card.className = 'lb-card';
+    card.innerHTML = `
+      <div class="lb-card-img-wrap">
+        <button class="lb-card-edit-desc ${canEdit?'show':''}" data-img-id="${img.id}" title="ערוך תיאור">✎</button>
+        <img class="lb-card-img" src="${img.thumb_url}" alt="" loading="lazy">
+      </div>
+      <div class="lb-card-desc">${galEsc(img.description || '')}</div>
+    `;
+    card.addEventListener('click', (e) => {
+      if(e.target.closest('.lb-card-edit-desc')){
+        e.stopPropagation();
+        galOpenDescEditor(img);
+        return;
+      }
+      galOpenFull(globalIdx);
+    });
+    grid.appendChild(card);
   });
+  
+  // scroll to top of grid
+  document.querySelector('.lb-grid-wrap').scrollTop = 0;
 }
 
-function galLbStep(dir){
-  const p = galPrograms.find(x=>x.id===galLbProgramId);
-  if(!p) return;
-  galLbIndex = (galLbIndex + dir + p.images.length) % p.images.length;
-  galRenderLightbox();
+function galPageStep(dir){
+  galLbPage += dir;
+  galRenderGrid();
 }
 
 function galCloseLightbox(){
   document.getElementById('gal-lightbox').classList.remove('open');
+  galCloseFull();
+  galCloseDesc();
   document.body.style.overflow = '';
+}
+
+// ---------- Full-image view ----------
+function galOpenFull(idx){
+  const p = galPrograms.find(x=>x.id===galLbProgramId);
+  if(!p) return;
+  galLbFullIdx = idx;
+  galRenderFull();
+  const f = document.getElementById('lb-full');
+  if(f && f.parentNode !== document.body) document.body.appendChild(f);
+  f.classList.add('open');
+}
+
+function galRenderFull(){
+  const p = galPrograms.find(x=>x.id===galLbProgramId);
+  if(!p) return;
+  const img = p.images[galLbFullIdx];
+  if(!img) return;
+  document.getElementById('lbFullImg').src = img.full_url;
+  document.getElementById('lbFullDesc').textContent = img.description || '';
+  document.getElementById('lbFullCounter').textContent = `${galLbFullIdx+1} / ${p.images.length}`;
+}
+
+function galFullStep(dir){
+  const p = galPrograms.find(x=>x.id===galLbProgramId);
+  if(!p) return;
+  galLbFullIdx = (galLbFullIdx + dir + p.images.length) % p.images.length;
+  galRenderFull();
+}
+
+function galCloseFull(){
+  document.getElementById('lb-full').classList.remove('open');
+}
+
+// ---------- Description editor ----------
+function galOpenDescEditor(img){
+  if(!galCanEdit()) return;
+  galDescEditingImageId = img.id;
+  document.getElementById('lbDescInput').value = img.description || '';
+  const m = document.getElementById('lb-desc-modal');
+  if(m && m.parentNode !== document.body) document.body.appendChild(m);
+  m.classList.add('open');
+  setTimeout(() => document.getElementById('lbDescInput').focus(), 50);
+}
+
+function galCloseDesc(){
+  document.getElementById('lb-desc-modal').classList.remove('open');
+  galDescEditingImageId = null;
+}
+
+async function galSaveDesc(){
+  if(!galDescEditingImageId) return;
+  const desc = document.getElementById('lbDescInput').value.trim();
+  try{
+    const { error } = await sb.from('gallery_images')
+      .update({ description: desc })
+      .eq('id', galDescEditingImageId);
+    if(error) throw error;
+    // Update local state
+    galPrograms.forEach(p => {
+      p.images.forEach(im => {
+        if(im.id === galDescEditingImageId) im.description = desc;
+      });
+    });
+    galCloseDesc();
+    galRenderGrid();
+    // Also refresh full view if it's open
+    if(document.getElementById('lb-full').classList.contains('open')){
+      galRenderFull();
+    }
+  }catch(err){
+    alert('שגיאה בשמירת התיאור: '+err.message);
+  }
 }
 
 // Keyboard nav
 document.addEventListener('keydown', (e) => {
+  // Description editor — Esc closes only it
+  const dm = document.getElementById('lb-desc-modal');
+  if(dm && dm.classList.contains('open')){
+    if(e.key === 'Escape') galCloseDesc();
+    return;
+  }
+  // Full image view — has highest priority
+  const f = document.getElementById('lb-full');
+  if(f && f.classList.contains('open')){
+    if(e.key === 'Escape') galCloseFull();
+    if(e.key === 'ArrowLeft') galFullStep(1);  // RTL: next
+    if(e.key === 'ArrowRight') galFullStep(-1);
+    return;
+  }
+  // Grid lightbox
   const lb = document.getElementById('gal-lightbox');
   if(!lb || !lb.classList.contains('open')) return;
   if(e.key === 'Escape') galCloseLightbox();
-  if(e.key === 'ArrowLeft') galLbStep(1);  // RTL: next
-  if(e.key === 'ArrowRight') galLbStep(-1);
+  if(e.key === 'ArrowLeft') galPageStep(1);  // RTL: next page
+  if(e.key === 'ArrowRight') galPageStep(-1);
 });
 
 // ---------- Editor ----------
@@ -10074,7 +10507,8 @@ async function galSaveEditor(){
 // Click outside editor/lightbox to close
 document.addEventListener('click', (e) => {
   if(e.target.id === 'gal-editor') galCloseEditor();
-  if(e.target.id === 'gal-lightbox') galCloseLightbox();
+  if(e.target.id === 'lb-full') galCloseFull();
+  if(e.target.id === 'lb-desc-modal') galCloseDesc();
 });
 
 // =============================================================
@@ -10165,7 +10599,7 @@ async function galSaveMasterView(){
   // FIRST: ensure gallery elements are direct children of <body>
   // (otherwise they may be nested inside hidden parents)
   function relocateToBody(){
-    ['view-gallery', 'gal-lightbox', 'gal-editor'].forEach(id => {
+    ['view-gallery', 'gal-lightbox', 'gal-editor', 'lb-full', 'lb-desc-modal'].forEach(id => {
       const el = document.getElementById(id);
       if(el && el.parentNode !== document.body){
         console.log('[gallery] Relocating', id, 'from', el.parentNode?.tagName, 'to body');
