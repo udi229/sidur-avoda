@@ -1642,17 +1642,8 @@
     0 0 0 1px rgba(255,255,255,.04);
   transition:transform .3s cubic-bezier(.2,.9,.3,1.4);
   cursor:pointer;
-  animation:crtFloat var(--float-dur, 5s) ease-in-out infinite;
-  animation-delay:var(--float-delay, 0s);
 }
-@keyframes crtFloat{
-  0%, 100% { transform:translateY(0); }
-  50%      { transform:translateY(-6px); }
-}
-.crt:hover{
-  animation:none;
-  transform:translateY(-6px) scale(1.04);
-}
+.crt:hover{ transform:translateY(-4px) scale(1.03); }
 .crt:hover .screen-glow{ opacity:.7; }
 .crt::before{
   content:''; position:absolute; inset:0; border-radius:10px;
@@ -1701,6 +1692,19 @@
 .screen-img{
   position:absolute; inset:0; width:100%; height:100%;
   object-fit:cover; z-index:1;
+  animation:vhsDrop var(--vhs-dur, 7s) steps(1, end) infinite;
+  animation-delay:var(--vhs-delay, 0s);
+}
+@keyframes vhsDrop{
+  /* Most of the time the image is steady; once per cycle it "drops"
+     a few pixels for a fraction of a second, then snaps back —
+     like a tracking glitch on an old VHS tape. */
+  0%, 100%   { transform:translateY(0); }
+  91%        { transform:translateY(0); }
+  92%        { transform:translateY(8px); }   /* drop */
+  94%        { transform:translateY(8px); }
+  95%        { transform:translateY(-2px); }  /* tiny overshoot */
+  96%        { transform:translateY(0); }
 }
 .screen-empty{
   position:absolute; inset:0;
@@ -10185,12 +10189,12 @@ function galRenderWall(){
       : (p.images[0] || null);
     const tv = document.createElement('div');
     tv.className = 'crt';
-    // Each TV floats with a slightly different duration (4.5–6.5s) and delay
-    // so the wall has organic, asynchronous motion instead of marching in unison.
-    const floatDur = (4.5 + (i % 5) * 0.5).toFixed(2); // 4.5, 5.0, 5.5, 6.0, 6.5, repeat
-    const floatDelay = ((i * 0.7) % 3).toFixed(2);     // 0, 0.7, 1.4, 2.1, 0.8, ...
-    tv.style.setProperty('--float-dur', floatDur + 's');
-    tv.style.setProperty('--float-delay', '-' + floatDelay + 's'); // negative = pre-offset
+    // Each screen gets a different VHS drop timing so the wall doesn't glitch in unison.
+    // Duration: 6–10s, delay offsets so different TVs drop at different moments.
+    const vhsDur = (6 + (i % 5) * 1).toFixed(2);     // 6, 7, 8, 9, 10, repeat
+    const vhsDelay = ((i * 1.3) % 8).toFixed(2);     // staggers when each starts
+    tv.style.setProperty('--vhs-dur', vhsDur + 's');
+    tv.style.setProperty('--vhs-delay', '-' + vhsDelay + 's'); // negative = pre-offset
     tv.innerHTML = `
       <button class="crt-edit-btn ${canEdit?'show':''}" title="ערוך" data-edit="${p.id}">✎</button>
       <button class="crt-del-btn ${canEdit?'show':''}" title="מחק תוכנית" data-del="${p.id}">🗑</button>
