@@ -547,12 +547,21 @@
     .filter-select { font-size:11px; padding:3px 6px; }
     #vacation-container { overflow-x:hidden; }
     /* Mobile fix: ensure vacation view fills full screen height
-       so the request list and calendar use available space, not just content height */
-    #app { height:100dvh !important; min-height:100dvh !important; }
-    #view-vacation { height:100% !important; min-height:0 !important; display:flex !important; flex-direction:column !important; }
-    #vacation-container { height:100% !important; min-height:0 !important; display:flex !important; flex-direction:column !important; flex:1 !important; }
-    #vacation-container #screen-app.active { flex:1 !important; min-height:0 !important; }
-    #vacation-container .tab-panels { min-height:0 !important; }
+       so the request list and calendar use available space.
+       The body class .view-vacation-active is added by showView() ONLY
+       when vacation is the visible view, so these rules can never leak
+       into other views (settings, schedule, etc.). */
+    body.view-vacation-active #app { height:100dvh !important; min-height:100dvh !important; }
+    body.view-vacation-active #view-vacation {
+      height:100% !important; min-height:0 !important;
+      display:flex !important; flex-direction:column !important;
+    }
+    body.view-vacation-active #vacation-container {
+      height:100% !important; min-height:0 !important;
+      display:flex !important; flex-direction:column !important; flex:1 !important;
+    }
+    body.view-vacation-active #vacation-container #screen-app.active { flex:1 !important; min-height:0 !important; }
+    body.view-vacation-active #vacation-container .tab-panels { min-height:0 !important; }
     .cal-month-nav { gap:4px; }
     /* Hide holiday label on tiny cells */
     .cal-day .holiday-label { display:none; }
@@ -1334,6 +1343,184 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DSEG7+Classic:ital,wght@0,400;0,700&display=swap" rel="stylesheet">
+
+<style id="approval-styles">
+/* ============== Approval popup ============== */
+.approval-popup{
+  position:fixed; inset:0;
+  z-index:10100;
+  display:none;
+  align-items:center; justify-content:center;
+  padding:20px;
+}
+.approval-popup-overlay{
+  position:absolute; inset:0;
+  background:rgba(0,0,0,0.6);
+  backdrop-filter:blur(4px);
+}
+.approval-popup-card{
+  position:relative;
+  background:#fff;
+  border-radius:18px;
+  padding:24px;
+  max-width:480px;
+  width:100%;
+  box-shadow:0 20px 60px rgba(0,0,0,0.4),0 0 30px rgba(255,170,0,0.3);
+  border:2px solid #ffaa00;
+  animation:approvalPopIn 0.35s cubic-bezier(0.2,0.9,0.3,1.4);
+}
+@keyframes approvalPopIn{
+  0%{ opacity:0; transform:scale(0.85) translateY(-20px); }
+  100%{ opacity:1; transform:scale(1) translateY(0); }
+}
+.approval-popup-header{
+  display:flex; align-items:center; gap:10px;
+  margin-bottom:14px;
+  padding-bottom:12px;
+  border-bottom:1px solid #f1f5f9;
+}
+.approval-popup-icon{
+  font-size:1.6rem;
+  animation:approvalBellShake 1.4s ease-in-out infinite;
+}
+@keyframes approvalBellShake{
+  0%, 100%{ transform:rotate(0); }
+  10%, 30%{ transform:rotate(-12deg); }
+  20%, 40%{ transform:rotate(12deg); }
+  50%{ transform:rotate(0); }
+}
+.approval-popup-title{
+  font-size:1rem; font-weight:800; color:#0f172a;
+  flex:1;
+}
+.approval-popup-list{
+  max-height:280px;
+  overflow-y:auto;
+  margin-bottom:18px;
+}
+.approval-popup-item{
+  padding:10px 12px;
+  background:#f8fafc;
+  border:1px solid #e2e8f0;
+  border-radius:10px;
+  margin-bottom:6px;
+}
+.approval-popup-name{
+  font-weight:700; font-size:14px; color:#0f172a;
+  margin-bottom:3px;
+}
+.approval-popup-details{
+  font-size:11px; color:#64748b;
+  word-break:break-all;
+}
+.approval-popup-more{
+  text-align:center;
+  color:#94a3b8;
+  font-size:12px;
+  padding:6px;
+  font-style:italic;
+}
+.approval-popup-actions{
+  display:flex; gap:8px; justify-content:flex-end;
+}
+.approval-popup-btn{
+  padding:9px 18px;
+  border-radius:18px;
+  border:none;
+  font-family:inherit;
+  font-weight:700;
+  font-size:13px;
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.approval-popup-btn-primary{
+  background:linear-gradient(135deg,#00d4ff,#0099cc);
+  color:#fff;
+  box-shadow:0 0 14px rgba(0,212,255,0.4);
+}
+.approval-popup-btn-primary:hover{
+  box-shadow:0 0 22px rgba(0,212,255,0.7);
+  transform:translateY(-1px);
+}
+.approval-popup-btn-ghost{
+  background:transparent;
+  color:#64748b;
+  border:1px solid #cbd5e1;
+}
+.approval-popup-btn-ghost:hover{
+  background:#f1f5f9;
+}
+
+/* ============== Approval list inside settings ============== */
+.approval-tab-badge{
+  display:none;
+  align-items:center; justify-content:center;
+  background:#dc2626;
+  color:#fff;
+  border-radius:12px;
+  padding:1px 8px;
+  font-size:11px;
+  font-weight:900;
+  margin-right:8px;
+  min-width:20px;
+  box-shadow:0 0 8px rgba(220,38,38,0.5);
+  animation:approvalBadgePulse 1.6s ease-in-out infinite;
+}
+@keyframes approvalBadgePulse{
+  0%,100%{ box-shadow:0 0 8px rgba(220,38,38,0.5); }
+  50%{ box-shadow:0 0 14px rgba(220,38,38,0.9); }
+}
+.approval-row{
+  display:flex; align-items:center; gap:10px;
+  padding:12px;
+  background:#f8fafc;
+  border:1px solid #e2e8f0;
+  border-radius:10px;
+  margin-bottom:8px;
+  flex-wrap:wrap;
+}
+.approval-row-info{
+  flex:1; min-width:200px;
+}
+.approval-row-name{
+  font-weight:700; font-size:15px; color:#0f172a;
+  margin-bottom:4px;
+}
+.approval-row-meta{
+  display:flex; flex-wrap:wrap; gap:10px;
+  font-size:12px; color:#64748b;
+}
+.approval-row-actions{
+  display:flex; gap:6px;
+}
+.approval-btn{
+  padding:7px 14px;
+  border-radius:8px;
+  border:none;
+  font-family:inherit;
+  font-weight:700;
+  font-size:13px;
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.approval-btn-approve{
+  background:#10b981;
+  color:#fff;
+  box-shadow:0 0 8px rgba(16,185,129,0.4);
+}
+.approval-btn-approve:hover{
+  background:#059669;
+  box-shadow:0 0 14px rgba(16,185,129,0.6);
+}
+.approval-btn-reject{
+  background:transparent;
+  color:#dc2626;
+  border:1px solid #fecaca;
+}
+.approval-btn-reject:hover{
+  background:#fef2f2;
+}
+</style>
 
 <style id="gallery-styles">
 /* ============== GALLERY: TV button on hub ============== */
@@ -2695,6 +2882,19 @@
         <div id="loz-editors-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
       </div>
 
+      <div class="set-sec" id="approval-settings-sec" style="display:none">
+        <h3 onclick="toggleSetSec(this)">
+          🔔 אישור משתמשים
+          <span class="approval-tab-badge" id="approval-tab-badge"></span>
+        </h3>
+        <div class="set-sec-body">
+          <div class="notice n-info" style="margin-bottom:14px">
+            💡 משתמשים שנרשמו לאפליקציה מופיעים כאן. אשר אותם כדי שיוכלו להיכנס.
+          </div>
+          <div id="approval-pending-list"></div>
+        </div>
+      </div>
+
       <div class="set-sec collapsed" id="gallery-settings-sec" style="display:none">
   <h3 onclick="toggleSetSec(this)">📺 גלריה — הרשאות</h3>
   <div class="set-sec-body">
@@ -3333,12 +3533,14 @@ async function _handleAuth(){
     const preservedRole=existingEmp?.role||'employee';
     const preservedPos=existingEmp?.position_percent||100;
     await sb.from('employees').delete().eq('email',email);
-    const {error:empErr}=await sb.from('employees').insert({full_name:name,email,role:preservedRole,department_id:deptId||null,position_percent:preservedPos,phone:phone||null});
+    // New registrations always start as 'pending' for manager approval
+    const newStatus = 'pending';
+    const {error:empErr}=await sb.from('employees').insert({full_name:name,email,role:preservedRole,department_id:deptId||null,position_percent:preservedPos,phone:phone||null,status:newStatus});
     if(empErr){
       console.error('employee insert error:',empErr.message);
       // אם השגיאה היא על עמודת phone — נכניס בלי phone
       if(empErr.message?.includes('phone')){
-        await sb.from('employees').insert({full_name:name,email,role:preservedRole,department_id:deptId||null,position_percent:preservedPos});
+        await sb.from('employees').insert({full_name:name,email,role:preservedRole,department_id:deptId||null,position_percent:preservedPos,status:newStatus});
         console.warn('phone column missing in DB — inserted without phone. Run: ALTER TABLE employees ADD COLUMN IF NOT EXISTS phone text;');
       }
     }
@@ -3487,14 +3689,25 @@ async function initApp(user){
     try{
       const {data:newEmp}=await sb.from('employees').insert({
         full_name:name, email:user.email, role:'employee',
-        department_id:deptId, position_percent:100
+        department_id:deptId, position_percent:100,
+        status:'pending'
       }).select().single();
       if(newEmp){ employees.push(newEmp); currentEmp=newEmp; }
       sessionStorage.removeItem('reg-data');
     }catch(e){ console.error('auto-create employee failed',e); }
     if(!currentEmp){
-      currentEmp={id:null,full_name:name,email:user.email,role:'employee',department_id:null,position_percent:100};
+      currentEmp={id:null,full_name:name,email:user.email,role:'employee',department_id:null,position_percent:100,status:'pending'};
     }
+  }
+  // ---- APPROVAL GATE: block users who are pending or rejected ----
+  // Manager-PIN logins bypass this since they don't go through initApp.
+  if(currentEmp && currentEmp.status === 'pending'){
+    showApprovalWaitingScreen(currentEmp);
+    return;
+  }
+  if(currentEmp && currentEmp.status === 'rejected'){
+    showApprovalRejectedScreen(currentEmp);
+    return;
   }
   // Auto-register in vacation app Firebase
   document.getElementById('auth-screen').style.display='none';
@@ -6102,6 +6315,8 @@ async function delEmp(id){
 function showView(v,e){
   activeView=v;openDropdown=null;
   ['schedule','stats','settings','vacation','loz'].forEach(x=>{const el=document.getElementById('view-'+x);if(el)el.style.display=x===v?(x==='vacation'?'flex':'block'):'none';});
+  // Toggle body class so mobile flex-fill rules apply only when vacation is visible
+  document.body.classList.toggle('view-vacation-active', v === 'vacation');
   if(v==='vacation') setTimeout(initVacationApp,100);
   if(v==='loz') setTimeout(()=>{
     window._lozForcePreview=true; // תמיד מתחיל בתצוגה מקדימה
@@ -8543,6 +8758,7 @@ function hubExit(){
 }
 
 function showHub(){
+  document.body.classList.remove('view-vacation-active');
   document.getElementById('hub-screen').classList.add('active');
   document.getElementById('app').style.display='none';
   // show contact btn — all users can view, managers can edit
@@ -9783,6 +9999,378 @@ window.addEventListener('DOMContentLoaded', ()=>{
   }, 1500);
 });
 
+</script>
+
+<script id="user-approval-logic">
+// =============================================================
+// USER APPROVAL SYSTEM
+// =============================================================
+
+// ---- State ----
+let pendingUsersCache = [];
+let userApprovalRealtimeCh = null;
+let userApprovalPollTimer = null;
+let waitingUserCheckTimer = null;
+
+// ---- Waiting screen for pending user ----
+function showApprovalWaitingScreen(emp){
+  document.getElementById('auth-screen').style.display = 'none';
+  const app = document.getElementById('app');
+  if(app) app.style.display = 'none';
+  let scr = document.getElementById('approval-waiting-screen');
+  if(!scr){
+    scr = document.createElement('div');
+    scr.id = 'approval-waiting-screen';
+    scr.style.cssText = `
+      position:fixed; inset:0; z-index:9990;
+      background:radial-gradient(ellipse at center,#0a1628 0%,#03050a 70%);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      padding:30px; text-align:center; font-family:'Heebo',sans-serif; color:#fff;
+    `;
+    document.body.appendChild(scr);
+  }
+  scr.innerHTML = `
+    <div style="font-size:5rem;margin-bottom:20px;animation:waitPulse 2s ease-in-out infinite;">⏳</div>
+    <div style="font-size:1.8rem;font-weight:800;color:#00d4ff;text-shadow:0 0 14px rgba(0,212,255,0.6);margin-bottom:14px;">
+      ברוך הבא, ${approvalEsc(emp.full_name)}!
+    </div>
+    <div style="font-size:1.1rem;color:#aacde6;margin-bottom:8px;line-height:1.6;max-width:480px;">
+      מיד נאשר אותך
+    </div>
+    <div style="font-size:0.9rem;color:#7a9ab8;margin-bottom:36px;line-height:1.6;max-width:480px;">
+      אודי קיבל הודעה על הרישום שלך וייגש לאשר אותו.<br>
+      ברגע שיאושר — תיכנס אוטומטית לאפליקציה.
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;color:#5d8fb3;font-size:0.85rem;">
+      <span style="width:8px;height:8px;background:#00d4ff;border-radius:50%;animation:dotBounce 1.4s ease-in-out infinite;"></span>
+      <span style="width:8px;height:8px;background:#00d4ff;border-radius:50%;animation:dotBounce 1.4s ease-in-out 0.2s infinite;"></span>
+      <span style="width:8px;height:8px;background:#00d4ff;border-radius:50%;animation:dotBounce 1.4s ease-in-out 0.4s infinite;"></span>
+      <span style="margin-right:12px;">בודק כל כמה שניות...</span>
+    </div>
+    <button onclick="approvalLogout()" style="
+      margin-top:40px; padding:8px 18px;
+      background:transparent; border:1px solid rgba(255,255,255,0.25);
+      color:#aaa; border-radius:18px; cursor:pointer;
+      font-family:inherit; font-size:0.85rem;
+    ">התנתק</button>
+    <style>
+      @keyframes waitPulse{ 0%,100%{transform:scale(1);} 50%{transform:scale(1.08);} }
+      @keyframes dotBounce{ 0%,100%{transform:translateY(0);opacity:0.4;} 50%{transform:translateY(-6px);opacity:1;} }
+    </style>
+  `;
+  scr.style.display = 'flex';
+  if(waitingUserCheckTimer) clearInterval(waitingUserCheckTimer);
+  waitingUserCheckTimer = setInterval(async () => {
+    try{
+      const { data, error } = await sb.from('employees')
+        .select('status')
+        .eq('email', emp.email)
+        .maybeSingle();
+      if(error) return;
+      if(data?.status === 'approved'){
+        clearInterval(waitingUserCheckTimer);
+        waitingUserCheckTimer = null;
+        scr.style.display = 'none';
+        if(currentUser) initApp(currentUser);
+      } else if(data?.status === 'rejected'){
+        clearInterval(waitingUserCheckTimer);
+        waitingUserCheckTimer = null;
+        showApprovalRejectedScreen(emp);
+      }
+    }catch(e){ console.warn('[approval] poll error:', e); }
+  }, 4000);
+}
+
+function showApprovalRejectedScreen(emp){
+  document.getElementById('auth-screen').style.display = 'none';
+  const app = document.getElementById('app');
+  if(app) app.style.display = 'none';
+  let scr = document.getElementById('approval-waiting-screen');
+  if(!scr){
+    scr = document.createElement('div');
+    scr.id = 'approval-waiting-screen';
+    scr.style.cssText = `
+      position:fixed; inset:0; z-index:9990;
+      background:radial-gradient(ellipse at center,#1a0a0a 0%,#050202 70%);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      padding:30px; text-align:center; font-family:'Heebo',sans-serif; color:#fff;
+    `;
+    document.body.appendChild(scr);
+  }
+  scr.innerHTML = `
+    <div style="font-size:5rem;margin-bottom:20px;">🚫</div>
+    <div style="font-size:1.6rem;font-weight:800;color:#ff5566;text-shadow:0 0 14px rgba(255,85,102,0.6);margin-bottom:14px;">
+      הגישה לא אושרה
+    </div>
+    <div style="font-size:1rem;color:#ddaeae;margin-bottom:36px;line-height:1.6;max-width:480px;">
+      אנא פנה למנהל לבירור.
+    </div>
+    <button onclick="approvalLogout()" style="
+      padding:10px 22px;
+      background:rgba(255,85,102,0.15);
+      border:1px solid #ff5566;
+      color:#ff5566;
+      border-radius:18px;
+      cursor:pointer;
+      font-family:inherit; font-weight:700;
+    ">התנתק</button>
+  `;
+  scr.style.display = 'flex';
+}
+
+async function approvalLogout(){
+  if(waitingUserCheckTimer){ clearInterval(waitingUserCheckTimer); waitingUserCheckTimer = null; }
+  try{ await sb.auth.signOut(); }catch(e){}
+  location.reload();
+}
+
+function approvalEsc(s){
+  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---- Manager: load pending users ----
+async function loadPendingUsers(){
+  try{
+    const { data, error } = await sb.from('employees')
+      .select('id, full_name, email, phone, department_id, registered_at, status')
+      .eq('status', 'pending')
+      .order('registered_at', { ascending: false });
+    if(error) throw error;
+    pendingUsersCache = data || [];
+    return pendingUsersCache;
+  }catch(err){
+    console.error('[approval] loadPendingUsers failed:', err);
+    pendingUsersCache = [];
+    return [];
+  }
+}
+
+function refreshPendingBadges(){
+  const count = pendingUsersCache.length;
+  const tabBadge = document.getElementById('approval-tab-badge');
+  if(tabBadge){
+    tabBadge.textContent = count > 0 ? count : '';
+    tabBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+  }
+}
+
+function renderApprovalSettingsSection(){
+  const sec = document.getElementById('approval-settings-sec');
+  if(!sec) return;
+  const isPrimary = isMgr && window._mgrType !== 'secondary';
+  if(!isPrimary){
+    sec.style.display = 'none';
+    return;
+  }
+  sec.style.display = '';
+  const list = document.getElementById('approval-pending-list');
+  if(!list) return;
+  if(pendingUsersCache.length === 0){
+    list.innerHTML = `<div style="text-align:center;padding:24px;color:#94a3b8;font-size:14px">
+      אין משתמשים ממתינים לאישור 👍
+    </div>`;
+    return;
+  }
+  const deptName = {};
+  if(typeof departments !== 'undefined' && Array.isArray(departments)){
+    departments.forEach(d => { deptName[d.id] = d.title || d.name || ''; });
+  }
+  list.innerHTML = '';
+  pendingUsersCache.forEach(u => {
+    const row = document.createElement('div');
+    row.className = 'approval-row';
+    const dn = deptName[u.department_id] || '—';
+    const date = u.registered_at ? new Date(u.registered_at).toLocaleString('he-IL', {dateStyle:'short', timeStyle:'short'}) : '';
+    row.innerHTML = `
+      <div class="approval-row-info">
+        <div class="approval-row-name">${approvalEsc(u.full_name)}</div>
+        <div class="approval-row-meta">
+          <span>📧 ${approvalEsc(u.email)}</span>
+          ${u.phone ? `<span>📱 ${approvalEsc(u.phone)}</span>` : ''}
+          <span>🏢 ${approvalEsc(dn)}</span>
+          ${date ? `<span style="color:#94a3b8">🕒 ${date}</span>` : ''}
+        </div>
+      </div>
+      <div class="approval-row-actions">
+        <button class="approval-btn approval-btn-approve" data-id="${u.id}">✓ אשר</button>
+        <button class="approval-btn approval-btn-reject" data-id="${u.id}">✕ דחה</button>
+      </div>
+    `;
+    row.querySelector('.approval-btn-approve').onclick = () => approveUser(u.id, u.full_name);
+    row.querySelector('.approval-btn-reject').onclick = () => rejectUser(u.id, u.full_name);
+    list.appendChild(row);
+  });
+}
+
+async function approveUser(id, name){
+  try{
+    const { error } = await sb.from('employees')
+      .update({ status: 'approved' })
+      .eq('id', id);
+    if(error) throw error;
+    pendingUsersCache = pendingUsersCache.filter(u => u.id !== id);
+    refreshPendingBadges();
+    renderApprovalSettingsSection();
+  }catch(err){
+    alert('שגיאה באישור: '+err.message);
+  }
+}
+
+async function rejectUser(id, name){
+  if(!confirm(`לדחות את ${name}? המשתמש לא יוכל להיכנס לאפליקציה.`)) return;
+  try{
+    const { error } = await sb.from('employees')
+      .update({ status: 'rejected' })
+      .eq('id', id);
+    if(error) throw error;
+    pendingUsersCache = pendingUsersCache.filter(u => u.id !== id);
+    refreshPendingBadges();
+    renderApprovalSettingsSection();
+  }catch(err){
+    alert('שגיאה בדחייה: '+err.message);
+  }
+}
+
+function showPendingUsersPopup(){
+  if(pendingUsersCache.length === 0) return;
+  const isPrimary = isMgr && window._mgrType !== 'secondary';
+  if(!isPrimary) return;
+  let pop = document.getElementById('approval-popup');
+  if(!pop){
+    pop = document.createElement('div');
+    pop.id = 'approval-popup';
+    document.body.appendChild(pop);
+  }
+  const deptName = {};
+  if(typeof departments !== 'undefined' && Array.isArray(departments)){
+    departments.forEach(d => { deptName[d.id] = d.title || d.name || ''; });
+  }
+  const items = pendingUsersCache.slice(0, 5).map(u => {
+    const dn = deptName[u.department_id] || '—';
+    return `
+      <div class="approval-popup-item">
+        <div class="approval-popup-name">${approvalEsc(u.full_name)}</div>
+        <div class="approval-popup-details">
+          ${approvalEsc(u.email)}${u.phone ? ' · ' + approvalEsc(u.phone) : ''} · ${approvalEsc(dn)}
+        </div>
+      </div>
+    `;
+  }).join('');
+  const more = pendingUsersCache.length > 5 ? `<div class="approval-popup-more">ועוד ${pendingUsersCache.length - 5}...</div>` : '';
+  pop.className = 'approval-popup';
+  pop.innerHTML = `
+    <div class="approval-popup-overlay" onclick="closeApprovalPopup()"></div>
+    <div class="approval-popup-card">
+      <div class="approval-popup-header">
+        <span class="approval-popup-icon">🔔</span>
+        <span class="approval-popup-title">${pendingUsersCache.length} משתמשים חדשים ממתינים לאישור</span>
+      </div>
+      <div class="approval-popup-list">${items}${more}</div>
+      <div class="approval-popup-actions">
+        <button class="approval-popup-btn approval-popup-btn-primary" onclick="closeApprovalPopupAndOpenSettings()">
+          לאישור משתמשים
+        </button>
+        <button class="approval-popup-btn approval-popup-btn-ghost" onclick="closeApprovalPopup()">
+          סגור
+        </button>
+      </div>
+    </div>
+  `;
+  pop.style.display = 'flex';
+}
+
+function closeApprovalPopup(){
+  const pop = document.getElementById('approval-popup');
+  if(pop) pop.style.display = 'none';
+}
+
+function closeApprovalPopupAndOpenSettings(){
+  closeApprovalPopup();
+  if(typeof showView === 'function'){
+    showView('settings');
+    setTimeout(() => {
+      const sec = document.getElementById('approval-settings-sec');
+      if(sec){
+        sec.scrollIntoView({behavior:'smooth', block:'start'});
+        if(sec.classList.contains('collapsed')){
+          sec.classList.remove('collapsed');
+        }
+      }
+    }, 200);
+  }
+}
+
+function startApprovalRealtime(){
+  if(userApprovalRealtimeCh) return;
+  try{
+    userApprovalRealtimeCh = sb.channel('employees-approval')
+      .on('postgres_changes', {event:'*', schema:'public', table:'employees'}, async (payload) => {
+        const oldCount = pendingUsersCache.length;
+        await loadPendingUsers();
+        refreshPendingBadges();
+        renderApprovalSettingsSection();
+        if(payload.eventType === 'INSERT' && payload.new?.status === 'pending'){
+          showPendingUsersPopup();
+        } else if(payload.eventType === 'UPDATE' && payload.new?.status === 'pending' && payload.old?.status !== 'pending'){
+          showPendingUsersPopup();
+        }
+      })
+      .subscribe();
+  }catch(err){
+    console.warn('[approval] realtime not available, falling back to polling', err);
+    if(!userApprovalPollTimer){
+      userApprovalPollTimer = setInterval(async () => {
+        const oldCount = pendingUsersCache.length;
+        await loadPendingUsers();
+        refreshPendingBadges();
+        renderApprovalSettingsSection();
+        if(pendingUsersCache.length > oldCount){
+          showPendingUsersPopup();
+        }
+      }, 30000);
+    }
+  }
+}
+
+async function approvalManagerBoot(){
+  const isPrimary = isMgr && window._mgrType !== 'secondary';
+  if(!isPrimary) return;
+  await loadPendingUsers();
+  refreshPendingBadges();
+  renderApprovalSettingsSection();
+  startApprovalRealtime();
+  if(pendingUsersCache.length > 0){
+    setTimeout(() => showPendingUsersPopup(), 1500);
+  }
+}
+
+(function attachApprovalToHub(){
+  const tryAttach = () => {
+    if(typeof showHub !== 'function'){ setTimeout(tryAttach, 500); return; }
+    const orig = window.showHub;
+    window.showHub = function(){
+      const r = orig.apply(this, arguments);
+      setTimeout(() => approvalManagerBoot(), 300);
+      return r;
+    };
+  };
+  tryAttach();
+})();
+
+(function attachApprovalToShowView(){
+  const tryAttach = () => {
+    if(typeof showView !== 'function'){ setTimeout(tryAttach, 500); return; }
+    const orig = window.showView;
+    window.showView = function(v, e){
+      const r = orig.apply(this, arguments);
+      if(v === 'settings'){
+        renderApprovalSettingsSection();
+      }
+      return r;
+    };
+  };
+  tryAttach();
+})();
 </script>
 
 <script id="gallery-logic">
