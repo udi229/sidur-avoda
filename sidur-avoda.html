@@ -41,7 +41,7 @@
   .main { padding:20px; max-width:1400px; margin:0 auto; }
   #app { height:100vh; overflow-y:auto; display:flex; flex-direction:column; }
   #view-schedule, #view-stats, #view-settings { flex:1; overflow-y:auto; padding:20px; }
-  #view-vacation { flex:1; overflow-y:auto; padding:0; }
+  #view-vacation { flex:1; padding:0; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
 
   /* WEEK NAV */
   .week-nav { display:flex; align-items:center; gap:8px; justify-content:flex-end; margin-bottom:16px; background:white; border-radius:14px; padding:10px 16px; box-shadow:0 1px 6px rgba(0,0,0,0.07); flex-wrap:nowrap; flex-direction:row-reverse; }
@@ -349,11 +349,11 @@
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
   /* vacation app: html/body overflow only when vacation is active */
-  #vacation-container { font-family: 'Heebo', sans-serif; direction: rtl; width:100%; }
+  #vacation-container { font-family: 'Heebo', sans-serif; direction: rtl; width:100%; height:100%; display:flex; flex-direction:column; min-height:0; }
 
   /* SCREEN SYSTEM - scoped to vacation container */
   #vacation-container .screen { display: none; flex-direction: column; }
-  #vacation-container .screen.active { display: flex; flex-direction: column; min-height: 0; }
+  #vacation-container .screen.active { display: flex; flex-direction: column; min-height: 0; flex:1; }
   #vacation-container .screen.fade-out { display: none; }
 
   /* REGISTER SCREEN */
