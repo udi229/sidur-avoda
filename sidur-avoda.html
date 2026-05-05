@@ -546,6 +546,13 @@
     .calendar-filter { flex-wrap:wrap; gap:4px; margin-bottom:6px; }
     .filter-select { font-size:11px; padding:3px 6px; }
     #vacation-container { overflow-x:hidden; }
+    /* Mobile fix: ensure vacation view fills full screen height
+       so the request list and calendar use available space, not just content height */
+    #app { height:100dvh !important; min-height:100dvh !important; }
+    #view-vacation { height:100% !important; min-height:0 !important; display:flex !important; flex-direction:column !important; }
+    #vacation-container { height:100% !important; min-height:0 !important; display:flex !important; flex-direction:column !important; flex:1 !important; }
+    #vacation-container #screen-app.active { flex:1 !important; min-height:0 !important; }
+    #vacation-container .tab-panels { min-height:0 !important; }
     .cal-month-nav { gap:4px; }
     /* Hide holiday label on tiny cells */
     .cal-day .holiday-label { display:none; }
