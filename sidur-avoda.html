@@ -1490,6 +1490,42 @@
   display:flex; flex-wrap:wrap; gap:10px;
   font-size:12px; color:#64748b;
 }
+.approval-row-pos{
+  display:flex; align-items:center; gap:6px;
+  margin-top:8px;
+  font-size:13px;
+  color:#0f172a;
+}
+.approval-row-pos label{
+  font-weight:700;
+  color:#475569;
+}
+.approval-pos-input{
+  width:62px;
+  padding:4px 6px;
+  border:1.5px solid #cbd5e1;
+  border-radius:6px;
+  font-family:inherit;
+  font-size:13px;
+  font-weight:700;
+  text-align:center;
+  color:#0f172a;
+  background:#fff;
+  transition:all 0.15s;
+}
+.approval-pos-input:focus{
+  outline:none;
+  border-color:#10b981;
+  box-shadow:0 0 0 3px rgba(16,185,129,0.15);
+}
+.approval-pos-input::-webkit-inner-spin-button{
+  opacity:1;
+}
+.approval-pos-suffix{
+  font-weight:800;
+  color:#10b981;
+  font-size:14px;
+}
 .approval-row-actions{
   display:flex; gap:6px;
 }
@@ -10132,7 +10168,7 @@ function approvalEsc(s){
 async function loadPendingUsers(){
   try{
     const { data, error } = await sb.from('employees')
-      .select('id, full_name, email, phone, department_id, registered_at, status')
+      .select('id, full_name, email, phone, department_id, registered_at, status, position_percent')
       .eq('status', 'pending')
       .order('registered_at', { ascending: false });
     if(error) throw error;
@@ -10181,6 +10217,7 @@ function renderApprovalSettingsSection(){
     row.className = 'approval-row';
     const dn = deptName[u.department_id] || '—';
     const date = u.registered_at ? new Date(u.registered_at).toLocaleString('he-IL', {dateStyle:'short', timeStyle:'short'}) : '';
+    const currentPos = (u.position_percent != null) ? u.position_percent : 100;
     row.innerHTML = `
       <div class="approval-row-info">
         <div class="approval-row-name">${approvalEsc(u.full_name)}</div>
@@ -10190,22 +10227,38 @@ function renderApprovalSettingsSection(){
           <span>🏢 ${approvalEsc(dn)}</span>
           ${date ? `<span style="color:#94a3b8">🕒 ${date}</span>` : ''}
         </div>
+        <div class="approval-row-pos">
+          <label>אחוזי משרה:</label>
+          <input type="number" class="approval-pos-input" data-id="${u.id}"
+                 min="1" max="100" step="5" value="${currentPos}">
+          <span class="approval-pos-suffix">%</span>
+        </div>
       </div>
       <div class="approval-row-actions">
         <button class="approval-btn approval-btn-approve" data-id="${u.id}">✓ אשר</button>
         <button class="approval-btn approval-btn-reject" data-id="${u.id}">✕ דחה</button>
       </div>
     `;
-    row.querySelector('.approval-btn-approve').onclick = () => approveUser(u.id, u.full_name);
+    row.querySelector('.approval-btn-approve').onclick = () => {
+      const inp = row.querySelector('.approval-pos-input');
+      let pos = parseInt(inp.value, 10);
+      if(isNaN(pos) || pos < 1) pos = 1;
+      if(pos > 100) pos = 100;
+      approveUser(u.id, u.full_name, pos);
+    };
     row.querySelector('.approval-btn-reject').onclick = () => rejectUser(u.id, u.full_name);
     list.appendChild(row);
   });
 }
 
-async function approveUser(id, name){
+async function approveUser(id, name, positionPercent){
   try{
+    const updateData = { status: 'approved' };
+    if(positionPercent != null && !isNaN(positionPercent)){
+      updateData.position_percent = positionPercent;
+    }
     const { error } = await sb.from('employees')
-      .update({ status: 'approved' })
+      .update(updateData)
       .eq('id', id);
     if(error) throw error;
     pendingUsersCache = pendingUsersCache.filter(u => u.id !== id);
