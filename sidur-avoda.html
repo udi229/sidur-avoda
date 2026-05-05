@@ -470,8 +470,8 @@
   .app-tab:hover { color:var(--orange); }
   .app-tab.active { color:var(--orange); border-bottom-color:var(--orange); }
 
-  #vacation-container .tab-panels { flex:1; overflow-y:auto; }
-  .tab-content { display:none; padding:16px; overflow-y:auto; }
+  #vacation-container .tab-panels { flex:1; overflow-y:auto; min-height:0; }
+  .tab-content { display:none; padding:16px; }
   .tab-content.active { display:block; }
   .tab-content::-webkit-scrollbar { width:5px; }
   .tab-content::-webkit-scrollbar-thumb { background:var(--orange-soft); border-radius:3px; }
@@ -1339,11 +1339,14 @@
   background:none;
   border:none;
   padding:0;
-  display:none; /* shown only when permitted */
+  display:none; /* shown only when permitted AND hub is active */
   font-family:inherit;
   pointer-events:auto;
 }
-.hub-tv-btn.active{ display:block; }
+/* Button is a child of #hub-screen. Show only when BOTH:
+   the hub is active (so it's hidden in other views), AND
+   the user has permission (.active is added by JS). */
+#hub-screen.active .hub-tv-btn.active{ display:block; }
 .hub-tv-btn:hover{ transform:scale(1.08); }
 .hub-tv-btn{ transition:transform .25s cubic-bezier(.2,.9,.3,1.4); }
 
