@@ -3862,23 +3862,21 @@ async function initApp(user){
   }
 
   window._appStartTime=Date.now();
+  // Track last notification time to throttle (prevent spam)
+  window._lastNotifTime=0;
 
   if(!window._rtCh){
   window._rtCh = sb.channel('rt', {config:{broadcast:{self:false}}})
-    .on('postgres_changes',{event:'*',schema:'public',table:'schedule_cells'},()=>{
+    .on('postgres_changes',{event:'*',schema:'public',table:'schedule_cells'},(payload)=>{
       rtReload(()=>{
-        // התעלם מהודעות ב-5 שניות הראשונות (backfill events)
-        if(!isMgr&&currentEmp&&Date.now()-window._appStartTime>5000)
-          showNotification('עדכון בסידור','הסידור שלך עודכן');
+        // התראות אוטומטיות בוטלו לבקשת אודי — נשאר רק שליחה ידנית דרך "📤 שלח לכולם"
       });
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'schedules'},(payload)=>{
       const wasApproved=payload?.new?.status==='approved'&&payload?.old?.status!=='approved';
       rtReload(()=>{
         updateWeekUI();
-        if(wasApproved&&!isMgr&&currentEmp&&Date.now()-window._appStartTime>5000){
-          showNotification('הסידור אושר! ✅','המנהל אישר את הסידור שלך — ניתן לצפות בו');
-        }
+        // התראת "הסידור אושר" בוטלה לבקשת אודי
       });
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'cv_weekly_publish'},()=>{
@@ -4005,10 +4003,8 @@ async function loadAll(){
 let _pollCount=0;
 window.startPolling=function(){
   if(window._pollInterval) return;
-  console.log('[Polling] started');
   window._pollInterval=setInterval(async()=>{
     _pollCount++;
-    if(_pollCount%15===0) console.log('[Polling] tick #'+_pollCount);
     try{
       const ws=weekStartStr();
       if(!ws) return;
@@ -4025,7 +4021,6 @@ window.startPolling=function(){
       const hash=(sc||[]).map(s=>s.id+'@'+s.updated_at+'@'+s.team_submitted+'@'+s.status).sort().join('|')+'||'+cellsHash+'||'+cvHash;
       if(hash!==window._lastHash){
         if(window._lastHash!==''){
-          console.log('[Polling] change detected — reloading');
           loadWeekData().then(()=>{
             renderSchedule();
             window._cvWeeklyPub={};
@@ -4606,14 +4601,8 @@ function setupNotifChannel(){
     config:{broadcast:{self:false}} // don't receive own broadcasts
   });
   ch.on('broadcast',{event:'shift_change'},({payload})=>{
+      // התראות "שובצת/הוסרת ממשמרת" בוטלו לבקשת אודי — נשאר רק שליחה ידנית
       if(!currentEmp) return;
-      const myName=currentEmp.full_name;
-      if(payload.added&&payload.added.includes(myName)){
-        showNotif('אולפנים 🎬',`שובצת למשמרת ${payload.shiftName} ביום ${payload.dayName}`);
-      }
-      if(payload.removed&&payload.removed.includes(myName)){
-        showNotif('אולפנים 🎬',`הוסרת ממשמרת ${payload.shiftName} ביום ${payload.dayName}`);
-      }
     }).subscribe((status)=>{
       console.log('notif channel:', status);
     });
@@ -7018,21 +7007,8 @@ function sendEmailNotification(req){
 }
 
 function showBrowserNotification(req){
-  // Browser notification as fallback
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification('בקשת חופשה חדשה', {
-      body: `${req.name} ביקש חופשה: ${fmt(req.start)} - ${fmt(req.end)}`,
-      icon: '🎬'
-    });
-  } else if ('Notification' in window && Notification.permission !== 'denied') {
-    Notification.requestPermission().then(permission => {
-      if (permission === 'granted') {
-        new Notification('בקשת חופשה חדשה', {
-          body: `${req.name} ביקש חופשה: ${fmt(req.start)} - ${fmt(req.end)}`
-        });
-      }
-    });
-  }
+  // התראת "בקשת חופשה חדשה" בוטלה לבקשת אודי — נשאר רק שליחה ידנית
+  return;
 }
 
 function renderMyRequests(){
