@@ -3823,22 +3823,33 @@ async function initApp(user){
   }
   // Track login
   try{
-    const now=new Date().toISOString();
-    const today=new Date(); today.setHours(0,0,0,0);
-    const day=today.getDay();
-    const weekSun=new Date(today); weekSun.setDate(today.getDate()-day);
-    const ws=weekSun.toISOString().split('T')[0];
-    const {data:empRow,error:selErr}=await sb.from('employees').select('last_seen,week_login_count,week_login_week').eq('id',currentEmp.id).single().catch(()=>({data:null,error:'catch'}));
-    if(selErr) console.warn('[LoginTrack] select error:',selErr);
-    let count=1;
-    if(empRow?.week_login_week===ws) count=(empRow.week_login_count||0)+1;
-    const {error:updErr}=await sb.from('employees').update({last_seen:now,week_login_count:count,week_login_week:ws}).eq('id',currentEmp.id);
-    if(updErr) console.warn('[LoginTrack] update error:',updErr.message,'→ צריך להריץ ב-Supabase: ALTER TABLE employees ADD COLUMN IF NOT EXISTS last_seen timestamptz, ADD COLUMN IF NOT EXISTS week_login_count int DEFAULT 0, ADD COLUMN IF NOT EXISTS week_login_week text;');
-    else{
-      const localEmp=employees.find(e=>e.id===currentEmp.id);
-      if(localEmp){localEmp.last_seen=now;localEmp.week_login_count=count;localEmp.week_login_week=ws;}
-      currentEmp.last_seen=now;currentEmp.week_login_count=count;
-      console.log('[LoginTrack] saved count=',count,'ws=',ws);
+    if(currentEmp && currentEmp.id && currentEmp.id !== 'manager-local'){
+      const now=new Date().toISOString();
+      const today=new Date(); today.setHours(0,0,0,0);
+      const day=today.getDay();
+      const weekSun=new Date(today); weekSun.setDate(today.getDate()-day);
+      const ws=weekSun.toISOString().split('T')[0];
+      console.log('[LoginTrack] starting for',currentEmp.full_name,'id=',currentEmp.id);
+      // Fetch current login data (no .catch on .single() - it's not a Promise)
+      let empRow=null;
+      try{
+        const sel=await sb.from('employees').select('last_seen,week_login_count,week_login_week').eq('id',currentEmp.id).single();
+        if(sel.error) console.warn('[LoginTrack] select error:',sel.error);
+        empRow=sel.data;
+      }catch(selEx){ console.warn('[LoginTrack] select exception:',selEx); }
+      let count=1;
+      if(empRow && empRow.week_login_week===ws) count=(empRow.week_login_count||0)+1;
+      const {error:updErr,data:updData}=await sb.from('employees').update({last_seen:now,week_login_count:count,week_login_week:ws}).eq('id',currentEmp.id).select();
+      if(updErr){
+        console.error('[LoginTrack] UPDATE FAILED:',updErr);
+      } else {
+        const localEmp=employees.find(e=>e.id===currentEmp.id);
+        if(localEmp){localEmp.last_seen=now;localEmp.week_login_count=count;localEmp.week_login_week=ws;}
+        currentEmp.last_seen=now;currentEmp.week_login_count=count;
+        console.log('[LoginTrack] ✓ saved count=',count,'ws=',ws,'rows updated:',updData?.length);
+      }
+    } else {
+      console.log('[LoginTrack] skipped — no valid emp id');
     }
   }catch(e){ console.warn('[LoginTrack] error:',e); }
   // Debounce to avoid double-renders (self-triggered events)
