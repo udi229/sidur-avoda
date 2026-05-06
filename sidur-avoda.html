@@ -10541,8 +10541,18 @@ let galHubCoverUrls = [];
 let galHubSlideIdx = 0;
 
 async function galLoadHubCovers(){
-  // Pull every program with a cover image, get their thumb URLs
+  // Cache hub covers in localStorage for 1 hour to reduce DB hits + egress
+  // Hub slideshow displays in background — staleness of up to 1h is fine
   try{
+    const CACHE_KEY = 'gal_hub_covers_v1';
+    const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+    try{
+      const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+      if(cached && Array.isArray(cached.urls) && (Date.now() - cached.t) < CACHE_TTL){
+        galHubCoverUrls = cached.urls;
+        return;
+      }
+    }catch(e){}
     const { data: progs, error: pErr } = await sb
       .from('gallery_programs')
       .select('id, cover_image_id')
@@ -10558,6 +10568,8 @@ async function galLoadHubCovers(){
     galHubCoverUrls = imgs.map(im =>
       sb.storage.from('gallery-images').getPublicUrl(im.thumb_path).data.publicUrl
     );
+    // Save to cache
+    try{ localStorage.setItem(CACHE_KEY, JSON.stringify({t: Date.now(), urls: galHubCoverUrls})); }catch(e){}
   }catch(err){
     console.error('[gallery] load hub covers failed:', err);
     galHubCoverUrls = [];
@@ -10587,9 +10599,22 @@ async function galStartHubSlideshow(){
     framesEl.appendChild(f);
   });
   galHubSlideIdx = 0;
-  // Start the cycle (4 seconds per image)
-  galHubSlideTimer = setInterval(galHubAdvanceSlide, 4000);
+  // Start the cycle (8 seconds per image — was 4s, slower = less re-renders + same UX)
+  galHubSlideTimer = setInterval(galHubAdvanceSlide, 8000);
 }
+
+// Pause hub slideshow when tab is hidden (user not looking) to save resources
+document.addEventListener('visibilitychange', () => {
+  if(document.hidden){
+    if(galHubSlideTimer){ clearInterval(galHubSlideTimer); galHubSlideTimer = null; }
+  } else {
+    // Resume only if hub is visible and we have covers
+    const hub = document.getElementById('hub-screen');
+    if(hub && hub.classList.contains('active') && galHubCoverUrls.length > 0 && !galHubSlideTimer){
+      galHubSlideTimer = setInterval(galHubAdvanceSlide, 8000);
+    }
+  }
+});
 
 function galStopHubSlideshow(){
   if(galHubSlideTimer){ clearInterval(galHubSlideTimer); galHubSlideTimer = null; }
@@ -11239,8 +11264,11 @@ async function galHandleUpload(e){
     upStats.innerHTML = `<span>${galEsc(file.name).substring(0,25)}</span><span>${origKB}KB → ?</span>`;
 
     try{
-      const full  = await galCompressImage(file, 1600, 0.82);
-      const thumb = await galCompressImage(file, 400,  0.75);
+      // More aggressive compression to save egress bandwidth
+      // Full: 1200px @ 70% quality (was 1600 @ 82%) — saves ~50% egress
+      // Thumb: 320px @ 65% quality (was 400 @ 75%) — saves ~40% egress
+      const full  = await galCompressImage(file, 1200, 0.70);
+      const thumb = await galCompressImage(file, 320,  0.65);
       const fullKB = Math.round(full.blob.size/1024);
       const thumbKB = Math.round(thumb.blob.size/1024);
       totalFull += fullKB; totalThumb += thumbKB;
@@ -11291,6 +11319,9 @@ async function galHandleUpload(e){
   upText.textContent = `✓ הסתיים — ${files.length} תמונות`;
   upStats.innerHTML = `<span>מקור: ${(totalOrig/1024).toFixed(2)}MB</span><span>אחרי כיווץ: ${(compTotal/1024).toFixed(2)}MB (${savedPct}% חיסכון)</span>`;
 
+  // Invalidate hub covers cache so newly uploaded images can become covers
+  try{ localStorage.removeItem('gal_hub_covers_v1'); }catch(e){}
+
   galRenderEdThumbs();
   e.target.value = '';
   setTimeout(() => { upProg.style.display = 'none'; }, 4000);
@@ -11329,6 +11360,9 @@ async function galSaveEditor(){
       updated_at: new Date().toISOString()
     }).eq('id', galEditingProgramId);
     if(upErr) throw upErr;
+
+    // Invalidate hub covers cache - cover may have changed
+    try{ localStorage.removeItem('gal_hub_covers_v1'); }catch(e){}
 
     galCloseEditor();
     await galLoadPrograms();
