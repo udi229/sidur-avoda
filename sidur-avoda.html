@@ -6510,8 +6510,8 @@ async function changeWeek(d){
       }
     }
   }
-  // team_lead: עד שבועיים קדימה
-  if(role==='team_lead'&&!isMgr&&newOffset>2) return;
+  // team_lead: עד 4 שבועות קדימה (חודש)
+  if(role==='team_lead'&&!isMgr&&newOffset>4) return;
 
   // סידור משולב לא מפורסם — עובד רואה שעון חול
   // (הבדיקה תתבצע ב-renderSchedule אחרי טעינת הנתונים)
@@ -9966,7 +9966,7 @@ function changeWeekNoAnim(d){
       if(!anyApproved) return;
     }
   }
-  if(role==='team_lead'&&!isMgr&&newOffset>2) return;
+  if(role==='team_lead'&&!isMgr&&newOffset>4) return;
   weekOffset=newOffset;openDropdown=null;editingShiftTime=null;editMode=false;window._userChoseDept=false;
   loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});
 }
