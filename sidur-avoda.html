@@ -3213,6 +3213,30 @@
   </div>
 </div>
 
+<!-- ═══ VAC EDIT DATES MODAL ═══ -->
+<div id="vac-edit-dates-overlay" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;direction:rtl;">
+  <div style="background:#fff;border-radius:20px;padding:28px 24px;width:min(92vw,440px);box-shadow:0 8px 40px rgba(0,0,0,0.4);max-height:90vh;overflow-y:auto;">
+    <div style="text-align:center;margin-bottom:18px;">
+      <div style="font-size:42px;margin-bottom:6px">✏️</div>
+      <div style="font-size:18px;font-weight:900;color:#1e293b">עריכת תאריכי חופשה</div>
+      <div id="vac-edit-dates-info" style="font-size:13px;color:#64748b;margin-top:4px"></div>
+    </div>
+    <div style="background:#f8fafc;border-radius:12px;padding:14px;margin-bottom:18px;">
+      <label style="font-size:13px;font-weight:700;color:#475569;display:block;margin-bottom:6px;">📅 תאריך התחלה:</label>
+      <input type="date" id="vac-edit-start" style="width:100%;border:1.5px solid #cbd5e1;border-radius:10px;padding:10px 12px;font-family:inherit;font-size:15px;outline:none;background:#fff;direction:ltr;text-align:right;">
+    </div>
+    <div style="background:#f8fafc;border-radius:12px;padding:14px;margin-bottom:20px;">
+      <label style="font-size:13px;font-weight:700;color:#475569;display:block;margin-bottom:6px;">📅 תאריך סיום:</label>
+      <input type="date" id="vac-edit-end" style="width:100%;border:1.5px solid #cbd5e1;border-radius:10px;padding:10px 12px;font-family:inherit;font-size:15px;outline:none;background:#fff;direction:ltr;text-align:right;">
+    </div>
+    <div id="vac-edit-dates-error" style="display:none;background:#fee2e2;color:#991b1b;border-radius:10px;padding:10px;margin-bottom:14px;font-size:13px;text-align:center;font-weight:600"></div>
+    <div style="display:flex;gap:10px;">
+      <button id="vac-edit-dates-save" style="flex:1;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;box-shadow:0 4px 12px rgba(59,130,246,0.4)">💾 שמור</button>
+      <button id="vac-edit-dates-cancel" style="flex:1;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;background:#f1f5f9;color:#475569">ביטול</button>
+    </div>
+  </div>
+</div>
+
 <div class="notifications-panel" id="notifications-panel">
   <div class="notif-header">🎬 עדכונים</div>
   <div id="notif-list"></div>
@@ -7461,11 +7485,13 @@ function renderReqTable(){
     return`<tr><td><strong>${r.name}</strong></td><td>${r.dept}</td><td style="font-size:13px">${fmt(r.start)}<br><span style="color:var(--text-light)">עד</span> ${fmt(r.end)}</td><td style="font-size:13px;max-width:250px;word-wrap:break-word;white-space:normal;">${r.reason}</td><td>${recWithReason}</td><td><span class="status-badge ${sc}">${si} ${sl}</span></td><td style="font-size:12px">${formatDateTime(r.createdAt)}</td><td>${acts}</td></tr>`;
   }).join('');
 }
-// עריכת תאריכי בקשת חופשה ע"י המנהל
+// עריכת תאריכי בקשת חופשה ע"י המנהל - פתיחת מודאל עם date pickers
 async function adminEditRequestDates(reqId){
   const req = (DB.requests||[]).find(r=>r.id===reqId);
   if(!req){ showToast('הבקשה לא נמצאה','error'); return; }
-  // המרה לפורמט YYYY-MM-DD למקרה שיש זמן
+  const overlay = document.getElementById('vac-edit-dates-overlay');
+  if(!overlay){ showToast('המודאל לא נטען','error'); return; }
+  // המרה לפורמט YYYY-MM-DD
   const toDateInput = (d)=>{
     if(!d) return '';
     const dt = new Date(d);
@@ -7475,31 +7501,64 @@ async function adminEditRequestDates(reqId){
     const dd = String(dt.getDate()).padStart(2,'0');
     return `${yy}-${mm}-${dd}`;
   };
-  const curStart = toDateInput(req.startDate || req.start);
-  const curEnd   = toDateInput(req.endDate || req.end);
-  const newStart = prompt(`תאריך התחלה (YYYY-MM-DD):\n${req.name} • ${req.dept}`, curStart);
-  if(newStart === null) return;
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(newStart)){ showToast('פורמט תאריך לא תקין','error'); return; }
-  const newEnd = prompt('תאריך סיום (YYYY-MM-DD):', curEnd);
-  if(newEnd === null) return;
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(newEnd)){ showToast('פורמט תאריך לא תקין','error'); return; }
-  if(new Date(newEnd) < new Date(newStart)){ showToast('תאריך הסיום מוקדם מתאריך ההתחלה','error'); return; }
-  if(!confirm(`לעדכן את תאריכי הבקשה?\nמ-${curStart} עד ${curEnd}\nל-${newStart} עד ${newEnd}`)) return;
-  try{
-    const {error:upErr} = await sb.from('vac_requests')
-      .update({ start_date: newStart, end_date: newEnd })
-      .eq('id', reqId);
-    if(upErr) throw upErr;
-    showToast('התאריכים עודכנו ✓','success');
-    await loadDB();
-    if(typeof renderAdminTab==='function') renderAdminTab();
-    if(typeof renderDeptCalendar==='function') renderDeptCalendar();
-    if(typeof renderViewerCalendar==='function') renderViewerCalendar();
-    if(typeof renderMyRequests==='function') renderMyRequests();
-  }catch(e){
-    console.error('adminEditRequestDates error:', e);
-    showToast('שגיאה בעדכון: '+(e.message||'לא ידוע'),'error');
-  }
+  const startInput = document.getElementById('vac-edit-start');
+  const endInput   = document.getElementById('vac-edit-end');
+  const infoEl     = document.getElementById('vac-edit-dates-info');
+  const errEl      = document.getElementById('vac-edit-dates-error');
+  const saveBtn    = document.getElementById('vac-edit-dates-save');
+  const cancelBtn  = document.getElementById('vac-edit-dates-cancel');
+  if(!startInput || !endInput || !saveBtn || !cancelBtn) return;
+  startInput.value = toDateInput(req.startDate || req.start);
+  endInput.value   = toDateInput(req.endDate   || req.end);
+  if(infoEl) infoEl.textContent = `${req.name} • ${req.dept}`;
+  if(errEl) errEl.style.display = 'none';
+
+  // נתק listeners קודמים על ידי שיבוט
+  const newSave   = saveBtn.cloneNode(true);
+  const newCancel = cancelBtn.cloneNode(true);
+  saveBtn.parentNode.replaceChild(newSave, saveBtn);
+  cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+
+  newCancel.onclick = ()=>{ overlay.style.display = 'none'; };
+
+  newSave.onclick = async ()=>{
+    const newStart = startInput.value;
+    const newEnd   = endInput.value;
+    if(!newStart || !newEnd){
+      errEl.textContent = 'יש לבחור תאריכי התחלה וסיום';
+      errEl.style.display = 'block';
+      return;
+    }
+    if(new Date(newEnd) < new Date(newStart)){
+      errEl.textContent = 'תאריך הסיום מוקדם מתאריך ההתחלה';
+      errEl.style.display = 'block';
+      return;
+    }
+    errEl.style.display = 'none';
+    newSave.disabled = true;
+    newSave.textContent = 'שומר...';
+    try{
+      const {error:upErr} = await sb.from('vac_requests')
+        .update({ start_date: newStart, end_date: newEnd })
+        .eq('id', reqId);
+      if(upErr) throw upErr;
+      overlay.style.display = 'none';
+      showToast('התאריכים עודכנו ✓','success');
+      await loadDB();
+      if(typeof renderAdminTab==='function') renderAdminTab();
+      if(typeof renderDeptCalendar==='function') renderDeptCalendar();
+      if(typeof renderViewerCalendar==='function') renderViewerCalendar();
+      if(typeof renderMyRequests==='function') renderMyRequests();
+    }catch(e){
+      console.error('adminEditRequestDates error:', e);
+      errEl.textContent = 'שגיאה בעדכון: '+(e.message||'לא ידוע');
+      errEl.style.display = 'block';
+      newSave.disabled = false;
+      newSave.innerHTML = '💾 שמור';
+    }
+  };
+
+  overlay.style.display = 'flex';
 }
 
 async function adminDeleteRequest(reqId){
