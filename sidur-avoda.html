@@ -3815,10 +3815,16 @@ async function initApp(user){
       }
     }, 1200);
   } else if(currentEmp){
-    // עובד רגיל - הסתר את הבאדג' אם קיים
-    setTimeout(()=>{
+    // עובד רגיל - הסתר את הבאדג', אבל הפעל realtime כדי לקבל עדכון אישור/דחייה לבקשות שלו
+    setTimeout(async()=>{
       const _vb=document.getElementById('vac-hub-badge');
       if(_vb) _vb.style.display='none';
+      try{
+        if(typeof loadDB==='function') await loadDB();
+        if(typeof initVacRealtime==='function') initVacRealtime();
+        // בדיקה חד-פעמית: האם יש בקשות עם סטטוס מאושר/נדחה שעדיין לא הוצגו למשתמש?
+        if(typeof checkPendingStatusAlerts==='function') checkPendingStatusAlerts();
+      }catch(e){ console.warn('vac employee realtime init failed', e); }
     }, 1200);
   }
   // Track login
@@ -5629,10 +5635,17 @@ function renderOnlineListTable(el, efratOnline, fmtLastSeen){
   tableWrap.className='online-table-wrap';
   tableWrap.style.cssText='padding:0 16px 16px;border-top:1px solid #f1f5f9';
 
+  // מיון: מחוברים כעת קודם, ואז לפי כניסה אחרונה - החדש למעלה, הישן/חסר נתונים בתחתית
   const sortedEmps=[...employees].sort((a,b)=>{
     const aOn=onlineUsers.has(a.email.toLowerCase())||onlineUsers.has(a.email);
     const bOn=onlineUsers.has(b.email.toLowerCase())||onlineUsers.has(b.email);
-    return bOn-aOn;
+    if(aOn !== bOn) return bOn - aOn; // מחוברים תמיד למעלה
+    // אצל שניהם אותו סטטוס חיבור: מיון לפי last_seen
+    const aTime = a.last_seen ? new Date(a.last_seen).getTime() : 0;
+    const bTime = b.last_seen ? new Date(b.last_seen).getTime() : 0;
+    if(aTime !== bTime) return bTime - aTime; // החדש למעלה
+    // אם לשניהם אין נתונים - לפי שם א"ב
+    return (a.full_name||'').localeCompare(b.full_name||'','he');
   });
 
   let tHtml=`<table style="width:100%;border-collapse:collapse;font-size:13px">
@@ -7022,17 +7035,24 @@ function renderMyRequests(){
   if(!mine.length){list.innerHTML='<div class="empty-state"><span class="icon">✈️</span><p>אין בקשות עדיין</p></div>';return;}
   const sm={pending:['⏳','ממתין','pending'],approved:['✅','אושרה','approved'],rejected:['❌','נדחתה','rejected']};
   list.innerHTML=mine.map(r=>{const d=new Date(r.start);const[ic,lb,cl]=sm[r.status]||sm.pending;
-  const cancelBtn=r.status==='pending'?`<button class="action-btn btn-reject" style="margin-right:8px;font-size:13px" onclick="cancelRequest('${r.id}')">🗑️ בטל בקשה</button>`:'';
+  // המשתמש יכול למחוק בקשות שלו בכל סטטוס
+  const cancelBtn=`<button class="action-btn btn-reject" style="margin-right:8px;font-size:13px" onclick="cancelRequest('${r.id}')">🗑️ ${r.status==='pending'?'בטל בקשה':'מחק בקשה'}</button>`;
   return`<div class="my-request-item"><div class="req-date-box"><div class="req-date-day">${d.getDate()}</div><div class="req-date-mon">${MH[d.getMonth()].substring(0,3)}</div></div><div class="req-info"><h4>${r.reason}</h4><p>📅 ${fmt(r.start)} — ${fmt(r.end)}</p></div><span class="status-badge ${cl}">${ic} ${lb}</span>${cancelBtn}</div>`;}).join('');
 }
 
 async function cancelRequest(reqId){
-  if(!confirm('לבטל את הבקשה?'))return;
+  const req = (DB.requests||[]).find(r=>r.id===reqId);
+  const isPending = req && req.status === 'pending';
+  const msg = isPending ? 'לבטל את הבקשה?' : 'למחוק את הבקשה?';
+  if(!confirm(msg))return;
   try{
     await sb.from('vac_requests').delete().eq('id',reqId);
+    // מחיקת התראות קשורות
+    try{ await sb.from('vac_notifications').delete().eq('request_id', reqId); }catch(e){}
     await loadDB();
-    showToast('הבקשה בוטלה','success');
+    showToast(isPending?'הבקשה בוטלה':'הבקשה נמחקה','success');
     renderMyRequests(); renderDeptCalendar(); checkNotifications();
+    if(typeof updateVacBadge==='function') updateVacBadge();
   }catch(e){showToast('שגיאה: '+e.message,'error');}
 }
 
@@ -7400,9 +7420,10 @@ function renderReqTable(){
             <button class="action-btn btn-recommend" style="flex:1" onclick="openRepReasonModal('${r.id}','recommended')">👍 ממליצה</button>
             <button class="action-btn btn-not-recommend" style="flex:1" onclick="openRepReasonModal('${r.id}','not_recommended')">👎 לא ממליצה</button>
           </div>`:`<div style="text-align:center;padding:6px;color:#64748b;font-size:12px;background:#f8fafc;border-radius:8px">👁 צפייה בלבד</div>`)
-        :`<div style="display:flex;gap:8px">
-          <button class="action-btn btn-approve" style="flex:1" onclick="adminAction('${r.id}','approved')">✅ אשר</button>
-          <button class="action-btn btn-reject" style="flex:1" onclick="adminAction('${r.id}','rejected')">❌ דחה</button>
+        :`<div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="action-btn btn-approve" style="flex:1;min-width:80px" onclick="adminAction('${r.id}','approved')">✅ אשר</button>
+          <button class="action-btn btn-reject" style="flex:1;min-width:80px" onclick="adminAction('${r.id}','rejected')">❌ דחה</button>
+          <button class="action-btn" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;flex-shrink:0" onclick="adminEditRequestDates('${r.id}')" title="ערוך תאריכים">✏️</button>
           <button class="action-btn" style="background:#fee;color:#c00;border:1px solid #fcc;flex-shrink:0" onclick="adminDeleteRequest('${r.id}')">🗑️</button>
         </div>`}
       </div>`;
@@ -7435,22 +7456,74 @@ function renderReqTable(){
       :`<span style="color:#94a3b8;font-size:12px">👁 צפייה</span>`)
     :`<button class="action-btn btn-approve" onclick="adminAction('${r.id}','approved')">✅</button>
       <button class="action-btn btn-reject" onclick="adminAction('${r.id}','rejected')">❌</button>
+      <button class="action-btn" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd" onclick="adminEditRequestDates('${r.id}')" title="ערוך תאריכים">✏️</button>
       <button class="action-btn" style="background:#fee;color:#c00;border:1px solid #fcc" onclick="adminDeleteRequest('${r.id}')">🗑️</button>`;
     return`<tr><td><strong>${r.name}</strong></td><td>${r.dept}</td><td style="font-size:13px">${fmt(r.start)}<br><span style="color:var(--text-light)">עד</span> ${fmt(r.end)}</td><td style="font-size:13px;max-width:250px;word-wrap:break-word;white-space:normal;">${r.reason}</td><td>${recWithReason}</td><td><span class="status-badge ${sc}">${si} ${sl}</span></td><td style="font-size:12px">${formatDateTime(r.createdAt)}</td><td>${acts}</td></tr>`;
   }).join('');
 }
+// עריכת תאריכי בקשת חופשה ע"י המנהל
+async function adminEditRequestDates(reqId){
+  const req = (DB.requests||[]).find(r=>r.id===reqId);
+  if(!req){ showToast('הבקשה לא נמצאה','error'); return; }
+  // המרה לפורמט YYYY-MM-DD למקרה שיש זמן
+  const toDateInput = (d)=>{
+    if(!d) return '';
+    const dt = new Date(d);
+    if(isNaN(dt)) return '';
+    const yy = dt.getFullYear();
+    const mm = String(dt.getMonth()+1).padStart(2,'0');
+    const dd = String(dt.getDate()).padStart(2,'0');
+    return `${yy}-${mm}-${dd}`;
+  };
+  const curStart = toDateInput(req.startDate || req.start);
+  const curEnd   = toDateInput(req.endDate || req.end);
+  const newStart = prompt(`תאריך התחלה (YYYY-MM-DD):\n${req.name} • ${req.dept}`, curStart);
+  if(newStart === null) return;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(newStart)){ showToast('פורמט תאריך לא תקין','error'); return; }
+  const newEnd = prompt('תאריך סיום (YYYY-MM-DD):', curEnd);
+  if(newEnd === null) return;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(newEnd)){ showToast('פורמט תאריך לא תקין','error'); return; }
+  if(new Date(newEnd) < new Date(newStart)){ showToast('תאריך הסיום מוקדם מתאריך ההתחלה','error'); return; }
+  if(!confirm(`לעדכן את תאריכי הבקשה?\nמ-${curStart} עד ${curEnd}\nל-${newStart} עד ${newEnd}`)) return;
+  try{
+    const {error:upErr} = await sb.from('vac_requests')
+      .update({ start_date: newStart, end_date: newEnd })
+      .eq('id', reqId);
+    if(upErr) throw upErr;
+    showToast('התאריכים עודכנו ✓','success');
+    await loadDB();
+    if(typeof renderAdminTab==='function') renderAdminTab();
+    if(typeof renderDeptCalendar==='function') renderDeptCalendar();
+    if(typeof renderViewerCalendar==='function') renderViewerCalendar();
+    if(typeof renderMyRequests==='function') renderMyRequests();
+  }catch(e){
+    console.error('adminEditRequestDates error:', e);
+    showToast('שגיאה בעדכון: '+(e.message||'לא ידוע'),'error');
+  }
+}
+
 async function adminDeleteRequest(reqId){
   if(!confirm('למחוק את הבקשה לגמרי?'))return;
-  await loadShared();
-  DB.requests=DB.requests.filter(r=>r.id!==reqId);
-  DB.notifications=DB.notifications.filter(n=>n.requestId!==reqId);
-  await saveDB();
-  showToast('הבקשה נמחקה','success');
-  // Refresh all calendars and views
-  renderAdminTab();
-  renderDeptCalendar();
-  renderViewerCalendar();
-  renderMyRequests();
+  try{
+    // מחיקה אמיתית מ-Supabase
+    const {error:delErr} = await sb.from('vac_requests').delete().eq('id', reqId);
+    if(delErr) throw delErr;
+    // מחק גם התראות קשורות
+    try{ await sb.from('vac_notifications').delete().eq('request_id', reqId); }catch(e){}
+    // מחק גם מהמטמון המקומי
+    DB.requests = (DB.requests||[]).filter(r=>r.id!==reqId);
+    DB.notifications = (DB.notifications||[]).filter(n=>n.requestId!==reqId);
+    showToast('הבקשה נמחקה','success');
+    // רענון מסכים
+    if(typeof renderAdminTab==='function') renderAdminTab();
+    if(typeof renderDeptCalendar==='function') renderDeptCalendar();
+    if(typeof renderViewerCalendar==='function') renderViewerCalendar();
+    if(typeof renderMyRequests==='function') renderMyRequests();
+    if(typeof updateVacBadge==='function') updateVacBadge();
+  }catch(e){
+    console.error('adminDeleteRequest error:', e);
+    showToast('שגיאה במחיקה: '+(e.message||'לא ידוע'),'error');
+  }
 }
 
 async function adminAction(reqId,action){
@@ -7672,9 +7745,15 @@ async function updateVacBadge(){
       if(r.status!=='pending') return false;
       if(r.recommendation) return false;
       if((r.userId||'').toLowerCase()===myEmail) return false;
-      const rd=r.dept||'';
-      return normDept(rd)===normDept(myDeptName)||rd===myDeptName||rd.includes(myDeptName)||myDeptName.includes(rd);
+      const rd=(r.dept||'').trim();
+      if(!rd || !myDeptName) return false;
+      // התאמה גמישה: נורמליזציה של DEPT_RENAME, התאמה ישירה, או הכלה הדדית
+      return normDept(rd)===normDept(myDeptName)
+          || rd===myDeptName
+          || rd.includes(myDeptName)
+          || myDeptName.includes(rd);
     }).length;
+    console.log('[vac-badge] team_lead myDept=',myDeptName,'myEmail=',myEmail,'matched count=',count);
   } else if(ce && ce.role==='manager'){
     role='manager';
     count=(DB.requests||[]).filter(r=>r.status==='pending').length;
@@ -7796,6 +7875,8 @@ function initVacRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'vac_requests'},async(payload)=>{
       console.log('[vac-badge] realtime event:', payload?.eventType);
       await loadDB();
+      // עדכון מיידי של הבאדג' על כל אירוע
+      if(typeof updateVacBadge==='function') updateVacBadge();
       // רענן את כל המסכים הרלוונטיים שאולי פתוחים כעת
       if(typeof renderAdminTab==='function') renderAdminTab();
       if(typeof renderRepTab==='function') renderRepTab();
@@ -7806,8 +7887,103 @@ function initVacRealtime(){
       if(payload?.eventType==='INSERT'){
         setTimeout(()=>checkVacAlerts(),600);
       }
+      // ===== חדש: הודעה למבקש כשהבקשה שלו אושרה/נדחתה =====
+      if(payload?.eventType==='UPDATE'){
+        try{
+          const newRow = payload.new;
+          const oldRow = payload.old;
+          if(newRow && oldRow && newRow.status !== oldRow.status){
+            // הסטטוס השתנה — האם זה קרה לבקשה של המשתמש הנוכחי?
+            const ce = (typeof currentEmp!=='undefined') ? currentEmp : null;
+            const myEmail = (ce?.email || (typeof currentUser!=='undefined' ? currentUser?.id : '') || '').toLowerCase();
+            if(myEmail && (newRow.user_id||'').toLowerCase() === myEmail){
+              if(newRow.status === 'approved' || newRow.status === 'rejected'){
+                showVacStatusAlert(newRow);
+                // סמן כנראה כדי שלא יוצג שוב בכניסה הבאה
+                try{
+                  const seen = JSON.parse(localStorage.getItem('vac-status-seen')||'[]');
+                  if(!seen.includes(newRow.id)){ seen.push(newRow.id); localStorage.setItem('vac-status-seen', JSON.stringify(seen)); }
+                }catch(e){}
+              }
+            }
+          }
+        }catch(e){ console.warn('[vac-badge] status alert error:', e); }
+      }
     })
     .subscribe();
+}
+
+// ═══ הודעה למבקש כשהבקשה שלו אושרה/נדחתה ═══
+function showVacStatusAlert(req){
+  const isApproved = req.status === 'approved';
+  const overlay = document.getElementById('vac-alert-overlay');
+  if(!overlay){ console.warn('[vac-status] overlay not found'); return; }
+
+  // כותרת ותוכן
+  const titleEl = document.getElementById('vac-alert-title');
+  const bodyEl  = document.getElementById('vac-alert-body');
+  if(titleEl) titleEl.textContent = isApproved ? '✅ בקשת החופשה שלך אושרה!' : '❌ בקשת החופשה שלך נדחתה';
+  if(titleEl) titleEl.style.color = isApproved ? '#15803d' : '#b91c1c';
+
+  if(bodyEl){
+    bodyEl.innerHTML = `
+      <div>📅 ${fmt(req.start_date)} — ${fmt(req.end_date)}</div>
+      ${req.reason ? `<div>📝 ${req.reason}</div>` : ''}
+      ${req.admin_note ? `<div style="margin-top:8px;padding:8px 10px;background:#f1f5f9;border-radius:8px;color:#334155"><strong>הערת מנהל:</strong> ${req.admin_note}</div>` : ''}
+    `;
+  }
+
+  // הסתר reason input
+  const rwrap = document.getElementById('vac-alert-reason-wrap');
+  if(rwrap) rwrap.style.display = 'none';
+
+  // כפתור סגירה אחד
+  const btns = document.getElementById('vac-alert-btns');
+  if(btns){
+    btns.innerHTML = '';
+    const btn = document.createElement('button');
+    btn.style.cssText = `border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;background:${isApproved?'#dcfce7':'#fee2e2'};color:${isApproved?'#166534':'#991b1b'};`;
+    btn.textContent = 'הבנתי';
+    btn.onclick = ()=>{
+      overlay.style.display='none';
+      // סמן שהמשתמש ראה את ההתראה הזו
+      try{
+        const seen = JSON.parse(localStorage.getItem('vac-status-seen')||'[]');
+        if(!seen.includes(req.id)){ seen.push(req.id); localStorage.setItem('vac-status-seen', JSON.stringify(seen)); }
+      }catch(e){}
+    };
+    btns.append(btn);
+  }
+  overlay.style.display='flex';
+}
+
+// ═══ בדיקה חד-פעמית בכניסה: האם יש בקשות שאושרו/נדחו ועדיין לא הוצגו? ═══
+async function checkPendingStatusAlerts(){
+  try{
+    const ce = (typeof currentEmp!=='undefined') ? currentEmp : null;
+    const myEmail = (ce?.email || '').toLowerCase();
+    if(!myEmail) return;
+    let seen = [];
+    try{ seen = JSON.parse(localStorage.getItem('vac-status-seen')||'[]'); }catch(e){}
+    const myReqs = (DB.requests||[]).filter(r=>{
+      if(!r.userId) return false;
+      if(r.userId.toLowerCase() !== myEmail) return false;
+      if(r.status !== 'approved' && r.status !== 'rejected') return false;
+      if(seen.includes(r.id)) return false;
+      return true;
+    });
+    if(myReqs.length === 0) return;
+    // הצג את הראשון (הכי חדש בגלל המיון created_at desc)
+    const r = myReqs[0];
+    showVacStatusAlert({
+      id: r.id,
+      status: r.status,
+      start_date: r.startDate || r.start,
+      end_date: r.endDate || r.end,
+      reason: r.reason,
+      admin_note: r.adminNote
+    });
+  }catch(e){ console.warn('checkPendingStatusAlerts error', e); }
 }
 
 function checkNotifications(){
@@ -8504,6 +8680,7 @@ async function _vacationInit(){
   window.renderAdminTab = renderAdminTab;
   window.renderReqTable = renderReqTable;
   window.adminDeleteRequest = adminDeleteRequest;
+  window.adminEditRequestDates = adminEditRequestDates;
   window.adminAction = adminAction;
   window.renderDeptGrid = renderDeptGrid;
   window.saveDeptReps = saveDeptReps;
