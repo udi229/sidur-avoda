@@ -4103,6 +4103,12 @@ async function loadAll(){
 let _pollCount=0;
 window.startPolling=function(){
   if(window._pollInterval) return;
+  // אל תתחיל אם הטאב מוסתר - נחכה לחזרה
+  if(document.hidden){
+    window._pollWasPaused = true;
+    return;
+  }
+  window._pollWasPaused = false;
   window._pollInterval=setInterval(async()=>{
     _pollCount++;
     try{
@@ -4134,6 +4140,70 @@ window.startPolling=function(){
     }catch(e){}
   },2000);
 };
+
+// עצור polling זמנית (ללא ניקוי המצב)
+window.stopPolling=function(){
+  if(window._pollInterval){
+    clearInterval(window._pollInterval);
+    window._pollInterval=null;
+  }
+};
+
+// השהיה / חידוש לפי visibility של הטאב
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){
+    // המשתמש עזב את הטאב (מסך נעול / החליף אפליקציה) - עצור polling
+    if(window._pollInterval){
+      console.log('[Polling] paused (tab hidden)');
+      window.stopPolling();
+      window._pollWasPaused = true;
+    }
+  } else {
+    // המשתמש חזר לטאב - חידוש מיידי
+    if(window._pollWasPaused && typeof window.startPolling==='function'){
+      console.log('[Polling] resumed (tab visible)');
+      window._pollWasPaused = false;
+      window._lastActivityTime = Date.now(); // איפוס טיימר idle
+      // קריאה מיידית פעם אחת כדי לרענן את המסך בלי להמתין 2 שניות
+      window.startPolling();
+    }
+  }
+});
+
+// ═══ Idle detection — עצור polling אם המשתמש לא פעיל 3 דקות ═══
+window._lastActivityTime = Date.now();
+const IDLE_TIMEOUT_MS = 3 * 60 * 1000; // 3 דקות
+
+// פעולות שנחשבות "פעילות"
+function _markActivity(){
+  const wasIdle = (Date.now() - window._lastActivityTime) > IDLE_TIMEOUT_MS;
+  window._lastActivityTime = Date.now();
+  // אם היה idle וחזר לפעילות - הפעל polling שוב מיד
+  if(wasIdle && window._pollWasIdlePaused){
+    console.log('[Polling] resumed (user active again)');
+    window._pollWasIdlePaused = false;
+    if(typeof window.startPolling==='function' && !window._pollInterval){
+      window.startPolling();
+    }
+  }
+}
+
+// האזן לכל סוגי האינטראקציה
+['mousemove','mousedown','keydown','touchstart','scroll','wheel'].forEach(evt=>{
+  document.addEventListener(evt, _markActivity, {passive:true});
+});
+
+// בדיקת idle כל 30 שניות
+setInterval(()=>{
+  // אם הטאב כבר מוסתר - כבר נעצר על-ידי visibilitychange
+  if(document.hidden) return;
+  const idleFor = Date.now() - window._lastActivityTime;
+  if(idleFor > IDLE_TIMEOUT_MS && window._pollInterval){
+    console.log('[Polling] paused (user idle 3+ min)');
+    window.stopPolling();
+    window._pollWasIdlePaused = true;
+  }
+}, 30000);
 
 function weekStart(o=weekOffset){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay()+o*7);return d;}
 function weekStartStr(o=weekOffset){return weekStart(o).toISOString().split('T')[0];}
