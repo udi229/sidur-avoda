@@ -7824,18 +7824,40 @@ function renderUsersList(){
 
 async function adminDeleteUser(userId){
   // userId = email
-  if(!confirm('למחוק את המשתמש?'))return;
+  if(!confirm('למחוק את המשתמש לחלוטין?\nהמחיקה תכלול גם את חשבון ההזדהות, כך שיוכל להירשם מחדש.'))return;
   try{
-    await sb.from('vac_requests').delete().eq('user_id',userId);
-    await sb.from('vac_notifications').delete().eq('user_id',userId);
-    await sb.from('employees').delete().eq('email',userId);
+    // קריאה ל-Edge Function שמוחקת הכל — כולל auth.users
+    let edgeOk=false;
+    try{
+      const {data:edgeData,error:edgeErr}=await sb.functions.invoke('delete-user',{
+        body:{ email:userId }
+      });
+      if(edgeErr) throw edgeErr;
+      if(edgeData && edgeData.success){
+        edgeOk=true;
+        if(edgeData.partial){
+          showToast('נמחק חלקית: '+(edgeData.message||''),'error');
+        }
+      }
+    }catch(edgeEx){
+      console.warn('[deleteUser] edge function failed, falling back to DB-only delete:', edgeEx);
+    }
+
+    // Fallback: אם ה-Edge Function לא זמינה, מחק לפחות מ-DB (auth ישאר תקוע)
+    if(!edgeOk){
+      await sb.from('vac_requests').delete().eq('user_id',userId);
+      await sb.from('vac_notifications').delete().eq('user_id',userId);
+      await sb.from('employees').delete().eq('email',userId);
+      showToast('המשתמש נמחק (שים לב: חשבון ההזדהות עדיין קיים — מחק ידנית מ-Authentication)','error');
+    }
+
+    // עדכון מקומי
     DB.users=DB.users.filter(u=>u.id!==userId);
     DB.requests=DB.requests.filter(r=>r.userId!==userId);
     Object.keys(DB.deptReps).forEach(d=>{if(DB.deptReps[d]===userId)delete DB.deptReps[d];});
-    await saveDB();
     await loadUsers();
     renderUsersList(); renderDeptGrid(); renderViewerSection();
-    showToast('משתמש נמחק','success');
+    if(edgeOk) showToast('המשתמש נמחק לחלוטין ✓','success');
   }catch(e){showToast('שגיאה: '+e.message,'error');}
 }
 
