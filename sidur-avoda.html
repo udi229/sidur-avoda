@@ -69,15 +69,15 @@
   /* CONVEYOR BELT — week navigation (arrows ‹ ›) */
   #sched-wrap.conveyor .cv-face { transition: transform 0.55s cubic-bezier(0.4,0,0.2,1), opacity 0.5s; }
   #sched-wrap.conveyor .cv-face.cv-in { position: absolute; inset: 0; }
-  /* next (forward in time): old slides out shrinking, new comes from far side growing */
+  /* next (forward in time, RTL): old slides out to the right, new enters from the left */
   #sched-wrap.conveyor.cv-next .cv-face.cv-out { transform: translateX(0) scale(1); opacity: 1; }
-  #sched-wrap.conveyor.cv-next .cv-face.cv-in  { transform: translateX(120%) scale(0.82); opacity: 0.3; }
-  #sched-wrap.conveyor.cv-next.cv-go .cv-face.cv-out { transform: translateX(-120%) scale(0.82); opacity: 0.3; }
+  #sched-wrap.conveyor.cv-next .cv-face.cv-in  { transform: translateX(-120%) scale(0.82); opacity: 0.3; }
+  #sched-wrap.conveyor.cv-next.cv-go .cv-face.cv-out { transform: translateX(120%) scale(0.82); opacity: 0.3; }
   #sched-wrap.conveyor.cv-next.cv-go .cv-face.cv-in  { transform: translateX(0) scale(1); opacity: 1; }
-  /* prev (back in time): mirror */
+  /* prev (back in time, RTL): mirror */
   #sched-wrap.conveyor.cv-prev .cv-face.cv-out { transform: translateX(0) scale(1); opacity: 1; }
-  #sched-wrap.conveyor.cv-prev .cv-face.cv-in  { transform: translateX(-120%) scale(0.82); opacity: 0.3; }
-  #sched-wrap.conveyor.cv-prev.cv-go .cv-face.cv-out { transform: translateX(120%) scale(0.82); opacity: 0.3; }
+  #sched-wrap.conveyor.cv-prev .cv-face.cv-in  { transform: translateX(120%) scale(0.82); opacity: 0.3; }
+  #sched-wrap.conveyor.cv-prev.cv-go .cv-face.cv-out { transform: translateX(-120%) scale(0.82); opacity: 0.3; }
   #sched-wrap.conveyor.cv-prev.cv-go .cv-face.cv-in  { transform: translateX(0) scale(1); opacity: 1; }
 
   /* CUBE FLIP — switching tabs (dept↔dept, combined↔combined, dept↔combined) */
