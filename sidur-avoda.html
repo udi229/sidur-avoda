@@ -62,20 +62,36 @@
   .btn-today { background:white; border:1.5px solid #00ff88; color:#00aa55; padding:6px 14px; border-radius:20px; cursor:pointer; font-size:12px; font-weight:700; font-family:inherit; box-shadow:0 0 8px #00ff8833; transition:all 0.2s; }
   .btn-today:hover { background:#00ff88; color:white; box-shadow:0 0 16px #00ff88; }
 
-  /* ── CUBE FLIP WEEK ANIMATION (scoped to #sched-wrap only) ── */
+  /* ── SCHEDULE TRANSITIONS (scoped to #sched-wrap only) ── */
   #sched-zoom-wrap { perspective: 1800px; }
   #sched-wrap { transform-style: preserve-3d; }
-  /* will-change is added via JS only during the flip, then removed */
+
+  /* CONVEYOR BELT — week navigation (arrows ‹ ›) */
+  #sched-wrap.conveyor .cv-face { transition: transform 0.55s cubic-bezier(0.4,0,0.2,1), opacity 0.5s; }
+  #sched-wrap.conveyor .cv-face.cv-in { position: absolute; inset: 0; }
+  /* next (forward in time): old slides out shrinking, new comes from far side growing */
+  #sched-wrap.conveyor.cv-next .cv-face.cv-out { transform: translateX(0) scale(1); opacity: 1; }
+  #sched-wrap.conveyor.cv-next .cv-face.cv-in  { transform: translateX(120%) scale(0.82); opacity: 0.3; }
+  #sched-wrap.conveyor.cv-next.cv-go .cv-face.cv-out { transform: translateX(-120%) scale(0.82); opacity: 0.3; }
+  #sched-wrap.conveyor.cv-next.cv-go .cv-face.cv-in  { transform: translateX(0) scale(1); opacity: 1; }
+  /* prev (back in time): mirror */
+  #sched-wrap.conveyor.cv-prev .cv-face.cv-out { transform: translateX(0) scale(1); opacity: 1; }
+  #sched-wrap.conveyor.cv-prev .cv-face.cv-in  { transform: translateX(-120%) scale(0.82); opacity: 0.3; }
+  #sched-wrap.conveyor.cv-prev.cv-go .cv-face.cv-out { transform: translateX(120%) scale(0.82); opacity: 0.3; }
+  #sched-wrap.conveyor.cv-prev.cv-go .cv-face.cv-in  { transform: translateX(0) scale(1); opacity: 1; }
+
+  /* CUBE FLIP — switching tabs (dept↔dept, combined↔combined, dept↔combined) */
   #sched-wrap.cube-flip .cube-face { transition: transform 0.6s cubic-bezier(0.6,0,0.3,1); backface-visibility: hidden; }
   #sched-wrap.cube-flip .cube-face.cube-back { position: absolute; inset: 0; }
-  #sched-wrap.cube-flip.flip-next .cube-face.cube-front { transform: rotateY(0deg); }
-  #sched-wrap.cube-flip.flip-next .cube-face.cube-back  { transform: rotateY(180deg); }
-  #sched-wrap.cube-flip.flip-prev .cube-face.cube-front { transform: rotateY(0deg); }
-  #sched-wrap.cube-flip.flip-prev .cube-face.cube-back  { transform: rotateY(-180deg); }
-  #sched-wrap.cube-flip.flip-next.flipping { transform: rotateY(-180deg); transition: transform 0.6s cubic-bezier(0.6,0,0.3,1); }
-  #sched-wrap.cube-flip.flip-prev.flipping { transform: rotateY(180deg);  transition: transform 0.6s cubic-bezier(0.6,0,0.3,1); }
-  /* Accessibility / safety: if user prefers reduced motion, skip the 3D spin */
+  #sched-wrap.cube-flip .cube-face.cube-front { transform: rotateY(0deg); }
+  #sched-wrap.cube-flip .cube-face.cube-back  { transform: rotateY(180deg); }
+  #sched-wrap.cube-flip.flipping { transform: rotateY(-180deg); transition: transform 0.6s cubic-bezier(0.6,0,0.3,1); }
+
+  /* will-change added via JS only during transitions, then removed */
+  /* Accessibility / safety: reduced motion → simple fade for both */
   @media (prefers-reduced-motion: reduce) {
+    #sched-wrap.conveyor.cv-go { transition: opacity 0.2s !important; }
+    #sched-wrap.conveyor .cv-face { transition: opacity 0.2s !important; transform: none !important; }
     #sched-wrap.cube-flip.flipping { transform: none !important; transition: opacity 0.2s !important; }
     #sched-wrap.cube-flip .cube-face { transition: opacity 0.2s !important; }
   }
@@ -4500,16 +4516,56 @@ function updateToolbarSubmitBtn(){
     btn.style.display='none';
   }
 }
+// ── CUBE FLIP בין טאבים (מחלקה/משולב) ──
+// עוטף כל החלפת תצוגה: מצלם את הסידור הנוכחי, מריץ את השינוי (שכולל renderSchedule),
+// ואז מבצע פליפ תלת-ממדי מהישן לחדש. רץ בכל גודל מסך.
+function flipSchedule(applyChange){
+  const sw=document.getElementById('sched-wrap');
+  // אם אין sched-wrap או שכבר רצה אנימציה — פשוט מחילים בלי פליפ
+  if(!sw || sw._flipping){ applyChange(); return; }
+  sw._flipping=true;
+
+  const frontHTML = sw.innerHTML; // הסידור הנוכחי (פנים קדמי)
+  applyChange();                  // משנה state + renderSchedule → ממלא את sw בחדש
+  const backHTML = sw.innerHTML;  // הסידור החדש (פנים אחורי)
+
+  // אם שום דבר לא השתנה בפועל — לא מפלִיפים
+  if(frontHTML===backHTML){ sw._flipping=false; return; }
+
+  sw.innerHTML =
+    '<div class="cube-face cube-front">'+frontHTML+'</div>'+
+    '<div class="cube-face cube-back">'+backHTML+'</div>';
+  sw.style.willChange='transform';
+  sw.classList.add('cube-flip');
+
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    sw.classList.add('flipping');
+  }));
+
+  setTimeout(()=>{
+    sw.classList.remove('cube-flip','flipping');
+    sw.style.willChange='';
+    sw.innerHTML = backHTML;
+    sw._flipping=false;
+    // שחזור הזום הנכון אחרי שדרסנו את ה-innerHTML (משולב מקבל זום שונה)
+    if(typeof autoFitMobile==='function' && window.innerWidth<600){
+      setTimeout(()=>autoFitMobile(!!activeCombinedId),30);
+    }
+  },620);
+}
+
 function setDept(id){
-  window._userChoseDept=true; // המשתמש בחר ידנית
-  activeDeptId=id;activeCombinedId=null;openDropdown=null;editingShiftTime=null;
-  searchQuery='';showMyShifts=false;
-  const si=document.getElementById('sched-search');
-  if(si) si.value='';
-  const btn=document.getElementById('my-shifts-btn');
-  if(btn){btn.style.background='#16a34a';btn.style.color='white';btn.style.border='none';btn.style.animation='myShiftsBreatheOut 3s ease-in-out infinite';btn.innerHTML='<span class="btn-text">המשמרות שלי</span>';}
-  renderDeptTabs();
-  renderSchedule();
+  flipSchedule(()=>{
+    window._userChoseDept=true; // המשתמש בחר ידנית
+    activeDeptId=id;activeCombinedId=null;openDropdown=null;editingShiftTime=null;
+    searchQuery='';showMyShifts=false;
+    const si=document.getElementById('sched-search');
+    if(si) si.value='';
+    const btn=document.getElementById('my-shifts-btn');
+    if(btn){btn.style.background='#16a34a';btn.style.color='white';btn.style.border='none';btn.style.animation='myShiftsBreatheOut 3s ease-in-out infinite';btn.innerHTML='<span class="btn-text">המשמרות שלי</span>';}
+    renderDeptTabs();
+    renderSchedule();
+  });
 }
 function previewCombined(cvId){
   document.getElementById('cv-preview-overlay')?.remove();
@@ -4573,12 +4629,14 @@ async function toggleCVPublish(id){
   await sb.from('cv_weekly_publish').upsert({cv_id:id, week_start:ws, published:newVal},{onConflict:'cv_id,week_start'});
 }
 function setCombined(id){
-  window._userChoseDept=false;
-  activeCombinedId=id;openDropdown=null;
-  searchQuery='';
-  const si=document.getElementById('sched-search');
-  if(si) si.value='';
-  renderDeptTabs();renderSchedule(); setTimeout(autoFitMobile,80);
+  flipSchedule(()=>{
+    window._userChoseDept=false;
+    activeCombinedId=id;openDropdown=null;
+    searchQuery='';
+    const si=document.getElementById('sched-search');
+    if(si) si.value='';
+    renderDeptTabs();renderSchedule();
+  });
 }
 
 // ── CELL DATA ──
@@ -6624,42 +6682,43 @@ async function changeWeek(d){
     return;
   }
 
-  // ── DATA-FIRST: קודם שומרים תמונת מצב של הסידור הנוכחי, ואז טוענים נתונים, ואז הופכים ──
+  // ── DATA-FIRST + CONVEYOR BELT: טוענים נתונים, ואז מחליקים כמו מסוע ──
   const dir = d>0 ? 'next' : 'prev';
-  // 1) "פנים קדמי" = צילום ה-HTML הנוכחי של הסידור
-  const frontHTML = sw.innerHTML;
+  // 1) צילום ה-HTML הנוכחי של הסידור (הפנים היוצא)
+  const outHTML = sw.innerHTML;
 
   // 2) טוענים את נתוני השבוע החדש (data-first — בלי אנימציה עדיין)
   weekOffset=newOffset;openDropdown=null;editingShiftTime=null;editMode=false;window._userChoseDept=false;
   loadWeekData().then(()=>{
     renderDeptTabs();
-    renderSchedule(); // זה ממלא את sched-wrap בנתונים החדשים
+    renderSchedule(); // ממלא את sched-wrap בנתונים החדשים
     if(activeView==='stats')renderStats();
 
-    // 3) בונים מבנה דו-פאני: פנים קדמי (ישן) + פנים אחורי (חדש שכבר ב-DOM)
-    const newInner = sw.innerHTML; // הסידור החדש שזה עתה רונדר
+    // 3) בונים שתי שכבות: יוצא (ישן) + נכנס (חדש)
+    const inHTML = sw.innerHTML;
     sw.innerHTML =
-      '<div class="cube-face cube-front">'+frontHTML+'</div>'+
-      '<div class="cube-face cube-back">'+newInner+'</div>';
+      '<div class="cv-face cv-out">'+outHTML+'</div>'+
+      '<div class="cv-face cv-in">'+inHTML+'</div>';
 
-    // רמז ל-GPU להכין טקסטורה (מוסר בסוף)
     sw.style.willChange='transform';
-    sw.classList.add('cube-flip','flip-'+dir);
+    sw.classList.add('conveyor','cv-'+dir);
 
-    // 4) מפעילים את הסיבוב
+    // 4) מפעילים את תנועת המסוע
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      sw.classList.add('flipping');
+      sw.classList.add('cv-go');
     }));
 
-    // 5) בסיום הפליפ — מנקים את המעטפת ומשאירים רק את הסידור החדש
+    // 5) בסיום — מנקים ומשאירים רק את הסידור החדש
     setTimeout(()=>{
-      sw.classList.remove('cube-flip','flip-next','flip-prev','flipping');
+      sw.classList.remove('conveyor','cv-next','cv-prev','cv-go');
       sw.style.willChange='';
-      sw.innerHTML = newInner;
+      sw.innerHTML = inHTML;
       view._swipeAnimating=false;
-      // autoFit רץ רק אחרי שהפליפ הסתיים, לא תוך כדי
-      if(typeof autoFitMobile==='function') setTimeout(autoFitMobile,30);
-    },620);
+      // שחזור זום אחרי המעבר (משולב מקבל זום שונה)
+      if(typeof autoFitMobile==='function' && window.innerWidth<600){
+        setTimeout(()=>autoFitMobile(!!activeCombinedId),30);
+      }
+    },580);
   }).catch(()=>{ view._swipeAnimating=false; });
 }
 function goToday(){weekOffset=0;openDropdown=null;editingShiftTime=null;loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});}
