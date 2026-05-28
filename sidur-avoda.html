@@ -62,12 +62,23 @@
   .btn-today { background:white; border:1.5px solid #00ff88; color:#00aa55; padding:6px 14px; border-radius:20px; cursor:pointer; font-size:12px; font-weight:700; font-family:inherit; box-shadow:0 0 8px #00ff8833; transition:all 0.2s; }
   .btn-today:hover { background:#00ff88; color:white; box-shadow:0 0 16px #00ff88; }
 
-  /* ── SWIPE WEEK ANIMATION ── */
-  #view-schedule { transition: transform 0.12s ease-out, opacity 0.12s ease; }
-  #view-schedule.swipe-exit-left  { transform: translateX(-40px); opacity: 0; pointer-events: none; }
-  #view-schedule.swipe-exit-right { transform: translateX(40px);  opacity: 0; pointer-events: none; }
-  #view-schedule.swipe-enter-left  { transform: translateX(-40px); opacity: 0; transition: none !important; }
-  #view-schedule.swipe-enter-right { transform: translateX(40px);  opacity: 0; transition: none !important; }
+  /* ── CUBE FLIP WEEK ANIMATION (scoped to #sched-wrap only) ── */
+  #sched-zoom-wrap { perspective: 1800px; }
+  #sched-wrap { transform-style: preserve-3d; }
+  /* will-change is added via JS only during the flip, then removed */
+  #sched-wrap.cube-flip .cube-face { transition: transform 0.6s cubic-bezier(0.6,0,0.3,1); backface-visibility: hidden; }
+  #sched-wrap.cube-flip .cube-face.cube-back { position: absolute; inset: 0; }
+  #sched-wrap.cube-flip.flip-next .cube-face.cube-front { transform: rotateY(0deg); }
+  #sched-wrap.cube-flip.flip-next .cube-face.cube-back  { transform: rotateY(180deg); }
+  #sched-wrap.cube-flip.flip-prev .cube-face.cube-front { transform: rotateY(0deg); }
+  #sched-wrap.cube-flip.flip-prev .cube-face.cube-back  { transform: rotateY(-180deg); }
+  #sched-wrap.cube-flip.flip-next.flipping { transform: rotateY(-180deg); transition: transform 0.6s cubic-bezier(0.6,0,0.3,1); }
+  #sched-wrap.cube-flip.flip-prev.flipping { transform: rotateY(180deg);  transition: transform 0.6s cubic-bezier(0.6,0,0.3,1); }
+  /* Accessibility / safety: if user prefers reduced motion, skip the 3D spin */
+  @media (prefers-reduced-motion: reduce) {
+    #sched-wrap.cube-flip.flipping { transform: none !important; transition: opacity 0.2s !important; }
+    #sched-wrap.cube-flip .cube-face { transition: opacity 0.2s !important; }
+  }
 
   /* DEPT TABS */
   .dept-tabs { display:flex; gap:6px; flex-wrap:nowrap; margin-bottom:18px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
@@ -6595,8 +6606,8 @@ async function changeWeek(d){
   // (הבדיקה תתבצע ב-renderSchedule אחרי טעינת הנתונים)
 
   const view=document.getElementById('view-schedule');
-  // Only animate on mobile
-  if(!view||window.innerWidth>768){
+  // נפילה חזרה למעבר מיידי רק אם אזור התצוגה לא קיים (מצב חריג)
+  if(!view){
     weekOffset=newOffset;openDropdown=null;editingShiftTime=null;editMode=false;window._userChoseDept=false;
     loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});
     return;
@@ -6605,22 +6616,51 @@ async function changeWeek(d){
   if(view._swipeAnimating) return;
   view._swipeAnimating=true;
 
-  // RTL: שבוע קודם (d<0) = ישן יוצא שמאלה, חדש נכנס מימין; שבוע הבא (d>0) = הפוך
-  const exitClass =d>0?'swipe-exit-right':'swipe-exit-left';
-  const enterClass=d>0?'swipe-enter-left':'swipe-enter-right';
-  view.classList.add(exitClass);
-  setTimeout(()=>{
+  const sw=document.getElementById('sched-wrap');
+  // אם אין sched-wrap מסיבה כלשהי — נפילה חזרה למעבר רגיל בלי אנימציה
+  if(!sw){
     weekOffset=newOffset;openDropdown=null;editingShiftTime=null;editMode=false;window._userChoseDept=false;
-    loadWeekData().then(()=>{
-      renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();
-      view.classList.remove(exitClass);
-      view.classList.add(enterClass);
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        view.classList.remove(enterClass);
-        setTimeout(()=>{view._swipeAnimating=false;},130);
-      }));
-    });
-  },120);
+    loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();view._swipeAnimating=false;});
+    return;
+  }
+
+  // ── DATA-FIRST: קודם שומרים תמונת מצב של הסידור הנוכחי, ואז טוענים נתונים, ואז הופכים ──
+  const dir = d>0 ? 'next' : 'prev';
+  // 1) "פנים קדמי" = צילום ה-HTML הנוכחי של הסידור
+  const frontHTML = sw.innerHTML;
+
+  // 2) טוענים את נתוני השבוע החדש (data-first — בלי אנימציה עדיין)
+  weekOffset=newOffset;openDropdown=null;editingShiftTime=null;editMode=false;window._userChoseDept=false;
+  loadWeekData().then(()=>{
+    renderDeptTabs();
+    renderSchedule(); // זה ממלא את sched-wrap בנתונים החדשים
+    if(activeView==='stats')renderStats();
+
+    // 3) בונים מבנה דו-פאני: פנים קדמי (ישן) + פנים אחורי (חדש שכבר ב-DOM)
+    const newInner = sw.innerHTML; // הסידור החדש שזה עתה רונדר
+    sw.innerHTML =
+      '<div class="cube-face cube-front">'+frontHTML+'</div>'+
+      '<div class="cube-face cube-back">'+newInner+'</div>';
+
+    // רמז ל-GPU להכין טקסטורה (מוסר בסוף)
+    sw.style.willChange='transform';
+    sw.classList.add('cube-flip','flip-'+dir);
+
+    // 4) מפעילים את הסיבוב
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      sw.classList.add('flipping');
+    }));
+
+    // 5) בסיום הפליפ — מנקים את המעטפת ומשאירים רק את הסידור החדש
+    setTimeout(()=>{
+      sw.classList.remove('cube-flip','flip-next','flip-prev','flipping');
+      sw.style.willChange='';
+      sw.innerHTML = newInner;
+      view._swipeAnimating=false;
+      // autoFit רץ רק אחרי שהפליפ הסתיים, לא תוך כדי
+      if(typeof autoFitMobile==='function') setTimeout(autoFitMobile,30);
+    },620);
+  }).catch(()=>{ view._swipeAnimating=false; });
 }
 function goToday(){weekOffset=0;openDropdown=null;editingShiftTime=null;loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});}
 
