@@ -4117,10 +4117,18 @@ window.startPolling=function(){
       const {data:sc,error:scErr}=await sb.from('schedules').select('id,updated_at,team_submitted,status').eq('week_start',ws);
       if(scErr||!sc) return;
       const schedIds=sc.map(s=>s.id);
+      // ── אופטימיזציה: במקום לשלוף את כל ה-content של התאים בכל מחזור,
+      //    שולפים רק updated_at (טקסט קצר). trigger ב-DB מעדכן updated_at
+      //    בכל שינוי תא, כך ש-max(updated_at) משתנה רק כשבאמת היה שינוי.
+      //    זה מוריד דרסטית את צריכת ה-Disk IO וה-Egress, בלי לשנות התנהגות. ──
       let cellsHash='';
       if(schedIds.length){
-        const {data:cells}=await sb.from('schedule_cells').select('id,content,schedule_id').in('schedule_id',schedIds);
-        cellsHash=(cells||[]).map(c=>c.schedule_id+'_'+c.id+':'+c.content).sort().join('|');
+        const {data:cells}=await sb.from('schedule_cells').select('updated_at').in('schedule_id',schedIds);
+        if(cells&&cells.length){
+          let maxTs='';
+          for(const c of cells){ if(c.updated_at&&c.updated_at>maxTs) maxTs=c.updated_at; }
+          cellsHash=cells.length+'@'+maxTs;
+        }
       }
       const {data:cvp}=await sb.from('cv_weekly_publish').select('cv_id,published').eq('week_start',ws);
       const cvHash=(cvp||[]).map(p=>p.cv_id+':'+p.published).sort().join('|');
@@ -4138,7 +4146,7 @@ window.startPolling=function(){
         window._lastHash=hash;
       }
     }catch(e){}
-  },2000);
+  },5000);
 };
 
 // עצור polling זמנית (ללא ניקוי המצב)
