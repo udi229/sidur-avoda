@@ -2737,6 +2737,7 @@
         <div style="text-align:center"><div class="wk-lbl" id="wk-lbl">שבוע נוכחי</div><div class="wk-dates" id="wk-dt" dir="ltr"></div></div>
         <button class="wk-btn" onclick="changeWeek(1)">›</button>
         <button class="btn-tod" onclick="goToday()">היום</button>
+        <button class="btn-tod" id="btn-goto-date" onclick="openDatePicker()" style="display:none">📅 עבור לתאריך</button>
       </div>
       <div class="wk-badges">
         <span id="wk-st" class="badge b-dft">⏳ טיוטה</span>
@@ -4286,6 +4287,12 @@ function updateWeekUI(){
   const wkDt=document.getElementById('wk-dt');
   if(wkLbl) wkLbl.textContent=lbl;
   if(wkDt) wkDt.textContent=`${dates[6]} - ${dates[0]}`;
+  // כפתור "עבור לתאריך" — רק לראש צוות ולמנהלים
+  const gotoBtn=document.getElementById('btn-goto-date');
+  if(gotoBtn){
+    const role0=currentEmp?.role||'employee';
+    gotoBtn.style.display=(isMgr||role0==='team_lead')?'inline-block':'none';
+  }
   const allApp=departments.length>0&&departments.every(d=>schedules[d.id]?.status==='approved');
   const anySubmitted2=Object.values(schedules).some(s=>s.team_submitted&&s.status!=='approved');
   const sb2=document.getElementById('wk-st');
@@ -6722,6 +6729,63 @@ async function changeWeek(d){
   }).catch(()=>{ view._swipeAnimating=false; });
 }
 function goToday(){weekOffset=0;openDropdown=null;editingShiftTime=null;loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});}
+
+// ── מעבר לתאריך מסוים (ראש צוות + מנהלים) ──
+// מחשב כמה שבועות מפרידים בין השבוע הנוכחי לשבוע שמכיל את התאריך הנבחר,
+// מכבד את גבול חצי השנה קדימה (26 שבועות), ומאפשר חזרה לארכיון בעבר.
+function goToWeekOf(dateStr){
+  if(!dateStr) return;
+  const picked=new Date(dateStr+'T00:00:00');
+  if(isNaN(picked)) return;
+  // תחילת השבוע (יום ראשון) של התאריך הנבחר
+  picked.setHours(0,0,0,0);
+  picked.setDate(picked.getDate()-picked.getDay());
+  // תחילת השבוע הנוכחי
+  const cur=new Date(); cur.setHours(0,0,0,0);
+  cur.setDate(cur.getDate()-cur.getDay());
+  // הפרש בשבועות (עיגול כדי לנטרל מעברי שעון קיץ/חורף)
+  const offset=Math.round((picked-cur)/(7*24*60*60*1000));
+  // כיבוד גבול חצי שנה קדימה לראש צוות (לא חל על מנהל)
+  const role0=currentEmp?.role||'employee';
+  if(role0==='team_lead'&&!isMgr&&offset>26){
+    alert('ניתן לתכנן עד חצי שנה קדימה (26 שבועות)');
+    return;
+  }
+  weekOffset=offset;openDropdown=null;editingShiftTime=null;editMode=false;window._userChoseDept=false;
+  loadWeekData().then(()=>{renderDeptTabs();renderSchedule();if(activeView==='stats')renderStats();});
+}
+
+function openDatePicker(){
+  // קובע גבולות: אחורה לארכיון (שנה), קדימה עד חצי שנה
+  const today=new Date();
+  const minD=new Date(today); minD.setFullYear(minD.getFullYear()-1);
+  const maxD=new Date(today); maxD.setDate(maxD.getDate()+26*7);
+  const fmt=d=>d.toISOString().split('T')[0];
+  // ערך התחלתי = התאריך של השבוע המוצג כרגע
+  const curWeek=weekStart(); const curVal=fmt(curWeek);
+
+  // בונה מודל קטן עם input type=date
+  document.getElementById('date-picker-modal')?.remove();
+  const ov=document.createElement('div');
+  ov.id='date-picker-modal';
+  ov.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;padding:20px;direction:rtl';
+  ov.innerHTML=`
+    <div style="background:#0f172a;border:1px solid #00d4ff55;border-radius:16px;padding:22px;max-width:340px;width:100%;box-shadow:0 0 40px #00d4ff33">
+      <div style="color:#00d4ff;font-size:16px;font-weight:800;margin-bottom:14px;text-align:center">📅 עבור לתאריך</div>
+      <input type="date" id="goto-date-input" value="${curVal}" min="${fmt(minD)}" max="${fmt(maxD)}"
+        style="width:100%;padding:10px;border-radius:10px;border:1.5px solid #334155;background:#1e293b;color:#e2e8f0;font-size:15px;font-family:inherit;outline:none;margin-bottom:6px">
+      <div style="color:#64748b;font-size:11px;text-align:center;margin-bottom:16px">אחורה לארכיון · קדימה עד חצי שנה</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="document.getElementById('date-picker-modal').remove()"
+          style="flex:1;background:#334155;color:#cbd5e1;border:none;border-radius:10px;padding:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">ביטול</button>
+        <button onclick="const v=document.getElementById('goto-date-input').value;document.getElementById('date-picker-modal').remove();goToWeekOf(v);"
+          style="flex:1;background:#00d4ff;color:#0f172a;border:none;border-radius:10px;padding:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">עבור</button>
+      </div>
+    </div>`;
+  // לחיצה על הרקע סוגרת
+  ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+  document.body.appendChild(ov);
+}
 
 // ── STARTUP ──
 // Request notification permission
