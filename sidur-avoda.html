@@ -3294,10 +3294,14 @@
     </div>
     <div style="background:#f8fafc;border-radius:12px;padding:14px;margin-bottom:16px;">
       <label style="font-size:13px;font-weight:700;color:#475569;display:block;margin-bottom:6px;">🏷️ סטטוס:</label>
-      <select id="vac-add-status" style="width:100%;border:1.5px solid #cbd5e1;border-radius:10px;padding:10px 12px;font-family:inherit;font-size:15px;outline:none;background:#fff;direction:rtl;text-align:right;">
+      <select id="vac-add-status" onchange="onAddStatusChange()" style="width:100%;border:1.5px solid #cbd5e1;border-radius:10px;padding:10px 12px;font-family:inherit;font-size:15px;outline:none;background:#fff;direction:rtl;text-align:right;">
         <option value="approved">✅ מאושרת</option>
         <option value="pending">⏳ ממתינה</option>
       </select>
+    </div>
+    <div style="background:#f8fafc;border-radius:12px;padding:14px;margin-bottom:16px;">
+      <label style="font-size:13px;font-weight:700;color:#475569;display:block;margin-bottom:10px;">🎨 תג צבע:</label>
+      <div id="vac-add-colors" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-start;"></div>
     </div>
     <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#475569;margin-bottom:16px;cursor:pointer;">
       <input type="checkbox" id="vac-add-notify" checked style="width:18px;height:18px;cursor:pointer;">
@@ -3307,6 +3311,25 @@
     <div style="display:flex;gap:10px;">
       <button id="vac-add-save" onclick="saveAddVacation()" style="flex:1;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#10b981,#059669);color:#fff;box-shadow:0 4px 12px rgba(16,185,129,0.4)">➕ הוסף חופשה</button>
       <button onclick="closeAddVacationModal()" style="flex:1;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;background:#f1f5f9;color:#475569">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- מודאל בחירת צבע בעת אישור חופשה -->
+<div id="vac-approve-overlay" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;direction:rtl;">
+  <div style="background:#fff;border-radius:20px;padding:28px 24px;width:min(92vw,420px);box-shadow:0 8px 40px rgba(0,0,0,0.4);max-height:90vh;overflow-y:auto;">
+    <div style="text-align:center;margin-bottom:18px;">
+      <div style="font-size:42px;margin-bottom:6px">✅</div>
+      <div style="font-size:18px;font-weight:900;color:#1e293b">אישור חופשה</div>
+      <div id="vac-approve-info" style="font-size:13px;color:#64748b;margin-top:4px"></div>
+    </div>
+    <div style="background:#f8fafc;border-radius:12px;padding:14px;margin-bottom:18px;">
+      <label style="font-size:13px;font-weight:700;color:#475569;display:block;margin-bottom:10px;">🎨 בחר תג צבע לחופשה:</label>
+      <div id="vac-approve-colors" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-start;"></div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="confirmApproveColor()" style="flex:1;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#2ECC71,#059669);color:#fff;box-shadow:0 4px 12px rgba(46,204,113,0.4)">✅ אשר חופשה</button>
+      <button onclick="closeApproveColorModal()" style="flex:1;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;background:#f1f5f9;color:#475569">ביטול</button>
     </div>
   </div>
 </div>
@@ -7053,7 +7076,7 @@ async function loadDB() {
       start:r.start_date, end:r.end_date,
       name:r.user_name, dept:r.user_dept,
       email:r.user_id,
-      reason:r.reason, status:r.status, adminNote:r.admin_note,
+      reason:r.reason, status:r.status, adminNote:r.admin_note, color:r.color,
       recommendation:r.recommendation, recommendationReason:r.recommendation_reason,
       recommendedBy:r.recommended_by, createdAt:r.created_at
     }));
@@ -7634,6 +7657,11 @@ function renderCal(cid,year,month,reqs){
     dr.slice(0,maxShow).forEach((r, index)=>{
       const ev=document.createElement('div');
       ev.className=`cal-event req-ev ${r.status}`;
+      // תג צבע מותאם אישית (אם נבחר) — אחרת ברירת מחדל לפי סטטוס
+      if(r.color){
+        ev.style.background=r.color;
+        ev.style.color=vacTextColor(r.color);
+      }
       // Show only first name to save space
       const firstName=r.name.split(' ')[0];
       ev.textContent=firstName;
@@ -7802,7 +7830,7 @@ function renderReqTable(){
             <button class="action-btn btn-not-recommend" style="flex:1" onclick="openRepReasonModal('${r.id}','not_recommended')">👎 לא ממליצה</button>
           </div>`:`<div style="text-align:center;padding:6px;color:#64748b;font-size:12px;background:#f8fafc;border-radius:8px">👁 צפייה בלבד</div>`)
         :`<div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="action-btn btn-approve" style="flex:1;min-width:80px" onclick="adminAction('${r.id}','approved')">✅ אשר</button>
+          <button class="action-btn btn-approve" style="flex:1;min-width:80px" onclick="openApproveColorModal('${r.id}')">✅ אשר</button>
           <button class="action-btn btn-reject" style="flex:1;min-width:80px" onclick="adminAction('${r.id}','rejected')">❌ דחה</button>
           <button class="action-btn" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;flex-shrink:0" onclick="adminEditRequestDates('${r.id}')" title="ערוך תאריכים">✏️</button>
           <button class="action-btn" style="background:#fee;color:#c00;border:1px solid #fcc;flex-shrink:0" onclick="adminDeleteRequest('${r.id}')">🗑️</button>
@@ -7835,7 +7863,7 @@ function renderReqTable(){
       (canEfratRecommend(r.dept) && r.status==='pending'?`<button class="action-btn btn-recommend" onclick="openRepReasonModal('${r.id}','recommended')" title="ממליצה לאשר">👍</button>
       <button class="action-btn btn-not-recommend" onclick="openRepReasonModal('${r.id}','not_recommended')" title="לא ממליצה">👎</button>`
       :`<span style="color:#94a3b8;font-size:12px">👁 צפייה</span>`)
-    :`<button class="action-btn btn-approve" onclick="adminAction('${r.id}','approved')">✅</button>
+    :`<button class="action-btn btn-approve" onclick="openApproveColorModal('${r.id}')">✅</button>
       <button class="action-btn btn-reject" onclick="adminAction('${r.id}','rejected')">❌</button>
       <button class="action-btn" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd" onclick="adminEditRequestDates('${r.id}')" title="ערוך תאריכים">✏️</button>
       <button class="action-btn" style="background:#fee;color:#c00;border:1px solid #fcc" onclick="adminDeleteRequest('${r.id}')">🗑️</button>`;
@@ -7942,13 +7970,60 @@ async function adminDeleteRequest(reqId){
   }
 }
 
+// ── צבעי תג חופשה + עזרי בחירת צבע ──
+const VAC_COLORS=[
+  {n:'ירוק (מאושר)',c:'#2ECC71'},
+  {n:'צהוב (בהמתנה)',c:'#FFD600'},
+  {n:'כחול',c:'#3b82f6'},
+  {n:'סגול',c:'#a855f7'},
+  {n:'כתום',c:'#FF6B00'},
+  {n:'אדום',c:'#E74C3C'},
+  {n:'ורוד',c:'#ec4899'},
+  {n:'טורקיז',c:'#14b8a6'},
+];
+// טקסט כהה על רקע בהיר, לבן על רקע כהה
+function vacTextColor(hex){
+  if(!hex) return '#fff';
+  const m=hex.replace('#','');
+  if(m.length<6) return '#fff';
+  const r=parseInt(m.substr(0,2),16),g=parseInt(m.substr(2,2),16),b=parseInt(m.substr(4,2),16);
+  const lum=(0.299*r+0.587*g+0.114*b)/255;
+  return lum>0.6?'#3a2e00':'#fff';
+}
+function buildColorSwatches(containerId, selected){
+  const c=document.getElementById(containerId); if(!c) return;
+  c.dataset.color=selected||'#2ECC71';
+  c.innerHTML=VAC_COLORS.map(o=>{
+    const sel=o.c.toLowerCase()===(c.dataset.color||'').toLowerCase();
+    return `<button type="button" title="${o.n}" onclick="pickSwatch('${containerId}','${o.c}')" style="width:34px;height:34px;border-radius:50%;cursor:pointer;background:${o.c};border:3px solid ${sel?'#0f172a':'#fff'};box-shadow:0 1px 4px rgba(0,0,0,0.25);outline:${sel?'2px solid #94a3b8':'none'};display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1;color:${vacTextColor(o.c)}">${sel?'✓':''}</button>`;
+  }).join('');
+}
+function pickSwatch(containerId, color){ buildColorSwatches(containerId, color); }
+function getSwatchColor(containerId){ const c=document.getElementById(containerId); return c?(c.dataset.color||null):null; }
+// רשימת אנשים לבחירה = מנהלים (אודי, אפרת) + כלל העובדים
+function getVacPeople(){
+  const managers=[
+    {email:'manager@local',     name:'אודי', dept:'הנהלה'},
+    {email:'efratn@kan.org.il', name:'אפרת', dept:'הנהלה'},
+  ];
+  return managers.concat(DB.users||[]);
+}
+function onAddStatusChange(){
+  const status=document.getElementById('vac-add-status').value;
+  const cur=getSwatchColor('vac-add-colors');
+  // עדכן ברירת מחדל רק אם המשתמש לא בחר צבע מותאם
+  if(!cur||cur==='#2ECC71'||cur==='#FFD600'){
+    buildColorSwatches('vac-add-colors', status==='approved'?'#2ECC71':'#FFD600');
+  }
+}
+
 // ── הוספת חופשה ידנית ע"י המנהל ──
 function openAddVacationModal(){
   const overlay=document.getElementById('vac-add-overlay');
   if(!overlay){ showToast('המודאל לא נטען','error'); return; }
-  // מילוי רשימת העובדים מקובץ DB.users — מקובצים לפי מחלקה
+  // מילוי רשימת העובדים — כולל מנהלים (אודי, אפרת) — מקובצים לפי מחלקה
   const sel=document.getElementById('vac-add-employee');
-  const users=(DB.users||[]).slice().sort((a,b)=>
+  const users=getVacPeople().slice().sort((a,b)=>
     (a.dept||'').localeCompare(b.dept||'','he') || (a.name||'').localeCompare(b.name||'','he'));
   if(!users.length){
     sel.innerHTML='<option value="">— אין עובדים זמינים —</option>';
@@ -7974,6 +8049,7 @@ function openAddVacationModal(){
   document.getElementById('vac-add-end').value=today;
   document.getElementById('vac-add-reason').value='';
   document.getElementById('vac-add-status').value='approved';
+  buildColorSwatches('vac-add-colors','#2ECC71');
   document.getElementById('vac-add-notify').checked=true;
   const errEl=document.getElementById('vac-add-error');
   if(errEl) errEl.style.display='none';
@@ -7999,18 +8075,25 @@ async function saveAddVacation(){
   if(!email){ showErr('יש לבחור עובד'); return; }
   if(!start||!end){ showErr('יש לבחור תאריכי התחלה וסיום'); return; }
   if(new Date(end)<new Date(start)){ showErr('תאריך הסיום מוקדם מתאריך ההתחלה'); return; }
-  const user=(DB.users||[]).find(u=>(u.email||u.id||'').toLowerCase()===email.toLowerCase());
+  const user=getVacPeople().find(u=>(u.email||u.id||'').toLowerCase()===email.toLowerCase());
   if(!user){ showErr('העובד לא נמצא'); return; }
   if(errEl) errEl.style.display='none';
   const saveBtn=document.getElementById('vac-add-save');
   if(saveBtn){ saveBtn.disabled=true; saveBtn.textContent='מוסיף...'; }
   const id=crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString()+Math.random().toString(36).slice(2));
+  const color=getSwatchColor('vac-add-colors')||(status==='approved'?'#2ECC71':'#FFD600');
   try{
-    const {error:reqErr}=await sb.from('vac_requests').upsert({
+    const baseRec={
       id, user_id:user.email||user.id, user_name:user.name,
       user_dept:user.dept||'כללי', start_date:start, end_date:end,
       reason:reason||'נוספה ידנית ע״י המנהל', status:status||'approved'
-    },{onConflict:'id'});
+    };
+    // ניסיון לשמור עם צבע; אם עמודת color לא קיימת — שמירה ללא צבע (לא שובר כלום)
+    let {error:reqErr}=await sb.from('vac_requests').upsert({...baseRec, color},{onConflict:'id'});
+    if(reqErr && /color/i.test(reqErr.message||'')){
+      console.warn('color column missing — saving vacation without color');
+      ({error:reqErr}=await sb.from('vac_requests').upsert(baseRec,{onConflict:'id'}));
+    }
     if(reqErr) throw reqErr;
     // התראה לעובד (אופציונלי)
     if(notify){
@@ -8038,7 +8121,32 @@ async function saveAddVacation(){
   }
 }
 
-async function adminAction(reqId,action){
+// פתיחת מודאל בחירת צבע בעת אישור חופשה של עובד
+function openApproveColorModal(reqId){
+  if(window._mgrType==='secondary'){
+    showToast('אין לך הרשאה לאשר בקשות. ניתן רק להמליץ.','error');
+    return;
+  }
+  const req=(DB.requests||[]).find(r=>r.id===reqId);
+  if(!req){ showToast('הבקשה לא נמצאה','error'); return; }
+  const ov=document.getElementById('vac-approve-overlay');
+  if(!ov){ adminAction(reqId,'approved','#2ECC71'); return; }
+  ov.dataset.reqId=reqId;
+  const info=document.getElementById('vac-approve-info');
+  if(info) info.textContent=`${req.name} • ${fmt(req.start)} עד ${fmt(req.end)}`;
+  buildColorSwatches('vac-approve-colors','#2ECC71');
+  ov.style.display='flex';
+}
+function closeApproveColorModal(){ const ov=document.getElementById('vac-approve-overlay'); if(ov) ov.style.display='none'; }
+function confirmApproveColor(){
+  const ov=document.getElementById('vac-approve-overlay');
+  const reqId=ov?ov.dataset.reqId:null;
+  const color=getSwatchColor('vac-approve-colors')||'#2ECC71';
+  closeApproveColorModal();
+  if(reqId) adminAction(reqId,'approved',color);
+}
+
+async function adminAction(reqId,action,color){
   // אפרת (מנהלת משנית) לא יכולה לאשר/לדחות בקשות, רק להמליץ
   if(window._mgrType==='secondary'){
     showToast('אין לך הרשאה לאשר או לדחות בקשות. ניתן רק להמליץ.','error');
@@ -8047,7 +8155,16 @@ async function adminAction(reqId,action){
   const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
   const note=document.getElementById('admin-note-'+reqId)?.value||'';
   try{
-    await sb.from('vac_requests').update({status:action,admin_note:note}).eq('id',reqId);
+    const upd={status:action,admin_note:note};
+    // צבע נשמר רק באישור; אם עמודת color לא קיימת — מתעדכן בלעדיו (לא שובר כלום)
+    if(action==='approved' && color) upd.color=color;
+    let {error:upErr}=await sb.from('vac_requests').update(upd).eq('id',reqId);
+    if(upErr && /color/i.test(upErr.message||'')){
+      console.warn('color column missing — approving without color');
+      delete upd.color;
+      ({error:upErr}=await sb.from('vac_requests').update(upd).eq('id',reqId));
+    }
+    if(upErr) throw upErr;
     const msg=action==='approved'?'✅ בקשתך אושרה':'❌ בקשתך נדחתה';
     await sb.from('vac_notifications').insert({
       id:Date.now().toString()+'a', user_id:req.userId,
@@ -9218,6 +9335,11 @@ async function _vacationInit(){
   window.openAddVacationModal = openAddVacationModal;
   window.closeAddVacationModal = closeAddVacationModal;
   window.saveAddVacation = saveAddVacation;
+  window.pickSwatch = pickSwatch;
+  window.onAddStatusChange = onAddStatusChange;
+  window.openApproveColorModal = openApproveColorModal;
+  window.closeApproveColorModal = closeApproveColorModal;
+  window.confirmApproveColor = confirmApproveColor;
   window.adminAction = adminAction;
   window.renderDeptGrid = renderDeptGrid;
   window.saveDeptReps = saveDeptReps;
