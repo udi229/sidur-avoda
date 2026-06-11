@@ -8088,10 +8088,12 @@ async function saveAddVacation(){
       user_dept:user.dept||'כללי', start_date:start, end_date:end,
       reason:reason||'נוספה ידנית ע״י המנהל', status:status||'approved'
     };
-    // ניסיון לשמור עם צבע; אם עמודת color לא קיימת — שמירה ללא צבע (לא שובר כלום)
+    // ניסיון לשמור עם צבע; אם עמודת color לא קיימת — שמירה ללא צבע + הודעה ברורה
+    let colorMissing=false;
     let {error:reqErr}=await sb.from('vac_requests').upsert({...baseRec, color},{onConflict:'id'});
-    if(reqErr && /color/i.test(reqErr.message||'')){
+    if(reqErr && /color|PGRST204|schema cache/i.test(reqErr.message||reqErr.code||'')){
       console.warn('color column missing — saving vacation without color');
+      colorMissing=true;
       ({error:reqErr}=await sb.from('vac_requests').upsert(baseRec,{onConflict:'id'}));
     }
     if(reqErr) throw reqErr;
@@ -8109,6 +8111,7 @@ async function saveAddVacation(){
     }
     closeAddVacationModal();
     showToast('החופשה נוספה ✓','success');
+    if(colorMissing) setTimeout(()=>showToast('⚠️ הצבע לא נשמר — חסרה עמודת color בבסיס הנתונים','error'),700);
     await loadDB();
     if(typeof renderAdminTab==='function') renderAdminTab();
     if(typeof renderDeptCalendar==='function') renderDeptCalendar();
@@ -8156,11 +8159,13 @@ async function adminAction(reqId,action,color){
   const note=document.getElementById('admin-note-'+reqId)?.value||'';
   try{
     const upd={status:action,admin_note:note};
-    // צבע נשמר רק באישור; אם עמודת color לא קיימת — מתעדכן בלעדיו (לא שובר כלום)
+    // צבע נשמר רק באישור; אם עמודת color לא קיימת — מתעדכן בלעדיו + הודעה ברורה
     if(action==='approved' && color) upd.color=color;
+    let colorMissing=false;
     let {error:upErr}=await sb.from('vac_requests').update(upd).eq('id',reqId);
-    if(upErr && /color/i.test(upErr.message||'')){
+    if(upErr && /color|PGRST204|schema cache/i.test(upErr.message||upErr.code||'')){
       console.warn('color column missing — approving without color');
+      colorMissing=true;
       delete upd.color;
       ({error:upErr}=await sb.from('vac_requests').update(upd).eq('id',reqId));
     }
@@ -8173,6 +8178,7 @@ async function adminAction(reqId,action,color){
     });
     await loadDB();
     showToast(action==='approved'?'✅ הבקשה אושרה!':'❌ הבקשה נדחתה!',action==='approved'?'success':'error');
+    if(colorMissing) setTimeout(()=>showToast('⚠️ הצבע לא נשמר — חסרה עמודת color בבסיס הנתונים','error'),700);
     const repEmail=DB.deptReps[req.dept];
     const ccEmails=[...(repEmail?[repEmail]:[]),'efratn@kan.org.il'].filter(Boolean);
     setTimeout(()=>{ try{ sendDecisionEmail(req,action,ccEmails); }catch(_){}},350);
