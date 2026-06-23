@@ -7657,8 +7657,9 @@ function renderCal(cid,year,month,reqs){
     dr.slice(0,maxShow).forEach((r, index)=>{
       const ev=document.createElement('div');
       ev.className=`cal-event req-ev ${r.status}`;
-      // תג צבע מותאם אישית (אם נבחר) — אחרת ברירת מחדל לפי סטטוס
-      if(r.color){
+      // תג צבע מותאם אישית גלוי רק לאודי (מנהל ראשי). כל השאר — אפרת, עובדים, צופים —
+      // רואים את ברירת המחדל לפי סטטוס: ירוק=מאושר, צהוב=ממתין.
+      if(r.color && window._mgrType==='primary'){
         ev.style.background=r.color;
         ev.style.color=vacTextColor(r.color);
       }
