@@ -3024,7 +3024,8 @@
 
   <!-- DEFAULT PANEL -->
   <div id="panel-default" class="panel">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem"><p class="hint" style="margin:0">ערוך כותרות ושעות — כל יום חדש ייוצר מלוז זה</p><button class="action-btn" onclick="addDefaultSection()">+ הוסף אולפן</button></div>
+    <div id="loz-preset-tabs" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:0.75rem"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem"><p class="hint" style="margin:0">ערוך כותרות ושעות של ברירת המחדל שנבחרה למעלה</p><button class="action-btn" onclick="addDefaultSection()">+ הוסף אולפן</button></div>
     <div id="default-table-wrap"></div>
   </div>
 
@@ -4092,17 +4093,30 @@ async function initApp(user){
       if(!changedDate) return;
       const currentKey=(typeof dKey==='function'&&typeof getD==='function'&&typeof offset!=='undefined')?dKey(getD(offset)):null;
       if(changedDate===currentKey){
+        // אם המשתמש הזה נמצא כרגע *בעריכת* הלוז במכשירו - אל תבנה מחדש את הטבלה
+        // תחת האצבעות שלו. זה מה שהיה "זורק" עורכים בטלפון: כל שמירה אוטומטית
+        // מחזירה echo מ-Realtime, שגרם לרירנדר שסגר את המקלדת והוציא מהשדה.
+        // השמירה האוטומטית שלו כבר מסנכרנת את ה-DB, אז נעדכן רק סטטוס פרסום בזיכרון.
+        const meEditingLoz = activeView==='loz' && typeof lozCanEdit==='function' && lozCanEdit() && !window._lozForcePreview;
         sb.from('loz_daily').select('*').eq('date',changedDate).single().then(({data})=>{
-          if(data){ dailyData[changedDate]=data.data; window._lozPub=window._lozPub||{}; window._lozPub[changedDate]=data.published; }
-          if(activeView==='loz'&&typeof lozRenderRole==='function') lozRenderRole();
+          if(data){
+            window._lozPub=window._lozPub||{}; window._lozPub[changedDate]=data.published;
+            if(!meEditingLoz) dailyData[changedDate]=data.data;
+          }
+          if(activeView==='loz'&&typeof lozRenderRole==='function'&&!meEditingLoz) lozRenderRole();
         }).catch(()=>{});
       }
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'loz_default'},()=>{
-      sb.from('loz_default').select('data').single().then(({data})=>{
-        if(data?.data?.length) defSections=data.data;
-        if(activeView==='loz'&&typeof lozRenderRole==='function') lozRenderRole();
-      }).catch(()=>{});
+      // אל תבנה מחדש את טבלת ברירת המחדל בזמן שהמשתמש עורך אותה בעצמו
+      const editingDefault=activeView==='loz' && document.getElementById('panel-default')?.classList.contains('active') && typeof lozCanEdit==='function' && lozCanEdit();
+      if(typeof lozLoadPresets==='function'){
+        lozLoadPresets().then(()=>{
+          if(editingDefault) return; // המשתמש באמצע עריכה - לא נוגעים ב-DOM שלו
+          if(activeView==='loz'&&typeof lozRenderRole==='function') lozRenderRole();
+          if(typeof lozRenderPresetTabs==='function') lozRenderPresetTabs();
+        }).catch(()=>{});
+      }
     })
     .subscribe((status)=>{
       console.log('%c[Realtime] '+status,'color:'+(status==='SUBSCRIBED'?'#16a34a':'#dc2626')+';font-weight:bold;font-size:14px');
@@ -9813,6 +9827,12 @@ let defSections=[
 let dailyData={};
 let offset=0;
 
+// ── ריבוי ברירות מחדל ("פריסטים": יום ראשון, יום שישי וכו') ──
+// שמור בתאימות מלאה ל-DB הקיים: שורה id=1 בטבלת loz_default נשארת מערך רגיל
+// (ברירת המחדל הראשית), ופריסטים נוספים נשמרים בשורות id>=2 עם data={name,sections}.
+let lozPresets=[];       // [{id,name,sections:[...]}]
+let lozActivePreset=0;   // אינדקס הפריסט שנערך כרגע בלשונית "ברירת מחדל"
+
 function dKey(d){return d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate()}
 function getD(off){const d=new Date();d.setDate(d.getDate()+off);return d}
 function fmtHe(d){return DAYS[d.getDay()]+', '+d.getDate()+' ב'+MONTHS[d.getMonth()]+' '+d.getFullYear()}
@@ -9889,7 +9909,7 @@ function buildTable(secs, onChange, onDel, onAdd, onTitleChange, onReset, onDelS
       const nameI=document.createElement('input');
       nameI.className='ei ei-name'+(r.color==='red'?' clr-red':r.color==='green'?' clr-green':'');
       nameI.value=r.name;nameI.placeholder='שם הקלטה / תוכנית...';
-      nameI.onchange=e=>onChange(si,ri,'name',e.target.value); lozAutoSave();
+      nameI.onchange=e=>{ onChange(si,ri,'name',e.target.value); lozAutoSave(); };
       const curClr=r.color||'none';
       const trigger=document.createElement('button');
       trigger.type='button';
@@ -9970,6 +9990,7 @@ function renderDaily(){
 }
 
 function renderDefault(){
+  if(typeof lozRenderPresetTabs==='function') lozRenderPresetTabs();
   const wrap=document.getElementById('default-table-wrap');wrap.innerHTML='';
   wrap.appendChild(buildTable(defSections,
     (si,ri,f,v)=>{defSections[si].rows[ri][f]=v},
@@ -9995,8 +10016,50 @@ function addDefaultSection(){
 }
 
 function resetAllDay(){
-  const d=getD(offset),key=dKey(d);
-  dailyData[key]=cloneSecs(defSections);renderDaily();
+  // אם יש יותר מברירת מחדל אחת - פתח בורר; אחרת החל את היחידה ישירות
+  if(lozPresets.length>1){ lozOpenPresetChooser(); return; }
+  lozApplyPresetToDay(lozPresets.length?0:-1);
+}
+
+// החל פריסט מסוים על היום הנוכחי בלוז
+function lozApplyPresetToDay(idx){
+  const key=dKey(getD(offset));
+  const src=(idx>=0&&lozPresets[idx])?lozPresets[idx].sections:defSections;
+  dailyData[key]=cloneSecs(src||[]);
+  renderDaily();
+  lozAutoSave();
+}
+
+// בורר ברירת-מחדל להחלה על היום (מודאל קטן)
+function lozOpenPresetChooser(){
+  let ov=document.getElementById('loz-preset-chooser');
+  if(ov) ov.remove();
+  ov=document.createElement('div');
+  ov.id='loz-preset-chooser';
+  ov.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.72);display:flex;align-items:center;justify-content:center;direction:rtl';
+  const box=document.createElement('div');
+  box.style.cssText='background:#0f0f0f;border:2px solid var(--orange,#E8550A);border-radius:16px;padding:20px;width:90%;max-width:340px;box-shadow:0 0 30px rgba(232,85,10,0.35)';
+  box.innerHTML='<div style="color:#fff;font-size:15px;font-weight:800;margin-bottom:4px">איפוס היום מברירת מחדל</div><div style="color:#94a3b8;font-size:12px;margin-bottom:14px">בחר איזו ברירת מחדל להעתיק ליום זה:</div>';
+  const list=document.createElement('div');
+  list.style.cssText='display:flex;flex-direction:column;gap:8px';
+  lozPresets.forEach((p,i)=>{
+    const b=document.createElement('button');
+    b.textContent=p.name;
+    b.style.cssText='background:#111;border:1px solid #333;color:#e5e7eb;border-radius:10px;padding:11px 14px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:right;transition:all .15s';
+    b.onmouseover=()=>{b.style.borderColor='var(--orange,#E8550A)';b.style.color='var(--orange,#E8550A)';};
+    b.onmouseout=()=>{b.style.borderColor='#333';b.style.color='#e5e7eb';};
+    b.onclick=()=>{ ov.remove(); lozApplyPresetToDay(i); };
+    list.appendChild(b);
+  });
+  box.appendChild(list);
+  const cancel=document.createElement('button');
+  cancel.textContent='ביטול';
+  cancel.style.cssText='margin-top:14px;width:100%;background:transparent;border:1px solid #444;color:#888;border-radius:10px;padding:9px;font-family:inherit;font-size:13px;cursor:pointer';
+  cancel.onclick=()=>ov.remove();
+  box.appendChild(cancel);
+  ov.appendChild(box);
+  ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+  document.body.appendChild(ov);
 }
 
 function changeDay(dir){offset+=dir;renderDaily()}
@@ -10062,7 +10125,7 @@ async function lozInit(){
   // מנהל/עורך מתחיל בתצוגה מקדימה כברירת מחדל
   if(typeof window._lozForcePreview==='undefined') window._lozForcePreview=true;
   try{ const {data}=await sb.from('loz_editors').select('user_email'); lozEditors=(data||[]).map(r=>r.user_email); }catch(e){}
-  try{ const {data}=await sb.from('loz_default').select('data').single(); if(data?.data?.length) defSections=data.data; }catch(e){}
+  await lozLoadPresets();
   await lozLoadDay(dKey(getD(0)));
   lozInjectSaveButtons();
   await lozRenderRole();
@@ -10140,9 +10203,135 @@ async function lozLoadDay(key){
   }catch(e){}
 }
 
+// טען את כל ברירות המחדל (פריסטים) מה-DB. תאימות לאחור מלאה:
+// id=1 מאוחסן כמערך רגיל (כמו קודם); id>=2 כ-{name,sections}.
+async function lozLoadPresets(){
+  try{
+    const {data}=await sb.from('loz_default').select('id,data').order('id');
+    const rows=data||[];
+    if(rows.length){
+      lozPresets=rows.map(r=>{
+        if(r.id===1){
+          const secs=Array.isArray(r.data)?r.data:(r.data&&r.data.sections?r.data.sections:[]);
+          return {id:1,name:'ברירת מחדל',sections:secs.length?secs:cloneSecs(defSections)};
+        }
+        return {id:r.id,name:(r.data&&r.data.name)||('ברירת מחדל '+r.id),sections:(r.data&&r.data.sections)||[]};
+      });
+    } else {
+      // אין כלום ב-DB עדיין - התחל מברירת המחדל המובנית
+      lozPresets=[{id:1,name:'ברירת מחדל',sections:cloneSecs(defSections)}];
+    }
+  }catch(e){
+    if(!lozPresets.length) lozPresets=[{id:1,name:'ברירת מחדל',sections:cloneSecs(defSections)}];
+  }
+  if(lozActivePreset>=lozPresets.length) lozActivePreset=0;
+  if(lozActivePreset<0) lozActivePreset=0;
+  // defSections תמיד מצביע על הפריסט הפעיל (כדי לא לשבור קוד קיים שמשתמש בו)
+  defSections=lozPresets[lozActivePreset].sections;
+}
+
+// שמור את הפריסט הפעיל ל-DB
 async function lozSaveDefault(){
-  try{ await sb.from('loz_default').upsert({id:1,data:defSections},{onConflict:'id'}); }
+  const p=lozPresets[lozActivePreset];
+  if(!p){ return; }
+  try{
+    if(p.id===1){
+      // נשמר כמערך רגיל - תאימות לאחור עם לקוחות ישנים
+      await sb.from('loz_default').upsert({id:1,data:p.sections},{onConflict:'id'});
+    } else {
+      await sb.from('loz_default').upsert({id:p.id,data:{name:p.name,sections:p.sections}},{onConflict:'id'});
+    }
+  }catch(e){ alert('שגיאה: '+e.message); }
+}
+
+// עבור לפריסט אחר לעריכה בלשונית "ברירת מחדל"
+function lozSelectPreset(idx){
+  if(idx<0||idx>=lozPresets.length) return;
+  lozActivePreset=idx;
+  defSections=lozPresets[idx].sections;
+  renderDefault();
+  lozRenderPresetTabs();
+}
+
+// הוסף ברירת מחדל חדשה (משכפל את הנוכחית כנקודת פתיחה נוחה)
+async function lozAddPreset(){
+  const name=prompt('שם ברירת המחדל החדשה (למשל: יום שישי):','');
+  if(name===null) return;
+  const clean=(name||'').trim()||('ברירת מחדל '+(lozPresets.length+1));
+  const newId=Math.max(1,...lozPresets.map(p=>p.id))+1;
+  const preset={id:newId,name:clean,sections:cloneSecs(lozPresets[lozActivePreset]?lozPresets[lozActivePreset].sections:defSections)};
+  lozPresets.push(preset);
+  lozActivePreset=lozPresets.length-1;
+  defSections=preset.sections;
+  try{ await sb.from('loz_default').upsert({id:newId,data:{name:preset.name,sections:preset.sections}},{onConflict:'id'}); }
   catch(e){ alert('שגיאה: '+e.message); }
+  renderDefault();
+  lozRenderPresetTabs();
+}
+
+// שנה שם לפריסט (לא לראשי)
+async function lozRenamePreset(idx){
+  const p=lozPresets[idx];
+  if(!p||p.id===1) return;
+  const name=prompt('שם חדש:',p.name);
+  if(name===null) return;
+  p.name=(name||'').trim()||p.name;
+  try{ await sb.from('loz_default').upsert({id:p.id,data:{name:p.name,sections:p.sections}},{onConflict:'id'}); }
+  catch(e){ alert('שגיאה: '+e.message); }
+  lozRenderPresetTabs();
+}
+
+// מחק פריסט (לא את הראשי)
+async function lozDeletePreset(idx){
+  const p=lozPresets[idx];
+  if(!p||p.id===1) return;
+  if(!confirm('למחוק את "'+p.name+'"? פעולה זו אינה הפיכה.')) return;
+  try{ await sb.from('loz_default').delete().eq('id',p.id); }catch(e){}
+  lozPresets.splice(idx,1);
+  if(lozActivePreset>=lozPresets.length) lozActivePreset=lozPresets.length-1;
+  if(lozActivePreset<0) lozActivePreset=0;
+  defSections=lozPresets[lozActivePreset].sections;
+  renderDefault();
+  lozRenderPresetTabs();
+}
+
+// רנדר לשוניות הפריסטים בראש לשונית "ברירת מחדל"
+function lozRenderPresetTabs(){
+  const wrap=document.getElementById('loz-preset-tabs');
+  if(!wrap) return;
+  wrap.innerHTML='';
+  lozPresets.forEach((p,i)=>{
+    const pill=document.createElement('button');
+    const active=i===lozActivePreset;
+    pill.textContent=p.name;
+    pill.style.cssText='border-radius:20px;padding:6px 15px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;'+
+      (active
+        ? 'background:var(--orange,#E8550A);color:#fff;border:1px solid var(--orange,#E8550A);'
+        : 'background:transparent;color:#888;border:1px solid #333;');
+    pill.onclick=()=>lozSelectPreset(i);
+    wrap.appendChild(pill);
+  });
+  // כפתור הוספה
+  const add=document.createElement('button');
+  add.textContent='+ הוסף ברירת מחדל';
+  add.style.cssText='border-radius:20px;padding:6px 15px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:#00d4ff;border:1px dashed #00d4ff66;white-space:nowrap;';
+  add.onclick=lozAddPreset;
+  wrap.appendChild(add);
+  // פעולות על הפריסט הפעיל (רק אם אינו הראשי)
+  const cur=lozPresets[lozActivePreset];
+  if(cur&&cur.id!==1){
+    const ren=document.createElement('button');
+    ren.textContent='✎ שם';
+    ren.title='שנה שם';
+    ren.style.cssText='border-radius:20px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:#a3a3a3;border:1px solid #333;white-space:nowrap;';
+    ren.onclick=()=>lozRenamePreset(lozActivePreset);
+    wrap.appendChild(ren);
+    const del=document.createElement('button');
+    del.textContent='🗑 מחק';
+    del.style.cssText='border-radius:20px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:#ff5a5a;border:1px solid #55222288;white-space:nowrap;';
+    del.onclick=()=>lozDeletePreset(lozActivePreset);
+    wrap.appendChild(del);
+  }
 }
 
 let _lozAutoSaveTimer=null;
