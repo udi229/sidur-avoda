@@ -2597,6 +2597,7 @@
 <!-- HUB SCREEN -->
 <div id="hub-screen">
   <div id="hub-stars"></div>
+  <canvas id="hub-rain" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0"></canvas>
   <div id="hub-zoom-circle"></div>
 
   <div class="hub-scene">
@@ -2660,6 +2661,8 @@
 </div>
 
 <div id="auth-screen">
+
+<canvas id="auth-rain" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0"></canvas>
 
 <style>
 @keyframes onair{0%,100%{background:#cc0000;box-shadow:0 0 12px #ff000077}50%{background:#ff1111;box-shadow:0 0 28px #ff0000aa}}
@@ -3623,27 +3626,16 @@ function toggleMode(){
 }
 
 function initAuthScreen(){
-  let lastEmail='';
-  try{ lastEmail=localStorage.getItem('last-email')||''; }catch(e){}
-  if(lastEmail){
-    // משתמש חוזר — נפתח במצב כניסה עם המייל ממולא
-    authMode='login';
-    document.getElementById('auth-sub').textContent='כניסה';
-    document.getElementById('reg-f').style.display='none';
-    document.getElementById('tog-txt').textContent='אין לך חשבון?';
-    document.querySelector('.auth-tog a').textContent=' הרשמה';
-    const emailInp=document.getElementById('a-email');
-    if(emailInp && !emailInp.value) emailInp.value=lastEmail;
-  } else {
-    // משתמש חדש — נפתח במצב הרשמה
-    authMode='register';
-    document.getElementById('auth-sub').textContent='הרשמה';
-    document.getElementById('reg-f').style.display='block';
-    document.getElementById('tog-txt').textContent='יש לך חשבון?';
-    document.querySelector('.auth-tog a').textContent=' כניסה';
-    loadDeptSel();
-  }
+  // רקע הגשם במסך הכניסה/הרשמה
+  if(window.RainBG){ window.RainBG.attach('auth-rain'); window.RainBG.start(); }
+  // תמיד נפתח במצב הרשמה
+  authMode='register';
+  document.getElementById('auth-sub').textContent='הרשמה';
+  document.getElementById('reg-f').style.display='block';
+  document.getElementById('tog-txt').textContent='יש לך חשבון?';
+  document.querySelector('.auth-tog a').textContent=' כניסה';
   document.getElementById('a-msg').textContent='';
+  loadDeptSel();
 }
 function setMsg(t,ok=false){const e=document.getElementById('a-msg');e.textContent=t;e.className=ok?'auth-ok':'auth-err';}
 function togglePassVis(){
@@ -3764,33 +3756,24 @@ async function _handleAuth(){
     }
     // Store reg data for initApp fallback
     try{ sessionStorage.setItem('reg-data', JSON.stringify({name, dept:deptId})); }catch(e){}
-    // Check if employee already exists — if so UPDATE (keep id + status), don't delete
+    // Check if employee already exists - preserve role and position
     let existingEmp=null;
     try{
-      const {data:empData}=await sb.from('employees').select('id,role,position_percent,status,department_id').eq('email',email).maybeSingle();
+      const {data:empData}=await sb.from('employees').select('role,position_percent').eq('email',email).maybeSingle();
       existingEmp=empData;
     }catch(e){}
-    if(existingEmp){
-      // משתמש קיים — עדכון בלבד. שומר id, role, position, ו-status (לא מחזיר ל-pending)
-      const {error:updErr}=await sb.from('employees')
-        .update({full_name:name, department_id:deptId||existingEmp.department_id||null, phone:phone||null})
-        .eq('email',email);
-      if(updErr){
-        console.error('employee update error:',updErr.message);
-        if(updErr.message?.includes('phone')){
-          await sb.from('employees').update({full_name:name, department_id:deptId||existingEmp.department_id||null}).eq('email',email);
-          console.warn('phone column missing in DB. Run: ALTER TABLE employees ADD COLUMN IF NOT EXISTS phone text;');
-        }
-      }
-    } else {
-      // משתמש חדש בלבד — נכנס כ-pending לאישור מנהל
-      const {error:empErr}=await sb.from('employees').insert({full_name:name,email,role:'employee',department_id:deptId||null,position_percent:100,phone:phone||null,status:'pending'});
-      if(empErr){
-        console.error('employee insert error:',empErr.message);
-        if(empErr.message?.includes('phone')){
-          await sb.from('employees').insert({full_name:name,email,role:'employee',department_id:deptId||null,position_percent:100,status:'pending'});
-          console.warn('phone column missing in DB. Run: ALTER TABLE employees ADD COLUMN IF NOT EXISTS phone text;');
-        }
+    const preservedRole=existingEmp?.role||'employee';
+    const preservedPos=existingEmp?.position_percent||100;
+    await sb.from('employees').delete().eq('email',email);
+    // New registrations always start as 'pending' for manager approval
+    const newStatus = 'pending';
+    const {error:empErr}=await sb.from('employees').insert({full_name:name,email,role:preservedRole,department_id:deptId||null,position_percent:preservedPos,phone:phone||null,status:newStatus});
+    if(empErr){
+      console.error('employee insert error:',empErr.message);
+      // אם השגיאה היא על עמודת phone — נכניס בלי phone
+      if(empErr.message?.includes('phone')){
+        await sb.from('employees').insert({full_name:name,email,role:preservedRole,department_id:deptId||null,position_percent:preservedPos,status:newStatus});
+        console.warn('phone column missing in DB — inserted without phone. Run: ALTER TABLE employees ADD COLUMN IF NOT EXISTS phone text;');
       }
     }
     sessionStorage.removeItem('reg-data');
@@ -3944,7 +3927,6 @@ function playWelcome(name, role, deptTitle){
 
 async function initApp(user){
   currentUser=user;
-  try{ if(user?.email) localStorage.setItem('last-email', user.email); }catch(e){}
   await loadAll();
   currentEmp=employees.find(e=>e.email.toLowerCase()===user.email.toLowerCase())||null;
   if(!currentEmp){
@@ -7180,27 +7162,17 @@ async function loginUser(){
   showToast(`ברוך הבא, ${user.name}! 🎬`,'success');
 }
 function logout(){
-  currentUser=null;isAdmin=false;isViewer=false;isMgr=false;currentEmp=null;
-  weekOffset=0;activeDeptId=null;openDropdown=null;
+  currentUser=null;isAdmin=false;isViewer=false;
   // Clear remembered user and admin mode
-  try{ localStorage.removeItem('rememberedUser'); }catch(e){}
-  try{ localStorage.removeItem('isAdmin'); }catch(e){}
-  try{ localStorage.removeItem('mgr-session'); }catch(e){}
-  try{ sb.auth.signOut(); }catch(e){}
-  const abtn=document.getElementById('admin-btn-app'); if(abtn) abtn.style.display='none';
+  localStorage.removeItem('rememberedUser');
+  localStorage.removeItem('isAdmin');
+  document.getElementById('admin-btn-app').style.display='none';
   // Restore employee tabs visibility
   const rBtn=document.querySelector('[data-tab="tab-request"]');
   const cBtn=document.querySelector('[data-tab="tab-calendar"]');
   if(rBtn)rBtn.style.display='';
   if(cBtn)cBtn.style.display='';
-  // חזרה למסך הכניסה הראשי (auth-screen), לא למסך הישן
-  const appEl=document.getElementById('app'); if(appEl) appEl.style.display='none';
-  document.getElementById('hub-screen')?.classList.remove('active');
-  const authEl=document.getElementById('auth-screen'); if(authEl) authEl.style.display='flex';
-  setTimeout(initAuthScreen, 50);
-  window._vacInitialized=false;
-  window._vacMgrAlertShown=false;
-  window._vacRtCh=null;
+  switchScreen('screen-app','screen-register');
 }
 
 // Enter app
@@ -8749,7 +8721,8 @@ function vacCheckPin(){
     closeAdminModal();currentUser=null;isAdmin=true;isViewer=false;
     // Save admin mode to localStorage
     localStorage.setItem('isAdmin', 'true');
-    enterApp(true,false);
+    if(document.getElementById('screen-register').classList.contains('active')){switchScreen('screen-register','screen-app');setTimeout(()=>enterApp(true,false),420);}
+    else{enterApp(true,false);}
     showToast('ברוך הבא, מנהל! 🔧','success');
   } else {pinInput='';updatePin();showToast('סיסמה שגויה','error');}
 }
@@ -9560,15 +9533,10 @@ function showHubOrAuth(){
     }
   } catch(e){}
   const auth = document.getElementById('auth-screen');
-  const showAuth = ()=>{ if(auth && !currentUser && !isMgr){ auth.style.display='flex'; setTimeout(initAuthScreen,200); } };
-  window._authChecking = true;
-  // רשת ביטחון: אם Supabase לא עונה תוך 2.5 שניות — נפתח כניסה בכל זאת
-  const _authTimeout = setTimeout(()=>{ if(window._authChecking) showAuth(); }, 2500);
+  if(auth){ auth.style.display='flex'; setTimeout(initAuthScreen,200); }
   sb.auth.getSession().then(({data:{session}})=>{
-    window._authChecking = false; clearTimeout(_authTimeout);
     if(session){ if(auth) auth.style.display='none'; initApp(session.user); }
-    else showAuth();
-  }).catch(()=>{ window._authChecking = false; clearTimeout(_authTimeout); showAuth(); });
+  }).catch(()=>{});
 }
 
 function calcMobileZoom(){
@@ -9665,6 +9633,7 @@ function hubExit(){
   // Hide hub fully
   const hub = document.getElementById('hub-screen');
   if(hub) hub.classList.remove('active');
+  if(window.RainBG) window.RainBG.stop();
   const exitBtn = document.getElementById('hub-exit-btn');
   if(exitBtn) exitBtn.classList.remove('show');
   // Hide app and splash
@@ -9715,26 +9684,76 @@ function showHub(){
 }
 
 function hubInitStars(){
-  const el=document.getElementById('hub-stars');
-  if(el.children.length>0) return; // already built
-  for(let i=0;i<180;i++){
-    const d=document.createElement('div');d.className='hub-star';
-    const bright=Math.random()<0.08;
-    const sz=bright?(Math.random()*1.5+2):(Math.random()*1.2+0.3);
-    const top=Math.random()*100,left=Math.random()*100;
-    d.style.cssText=`width:${sz}px;height:${sz}px;top:${top}%;left:${left}%;--d:${bright?1.5+Math.random()*2:2+Math.random()*5}s;animation-delay:${Math.random()*6}s;${bright?'box-shadow:0 0 3px #fff,0 0 6px #aaccff;':''}`;
-    el.appendChild(d);
-  }
-  // parallax
-  let tx=0,ty=0,cx=0,cy=0;
-  function drift(){cx+=(tx-cx)*0.04;cy+=(ty-cy)*0.04;el.style.transform=`translate(${cx}px,${cy}px) scale(1.08)`;requestAnimationFrame(drift);}
-  drift();
-  window.addEventListener('mousemove',e=>{tx=(e.clientX/window.innerWidth-0.5)*-45;ty=(e.clientY/window.innerHeight-0.5)*-30;});
-  window.addEventListener('deviceorientation',e=>{tx=(e.gamma||0)*-0.7;ty=((e.beta||45)-45)*-0.5;});
+  // רקע הגשם החדש (מחליף את שדה הכוכבים)
+  if(window.RainBG){ window.RainBG.attach('hub-rain'); window.RainBG.start(); }
 }
 
+/* ===== מודול רקע גשם (client-side בלבד, קנבס יחיד, עצירה נקייה) ===== */
+(function(){
+  if(window.RainBG) return;                 // מונע יצירה כפולה
+  var FONT=16,SPEED=0.9,TRAIL=11,SPARSE=0.42,HEAD_A=0.6,TAIL_A=0.28;
+  var PALETTE=[[30,64,160],[40,90,200],[25,50,130],[50,110,220],[35,75,175]];
+  var GLYPHS='אבגדהוזחטיכךלמםנןסעפףצץקרשת0123456789';
+  var canvas=null,ctx=null,W=0,H=0,dpr=1,cols=[],running=false,raf=null;
+  function pick(){return GLYPHS[Math.floor(Math.random()*GLYPHS.length)];}
+  function resize(){
+    if(!canvas)return;
+    dpr=Math.min(window.devicePixelRatio||1,2);
+    W=canvas.clientWidth||window.innerWidth;H=canvas.clientHeight||window.innerHeight;
+    canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+    build();
+  }
+  function build(){
+    var n=Math.ceil(W/FONT);cols=[];
+    for(var i=0;i<n;i++){
+      if(Math.random()<SPARSE){cols.push(null);continue;}
+      var col=PALETTE[i%PALETTE.length];
+      var c={x:i*FONT+FONT*0.5,y:Math.random()*-H,speed:0.55+Math.random()*0.7,glyphs:[],c:col};
+      for(var g=0;g<TRAIL;g++)c.glyphs.push(pick());
+      cols.push(c);
+    }
+  }
+  function frame(){
+    if(!ctx){running=false;return;}
+    ctx.clearRect(0,0,W,H);                 // מחיקה מלאה — בלי שאריות
+    ctx.font=FONT+'px monospace';ctx.textAlign='center';
+    for(var k=0;k<cols.length;k++){
+      var c=cols[k];if(!c)continue;var col=c.c;
+      c.y+=SPEED*c.speed;
+      for(var i=0;i<TRAIL;i++){
+        var y=c.y-i*FONT;
+        if(y<-FONT||y>H+FONT)continue;
+        if(i===0){ctx.fillStyle='rgba('+Math.min(255,col[0]+80)+','+Math.min(255,col[1]+90)+','+Math.min(255,col[2]+40)+','+HEAD_A+')';}
+        else{var f=1-(i/(TRAIL-1));f=f*f;ctx.fillStyle='rgba('+col[0]+','+col[1]+','+col[2]+','+(f*TAIL_A)+')';}
+        ctx.fillText(c.glyphs[i],c.x,y);
+      }
+      if(Math.random()<0.03)c.glyphs[Math.floor(Math.random()*TRAIL)]=pick();
+      if(c.y-TRAIL*FONT>H){c.y=Math.random()*-H*0.3;c.speed=0.55+Math.random()*0.7;for(var g2=0;g2<TRAIL;g2++)c.glyphs[g2]=pick();}
+    }
+    if(running)raf=requestAnimationFrame(frame);
+  }
+  function start(){ if(!canvas)return; if(!running){running=true;if(!raf)raf=requestAnimationFrame(frame);} }
+  function stop(){ running=false; if(raf){cancelAnimationFrame(raf);raf=null;} if(ctx)ctx.clearRect(0,0,W,H); }
+  function attach(id){
+    var el=document.getElementById(id);
+    if(!el||el===canvas)return;
+    canvas=el;ctx=canvas.getContext('2d');
+    resize();
+  }
+  window.addEventListener('resize',function(){ if(canvas)resize(); });
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden){ stop(); return; }
+    if(!canvas) return;
+    var hub=document.getElementById('hub-screen');
+    var auth=document.getElementById('auth-screen');
+    var hubOn=hub&&hub.classList.contains('active');
+    var authOn=auth&&auth.style.display!=='none'&&auth.style.display!=='';
+    if(hubOn||authOn) start();
+  });
+  window.RainBG={ attach:attach, start:start, stop:stop, resize:resize };
+})();
+
 function hubGoZoom(e, dest, col){
-  if(window._authChecking){ window._hubDestAfterLogin=dest; return; }
   if(!isMgr && !currentUser && !currentEmp){
     window._hubDestAfterLogin=dest;
     document.getElementById('hub-screen').classList.remove('active');
@@ -10100,7 +10119,17 @@ async function lozInit(){
   // מנהל/עורך מתחיל בתצוגה מקדימה כברירת מחדל
   if(typeof window._lozForcePreview==='undefined') window._lozForcePreview=true;
   try{ const {data}=await sb.from('loz_editors').select('user_email'); lozEditors=(data||[]).map(r=>r.user_email); }catch(e){}
-  try{ const {data}=await sb.from('loz_default').select('data').single(); if(data?.data?.length) defSections=data.data; }catch(e){}
+  try{
+    const {data,error}=await sb.from('loz_default').select('data').maybeSingle();
+    if(error) throw error;
+    if(data?.data?.length){ defSections=data.data; }
+    // טעינה הצליחה (כולל מקרה תקין של טבלה ריקה בפעם הראשונה) — מותר לשמור
+    window._lozDefLoaded=true;
+  }catch(e){
+    // טעינה נכשלה — לא נדרוס את ברירת המחדל האמיתית בשרת עם ברירת מחדל מקומית
+    window._lozDefLoaded=false;
+    console.warn('[loz] default load failed — saving default is blocked to protect existing presets:', e?.message||e);
+  }
   await lozLoadDay(dKey(getD(0)));
   lozInjectSaveButtons();
   await lozRenderRole();
@@ -10179,6 +10208,18 @@ async function lozLoadDay(key){
 }
 
 async function lozSaveDefault(){
+  // הגנה: אם הברירת מחדל לא נטענה בהצלחה מה-DB, אסור לשמור —
+  // אחרת ברירת המחדל המקומית (הקשיחה) תדרוס את מה שאודי ואפרת בנו.
+  if(window._lozDefLoaded!==true){
+    console.warn('[loz] save default blocked — default not confirmed loaded from DB');
+    try{ showToast && showToast('הברירת מחדל לא נטענה — השמירה נחסמה כדי לא למחוק נתונים','error'); }catch(_){}
+    return;
+  }
+  // הגנה נוספת: לא שומרים ברירת מחדל ריקה
+  if(!Array.isArray(defSections)||defSections.length===0){
+    console.warn('[loz] save default blocked — empty defSections');
+    return;
+  }
   try{ await sb.from('loz_default').upsert({id:1,data:defSections},{onConflict:'id'}); }
   catch(e){ alert('שגיאה: '+e.message); }
 }
