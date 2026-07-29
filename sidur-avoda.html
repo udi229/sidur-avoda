@@ -4129,9 +4129,9 @@ async function initApp(user){
       }
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'loz_default'},()=>{
-      sb.from('loz_default').select('data').maybeSingle().then(({data})=>{
-        if(typeof lozLoadPresetsFromData==='function'){ lozLoadPresetsFromData(data?.data); }
-        else if(data?.data?.length) defSections=data.data;
+      sb.from('loz_default').select('id,data').order('id',{ascending:true}).then(({data})=>{
+        let row=(Array.isArray(data)&&data.length)?(data.find(r=>r.id===1)||data[0]):null;
+        if(typeof lozLoadPresetsFromData==='function'){ lozLoadPresetsFromData(row?row.data:null); }
         if(activeView==='loz'&&typeof lozRenderRole==='function') lozRenderRole();
         if(activeView==='loz'&&typeof renderPresetBar==='function') renderPresetBar();
       }).catch(()=>{});
@@ -9929,6 +9929,9 @@ function lozSyncDefSectionsToActive(){
   const p=lozPresets.find(x=>x.id===lozActivePresetId);
   if(p) p.sections=defSections;
 }
+function lozPresetsHasContent(){
+  return lozPresets.some(p=>Array.isArray(p.sections)&&p.sections.some(s=>(s.rows||[]).some(r=>r.name||r.from||r.to)));
+}
 
 let offset=0;
 
@@ -10257,15 +10260,22 @@ async function lozInit(){
   if(typeof window._lozForcePreview==='undefined') window._lozForcePreview=true;
   try{ const {data}=await sb.from('loz_editors').select('user_email'); lozEditors=(data||[]).map(r=>r.user_email); }catch(e){}
   try{
-    const {data,error}=await sb.from('loz_default').select('data').maybeSingle();
+    const {data,error}=await sb.from('loz_default').select('id,data').order('id',{ascending:true});
     if(error) throw error;
-    lozLoadPresetsFromData(data?.data);
-    // טעינה הצליחה (כולל מקרה תקין של טבלה ריקה בפעם הראשונה) — מותר לשמור
+    // בוחרים שורה id=1 אם קיימת, אחרת הראשונה
+    let row=null;
+    if(Array.isArray(data)&&data.length){ row=data.find(r=>r.id===1)||data[0]; }
+    lozLoadPresetsFromData(row?row.data:null);
+    // אם ה-DB ריק אבל יש גיבוי מקומי — נשתמש בו (למקרה שהשמירה נכשלה בעבר)
+    if((!row||!row.data) && !lozPresetsHasContent()){
+      try{ const bk=JSON.parse(localStorage.getItem('loz_presets_backup')||'null'); if(bk) lozLoadPresetsFromData(bk); }catch(_){}
+    }
     window._lozDefLoaded=true;
   }catch(e){
-    // טעינה נכשלה — לא נדרוס את ברירת המחדל האמיתית בשרת עם ברירת מחדל מקומית
     window._lozDefLoaded=false;
     console.warn('[loz] default load failed — saving default is blocked to protect existing presets:', e?.message||e);
+    // fallback לגיבוי מקומי לתצוגה בלבד (לא נאפשר שמירה עד שהטעינה תצליח)
+    try{ const bk=JSON.parse(localStorage.getItem('loz_presets_backup')||'null'); if(bk) lozLoadPresetsFromData(bk); }catch(_){}
   }
   await lozLoadDay(dKey(getD(0)));
   lozInjectSaveButtons();
@@ -10345,25 +10355,73 @@ async function lozLoadDay(key){
 }
 
 async function lozSaveDefault(){
-  // הגנה: אם הברירת מחדל לא נטענה בהצלחה מה-DB, אסור לשמור —
-  // אחרת ברירת המחדל המקומית (הקשיחה) תדרוס את מה שאודי ואפרת בנו.
   if(window._lozDefLoaded!==true){
     console.warn('[loz] save default blocked — default not confirmed loaded from DB');
-    try{ showToast && showToast('הברירת מחדל לא נטענה — השמירה נחסמה כדי לא למחוק נתונים','error'); }catch(_){}
-    return;
+    lozShowSaveStatus('⚠️ ברירת המחדל לא נטענה — שמירה נחסמה כדי לא למחוק נתונים','error');
+    return false;
   }
   lozSyncDefSectionsToActive();
-  // הגנה: לא שומרים רשימת presets ריקה
-  if(!Array.isArray(lozPresets)||lozPresets.length===0){
-    console.warn('[loz] save default blocked — no presets');
-    return;
-  }
+  if(!Array.isArray(lozPresets)||lozPresets.length===0){ return false; }
   const payload={ __v:2, presets:lozPresets.map(p=>({id:p.id,name:p.name,sections:p.sections})), activeId:lozActivePresetId };
+  lozShowSaveStatus('💾 שומר...','info');
   try{
-    const {error}=await sb.from('loz_default').upsert({id:1,data:payload},{onConflict:'id'});
+    const {data,error}=await sb.from('loz_default').upsert({id:1,data:payload},{onConflict:'id'}).select();
     if(error) throw error;
+    // אימות אמיתי: אם ה-upsert הצליח אבל לא החזיר שורה, RLS כנראה חסם בשקט
+    if(!data || !data.length){
+      console.error('[loz] upsert returned no rows — RLS may be blocking writes for managers (anon role)');
+      lozShowSaveStatus('❌ השמירה לא עברה (הרשאות DB). ראה הודעה למטה.','error');
+      lozShowRlsHelp();
+      return false;
+    }
+    // גיבוי מקומי נוסף
+    try{ localStorage.setItem('loz_presets_backup', JSON.stringify(payload)); }catch(_){}
+    lozShowSaveStatus('✅ נשמר','ok');
+    return true;
   }
-  catch(e){ console.error('[loz] save default failed:',e.message); alert('שגיאה בשמירת ברירת מחדל: '+e.message); }
+  catch(e){
+    console.error('[loz] save default failed:',e.message,e);
+    lozShowSaveStatus('❌ שגיאת שמירה: '+(e.message||e),'error');
+    // אם זו שגיאת הרשאות — הצג הסבר
+    if(/row-level security|policy|permission|denied|violates|401|403/i.test(e.message||'')) lozShowRlsHelp();
+    // גיבוי מקומי כדי לא לאבד את העבודה בינתיים
+    try{ localStorage.setItem('loz_presets_backup', JSON.stringify(payload)); }catch(_){}
+    return false;
+  }
+}
+
+// מציג סטטוס שמירה בסרגל ה-presets
+function lozShowSaveStatus(msg,kind){
+  var el=document.getElementById('loz-save-status');
+  if(!el){
+    var bar=document.getElementById('loz-preset-bar');
+    if(!bar) return;
+    el=document.createElement('span');el.id='loz-save-status';
+    el.style.cssText='font-size:12px;font-weight:700;margin-right:auto;padding:3px 8px;border-radius:6px';
+    bar.appendChild(el);
+  }
+  var colors={ok:'#065f46;background:#d1fae5',error:'#991b1b;background:#fee2e2',info:'#1e40af;background:#dbeafe'};
+  el.style.cssText='font-size:12px;font-weight:700;margin-right:auto;padding:3px 8px;border-radius:6px;color:'+(colors[kind]||colors.info);
+  el.textContent=msg;
+}
+
+// הסבר על בעיית ההרשאות (RLS) — מוצג פעם אחת
+function lozShowRlsHelp(){
+  if(document.getElementById('loz-rls-help')) return;
+  var panel=document.getElementById('panel-default');
+  if(!panel) return;
+  var box=document.createElement('div');
+  box.id='loz-rls-help';
+  box.style.cssText='margin-top:12px;padding:14px;border:2px solid #f59e0b;background:#fffbeb;border-radius:10px;color:#78350f;font-size:13px;line-height:1.7';
+  box.innerHTML='<b>⚠️ השמירה נחסמת ע"י הרשאות מסד הנתונים (RLS)</b><br>'+
+    'הסיבה: מנהלים (אודי/אפרת) נכנסים עם קוד ולא עם משתמש מחובר ל-Supabase, כך שהם נחשבים ל-<code>anon</code>. '+
+    'אם בטבלת <code>loz_default</code> חסרה מדיניות שמאפשרת כתיבה ל-anon, השמירה נדחית בשקט.<br><br>'+
+    '<b>הפתרון (חד-פעמי ב-Supabase → SQL Editor):</b><br>'+
+    '<code style="display:block;background:#1e293b;color:#e2e8f0;padding:8px;border-radius:6px;margin-top:6px;direction:ltr;text-align:left;white-space:pre-wrap">'+
+    'alter table loz_default enable row level security;\n'+
+    'create policy loz_default_all on loz_default\n  for all to anon using (true) with check (true);'+
+    '</code>';
+  panel.appendChild(box);
 }
 
 let _lozAutoSaveTimer=null;
