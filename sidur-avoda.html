@@ -7467,7 +7467,7 @@ function showBrowserNotification(req){
 
 function renderMyRequests(){
   const list=document.getElementById('my-requests-list');
-  const mine=DB.requests.filter(r=>r.userId===currentUser.id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const mine=DB.requests.filter(r=>r.userId===currentUser.id && !vacIsCancelled(r)).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   if(!mine.length){list.innerHTML='<div class="empty-state"><span class="icon">✈️</span><p>אין בקשות עדיין</p></div>';return;}
   const sm={pending:['⏳','ממתין','pending'],approved:['✅','אושרה','approved'],rejected:['❌','נדחתה','rejected']};
   list.innerHTML=mine.map(r=>{const d=new Date(r.start);const[ic,lb,cl]=sm[r.status]||sm.pending;
@@ -7482,14 +7482,34 @@ async function cancelRequest(reqId){
   const msg = isPending ? 'לבטל את הבקשה?' : 'למחוק את הבקשה?';
   if(!confirm(msg))return;
   try{
-    await sb.from('vac_requests').delete().eq('id',reqId);
-    // מחיקת התראות קשורות
+    // במקום למחוק — מסמנים כ"בוטל ע"י העובד". המנהל יראה את זה עם קו חוצה,
+    // והעובדים לא יראו את זה בכלל (מסונן מהתצוגות שלהם).
+    const who = (currentEmp&&currentEmp.full_name) || (currentUser&&currentUser.email) || '';
+    const note = 'בוטל ע"י העובד '+new Date().toLocaleDateString('he-IL')+(who?(' · '+who):'');
+    let {error:upErr} = await sb.from('vac_requests')
+      .update({ status:'cancelled', admin_note: note })
+      .eq('id',reqId);
+    if(upErr){
+      // אם עמודת status לא מקבלת 'cancelled' — נסמן דרך admin_note בלבד
+      console.warn('[vac] cancel via status failed, trying admin_note only:', upErr.message);
+      const {error:upErr2} = await sb.from('vac_requests')
+        .update({ admin_note: '[CANCELLED] '+note })
+        .eq('id',reqId);
+      if(upErr2) throw upErr2;
+    }
     try{ await sb.from('vac_notifications').delete().eq('request_id', reqId); }catch(e){}
     await loadDB();
-    showToast(isPending?'הבקשה בוטלה':'הבקשה נמחקה','success');
+    showToast(isPending?'הבקשה בוטלה':'הבקשה בוטלה','success');
     renderMyRequests(); renderDeptCalendar(); checkNotifications();
     if(typeof updateVacBadge==='function') updateVacBadge();
   }catch(e){showToast('שגיאה: '+e.message,'error');}
+}
+// עוזר: האם בקשה מבוטלת (לפי status או סימון ב-admin_note)
+function vacIsCancelled(r){
+  if(!r) return false;
+  if(r.status==='cancelled') return true;
+  if(typeof r.adminNote==='string' && (r.adminNote.indexOf('[CANCELLED]')===0 || r.adminNote.indexOf('בוטל ע"י העובד')===0)) return true;
+  return false;
 }
 
 // Rep tab
@@ -7699,6 +7719,13 @@ function renderCal(cid,year,month,reqs){
       const firstName=r.name.split(' ')[0];
       ev.textContent=firstName;
       ev.title=`${r.name} — ${fmt(r.start)} עד ${fmt(r.end)}`;
+      // בקשה שבוטלה ע"י העובד — קו חוצה ועמעום (גלוי רק למנהלים/צופים)
+      if(vacIsCancelled(r)){
+        ev.style.textDecoration='line-through';
+        ev.style.opacity='0.5';
+        ev.style.fontStyle='italic';
+        ev.title=`בוטל ע"י העובד · ${r.name} — ${fmt(r.start)} עד ${fmt(r.end)}`;
+      }
       ev.onclick=()=>showEvt(r);
       ev.style.position='relative';
       ev.style.zIndex='2';
@@ -7730,7 +7757,7 @@ function renderDeptCalendar(){
   document.getElementById('cal-month-display').textContent=`${MH[calMonth]} ${calYear}`;
   if(!currentUser) return;
   const myDept=currentUser.dept;
-  const filtered=DB.requests.filter(r=>deptMatch(r.dept,myDept));
+  const filtered=DB.requests.filter(r=>deptMatch(r.dept,myDept) && !vacIsCancelled(r));
   renderCal('dept-calendar',calYear,calMonth,filtered);
 }
 function changeMonth(d){calMonth+=d;if(calMonth<0){calMonth=11;calYear--;}if(calMonth>11){calMonth=0;calYear++;}renderDeptCalendar();}
@@ -7841,33 +7868,39 @@ function renderReqTable(){
     // Mobile — כרטיסיות
     const container=tb.closest('table')?.parentElement||tb.closest('.requests-table')||tb.parentElement;
     const cardsHtml=sorted.map(r=>{
-      const[si,sl,sc]=sm[r.status]||sm.pending;
+      const cancelled=vacIsCancelled(r);
+      const[si,sl,sc]=cancelled?['🚫','בוטל ע"י העובד','rejected']:(sm[r.status]||sm.pending);
       const rec=r.recommendation?rm[r.recommendation]:null;
       const recBadge=rec?`<span class="status-badge ${rec[2]}">${rec[0]} ${rec[1]}</span>`:'';
       const d=new Date(r.createdAt);
       const dateStr=`${d.getDate()}/${d.getMonth()+1} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-      return`<div style="background:white;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);border:1px solid ${r.status==='pending'?'#fbbf24':r.status==='approved'?'#bbf7d0':'#fecaca'}">
+      const nameStyle=cancelled?'font-size:16px;font-weight:800;color:#0f172a;text-decoration:line-through;opacity:0.65':'font-size:16px;font-weight:800;color:#0f172a';
+      return`<div style="background:white;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);border:1px solid ${cancelled?'#cbd5e1':r.status==='pending'?'#fbbf24':r.status==='approved'?'#bbf7d0':'#fecaca'};${cancelled?'opacity:0.85':''}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
           <div>
-            <div style="font-size:16px;font-weight:800;color:#0f172a">${r.name}</div>
+            <div style="${nameStyle}">${r.name}</div>
             <div style="font-size:12px;color:#64748b">${r.dept} · ${dateStr}</div>
           </div>
           <span class="status-badge ${sc}" style="flex-shrink:0">${si} ${sl}</span>
         </div>
-        <div style="font-size:13px;color:#475569;margin-bottom:6px">📅 ${fmt(r.start)} — ${fmt(r.end)}</div>
+        <div style="font-size:13px;color:#475569;margin-bottom:6px${cancelled?';text-decoration:line-through;opacity:0.7':''}">📅 ${fmt(r.start)} — ${fmt(r.end)}</div>
         <div style="font-size:13px;color:#475569;margin-bottom:8px;background:#f8fafc;border-radius:8px;padding:6px 10px">${r.reason}</div>
+        ${cancelled?`<div style="font-size:12px;color:#64748b;background:#f1f5f9;border-radius:8px;padding:6px 10px;margin-bottom:8px">${r.adminNote||'בוטל ע"י העובד'}</div>`:''}
         ${recBadge?`<div style="margin-bottom:8px">${recBadge}${r.recommendedBy?` <span style="font-size:12px;color:#0f172a;font-weight:700">(${r.recommendedBy})</span>`:''}${r.recommendationReason?` <span style="font-size:12px;color:#64748b">— ${r.recommendationReason}</span>`:''}</div>`:''}
         ${isEfrat?
           (canEfratRecommend(r.dept) && r.status==='pending'?`<div style="display:flex;gap:8px">
             <button class="action-btn btn-recommend" style="flex:1" onclick="openRepReasonModal('${r.id}','recommended')">👍 ממליצה</button>
             <button class="action-btn btn-not-recommend" style="flex:1" onclick="openRepReasonModal('${r.id}','not_recommended')">👎 לא ממליצה</button>
           </div>`:`<div style="text-align:center;padding:6px;color:#64748b;font-size:12px;background:#f8fafc;border-radius:8px">👁 צפייה בלבד</div>`)
+        :(cancelled?`<div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="action-btn" style="background:#fee;color:#c00;border:1px solid #fcc;flex:1" onclick="adminDeleteRequest('${r.id}')">🗑️ הסר לצמיתות</button>
+        </div>`
         :`<div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="action-btn btn-approve" style="flex:1;min-width:80px" onclick="openApproveColorModal('${r.id}')">✅ אשר</button>
           <button class="action-btn btn-reject" style="flex:1;min-width:80px" onclick="adminAction('${r.id}','rejected')">❌ דחה</button>
           <button class="action-btn" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;flex-shrink:0" onclick="adminEditRequestDates('${r.id}')" title="ערוך תאריכים">✏️</button>
           <button class="action-btn" style="background:#fee;color:#c00;border:1px solid #fcc;flex-shrink:0" onclick="adminDeleteRequest('${r.id}')">🗑️</button>
-        </div>`}
+        </div>`)}
       </div>`;
     }).join('');
     // Replace table with cards div
@@ -9560,10 +9593,15 @@ function showHubOrAuth(){
     }
   } catch(e){}
   const auth = document.getElementById('auth-screen');
-  if(auth){ auth.style.display='flex'; setTimeout(initAuthScreen,200); }
+  const showAuth = ()=>{ if(auth && !currentUser && !isMgr){ auth.style.display='flex'; setTimeout(initAuthScreen,200); } };
+  window._authChecking = true;
+  // רשת ביטחון: אם Supabase לא עונה תוך 2.5 שניות — נפתח כניסה בכל זאת
+  const _authTimeout = setTimeout(()=>{ if(window._authChecking) showAuth(); }, 2500);
   sb.auth.getSession().then(({data:{session}})=>{
+    window._authChecking = false; clearTimeout(_authTimeout);
     if(session){ if(auth) auth.style.display='none'; initApp(session.user); }
-  }).catch(()=>{});
+    else showAuth();
+  }).catch(()=>{ window._authChecking = false; clearTimeout(_authTimeout); showAuth(); });
 }
 
 function calcMobileZoom(){
@@ -9782,6 +9820,7 @@ function hubInitStars(){
 })();
 
 function hubGoZoom(e, dest, col){
+  if(window._authChecking){ window._hubDestAfterLogin=dest; return; }
   if(!isMgr && !currentUser && !currentEmp){
     window._hubDestAfterLogin=dest;
     document.getElementById('hub-screen').classList.remove('active');
