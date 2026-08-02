@@ -371,16 +371,19 @@
   #night-modal::backdrop{background:rgba(0,0,0,0.6)}
   @keyframes onair{0%,100%{background:#cc0000;box-shadow:0 0 12px #ff000077}50%{background:#ff1111;box-shadow:0 0 28px #ff0000aa}}
 
-  /* מנורת ON-AIR (אינדיקציית חיבור) — מוצגת רק לאודי כשמחובר */
+  /* מנורת ON-AIR (אינדיקציית חיבור) — תמיד מוצגת לאודי; נדלקת/כבויה לפי חיבור */
   #hub-onair{ display:none; position:fixed; bottom:20px; left:18px; z-index:60;
     align-items:center; gap:8px; padding:7px 12px; border-radius:10px;
-    background:rgba(20,4,4,0.55); border:1px solid #5a1a1a; -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
-    font-family:'Heebo',system-ui,sans-serif; user-select:none; pointer-events:none; }
-  #hub-screen.active #hub-onair.on{ display:flex; }
-  #hub-onair .onair-dot{ width:11px; height:11px; border-radius:50%; background:#ff2222;
-    box-shadow:0 0 8px #ff0000,0 0 16px #ff000088; animation:onairPulse 1.8s ease-in-out infinite; }
-  #hub-onair .onair-text{ color:#ff5555; font-weight:900; font-size:13px; letter-spacing:1.5px;
-    text-shadow:0 0 8px #ff000088; }
+    background:rgba(20,4,4,0.55); border:1px solid #3a2a2a; -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
+    font-family:'Heebo',system-ui,sans-serif; user-select:none; pointer-events:none; transition:opacity .3s, border-color .3s; }
+  #hub-screen.active #hub-onair.udi{ display:flex; }   /* מוצגת רק לאודי כשמערכת השמש פעילה */
+  /* מצב כבוי (ברירת מחדל) — אפור, עמום */
+  #hub-onair .onair-dot{ width:11px; height:11px; border-radius:50%; background:#555; box-shadow:none; transition:background .3s, box-shadow .3s; }
+  #hub-onair .onair-text{ color:#777; font-weight:900; font-size:13px; letter-spacing:1.5px; text-shadow:none; transition:color .3s, text-shadow .3s; }
+  /* מצב דלוק — אדום זוהר פועם */
+  #hub-onair.on .onair-dot{ background:#ff2222; box-shadow:0 0 8px #ff0000,0 0 16px #ff000088; animation:onairPulse 1.8s ease-in-out infinite; }
+  #hub-onair.on .onair-text{ color:#ff5555; text-shadow:0 0 8px #ff000088; }
+  #hub-onair.on{ border-color:#5a1a1a; }
   @keyframes onairPulse{ 0%,100%{ opacity:1; box-shadow:0 0 8px #ff0000,0 0 16px #ff000088; } 50%{ opacity:0.65; box-shadow:0 0 4px #ff0000,0 0 8px #ff000044; } }
   @keyframes musicnote{0%,100%{transform:translate(-50%,-50%) scale(1) rotate(-5deg)}50%{transform:translate(-50%,-52%) scale(1.05) rotate(5deg)}}
   @keyframes toastIn{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -3871,6 +3874,9 @@ function enterMgr(label='מנהל',type='primary'){
     if(myShiftsBtn) myShiftsBtn.style.display='none';
     updateWeekUI();renderDeptTabs();renderSchedule();renderOnlineList();
     if(typeof window.startPolling==='function') window.startPolling();
+    // סימון ראשוני שהחיבור פעיל (למנורת ON-AIR) + עדכון מיידי
+    window._lastPollOk=Date.now();
+    if(typeof updateOnAirIndicator==='function') updateOnAirIndicator();
     // התראת חופשה ועדכון באדג' בכניסה למנהל
     if(typeof loadDB==='function'){
       await loadDB();
@@ -4264,6 +4270,9 @@ window.startPolling=function(){
       if(!ws) return;
       const {data:sc,error:scErr}=await sb.from('schedules').select('id,updated_at,team_submitted,status').eq('week_start',ws);
       if(scErr||!sc) return;
+      // סימון שהחיבור פעיל ומעודכן (למנורת ON-AIR)
+      window._lastPollOk=Date.now();
+      if(typeof updateOnAirIndicator==='function') updateOnAirIndicator();
       const schedIds=sc.map(s=>s.id);
       // ── אופטימיזציה: במקום לשלוף את כל ה-content של התאים בכל מחזור,
       //    שולפים רק updated_at (טקסט קצר). trigger ב-DB מעדכן updated_at
@@ -11706,17 +11715,22 @@ async function galLoadPerms(){
 function updateOnAirIndicator(){
   const el=document.getElementById('hub-onair');
   if(!el) return;
-  // רק לאודי (מנהל ראשי)
+  // רק לאודי (מנהל ראשי) — המנורה מוצגת. לכל השאר היא לא קיימת.
   const isUdi = (window._mgrType==='primary') && isMgr;
-  // מחובר = יש רשת + חיבור realtime פעיל
+  if(!isUdi){ el.classList.remove('udi'); el.classList.remove('on'); return; }
+  el.classList.add('udi'); // תמיד מוצגת לאודי (גם כבויה)
+  // "מחובר ומעודכן" = יש רשת + (realtime פעיל או polling עדכני לאחרונה)
   const online = (typeof navigator!=='undefined' ? navigator.onLine : true);
   const rtOk = (window._rtStatus==='SUBSCRIBED');
-  if(isUdi && online && rtOk){
-    el.classList.add('on');
+  const lastPoll = window._lastPollOk || 0;
+  const pollFresh = (Date.now() - lastPoll) < 30000;
+  const connected = online && (rtOk || pollFresh);
+  if(connected){
+    el.classList.add('on');            // דולק
     el.title='מחובר ומעודכן';
   } else {
-    el.classList.remove('on');
-    el.title = !online ? 'לא מחובר לרשת' : (!rtOk ? 'מתחבר...' : '');
+    el.classList.remove('on');         // כבוי (אבל עדיין מוצג)
+    el.title = !online ? 'לא מחובר לרשת' : 'מתחבר...';
   }
 }
 if(typeof window!=='undefined'){
