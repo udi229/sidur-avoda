@@ -370,6 +370,18 @@
 
   #night-modal::backdrop{background:rgba(0,0,0,0.6)}
   @keyframes onair{0%,100%{background:#cc0000;box-shadow:0 0 12px #ff000077}50%{background:#ff1111;box-shadow:0 0 28px #ff0000aa}}
+
+  /* מנורת ON-AIR (אינדיקציית חיבור) — מוצגת רק לאודי כשמחובר */
+  #hub-onair{ display:none; position:fixed; bottom:20px; left:18px; z-index:60;
+    align-items:center; gap:8px; padding:7px 12px; border-radius:10px;
+    background:rgba(20,4,4,0.55); border:1px solid #5a1a1a; -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
+    font-family:'Heebo',system-ui,sans-serif; user-select:none; pointer-events:none; }
+  #hub-screen.active #hub-onair.on{ display:flex; }
+  #hub-onair .onair-dot{ width:11px; height:11px; border-radius:50%; background:#ff2222;
+    box-shadow:0 0 8px #ff0000,0 0 16px #ff000088; animation:onairPulse 1.8s ease-in-out infinite; }
+  #hub-onair .onair-text{ color:#ff5555; font-weight:900; font-size:13px; letter-spacing:1.5px;
+    text-shadow:0 0 8px #ff000088; }
+  @keyframes onairPulse{ 0%,100%{ opacity:1; box-shadow:0 0 8px #ff0000,0 0 16px #ff000088; } 50%{ opacity:0.65; box-shadow:0 0 4px #ff0000,0 0 8px #ff000044; } }
   @keyframes musicnote{0%,100%{transform:translate(-50%,-50%) scale(1) rotate(-5deg)}50%{transform:translate(-50%,-52%) scale(1.05) rotate(5deg)}}
   @keyframes toastIn{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
   @keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateY(-20px)}}
@@ -2678,6 +2690,12 @@
     <div class="hub-tv-label">פריימים</div>
   </button>
 
+  <!-- מנורת ON-AIR — אינדיקציית חיבור ועדכניות (רק לאודי) -->
+  <div id="hub-onair" aria-label="מחובר ומעודכן" title="מחובר ומעודכן">
+    <div class="onair-dot"></div>
+    <div class="onair-text">ON&nbsp;AIR</div>
+  </div>
+
   <button class="hub-btn-exit" id="hub-exit-btn" onclick="hubExit()">
     <span class="exit-icon">🚪</span>
     <span class="exit-label">יציאה</span>
@@ -4139,6 +4157,7 @@ async function initApp(user){
     .subscribe((status)=>{
       console.log('%c[Realtime] '+status,'color:'+(status==='SUBSCRIBED'?'#16a34a':'#dc2626')+';font-weight:bold;font-size:14px');
       window._rtStatus=status;
+      if(typeof updateOnAirIndicator==='function') updateOnAirIndicator();
       if(status==='SUBSCRIBED'){
         loadWeekData().then(()=>renderSchedule());
       }
@@ -9727,6 +9746,7 @@ function showHub(){
   const exitBtn=document.getElementById('hub-exit-btn');
   if(exitBtn) exitBtn.classList.add('show');
   hubInitStars();
+  if(typeof updateOnAirIndicator==='function') updateOnAirIndicator();
   // עדכון אוטומטי של הבאדג' על כפתור החופשות - בלי תלות בכניסה ללוח חופשות
   console.log('[vac-badge] showHub called - triggering badge update');
   // Retry quietly until loadDB/updateVacBadge are available (they load async)
@@ -11682,10 +11702,39 @@ async function galLoadPerms(){
   }
 }
 
+// ---------- מנורת ON-AIR: אינדיקציית חיבור ועדכניות (רק לאודי) ----------
+function updateOnAirIndicator(){
+  const el=document.getElementById('hub-onair');
+  if(!el) return;
+  // רק לאודי (מנהל ראשי)
+  const isUdi = (window._mgrType==='primary') && isMgr;
+  // מחובר = יש רשת + חיבור realtime פעיל
+  const online = (typeof navigator!=='undefined' ? navigator.onLine : true);
+  const rtOk = (window._rtStatus==='SUBSCRIBED');
+  if(isUdi && online && rtOk){
+    el.classList.add('on');
+    el.title='מחובר ומעודכן';
+  } else {
+    el.classList.remove('on');
+    el.title = !online ? 'לא מחובר לרשת' : (!rtOk ? 'מתחבר...' : '');
+  }
+}
+if(typeof window!=='undefined'){
+  window.addEventListener('online',()=>{ if(typeof updateOnAirIndicator==='function') updateOnAirIndicator(); });
+  window.addEventListener('offline',()=>{ if(typeof updateOnAirIndicator==='function') updateOnAirIndicator(); });
+  // רענון תקופתי (מגיב גם לנפילת רשת שקטה)
+  if(!window._onairTimer){ window._onairTimer=setInterval(()=>{ if(typeof updateOnAirIndicator==='function') updateOnAirIndicator(); }, 5000); }
+}
+
 // ---------- Hub button visibility ----------
 function galRefreshHubButton(){
   const btn = document.getElementById('hub-gallery-btn');
   if(!btn) return;
+  // פרויקט "פריימים" מוסתר לעת עתה (אולי נחזור אליו בעתיד). לא מציגים את הכפתור.
+  btn.classList.remove('active');
+  if(typeof galStopHubSlideshow==='function') galStopHubSlideshow();
+  return;
+  /* --- קוד מקורי מושבת ---
   if(!galPermsLoaded){ btn.classList.remove('active'); return; }
   if(galCanView()){
     btn.classList.add('active');
@@ -11694,6 +11743,7 @@ function galRefreshHubButton(){
     btn.classList.remove('active');
     galStopHubSlideshow();
   }
+  */
 }
 
 // ---------- Hub TV button: cycle through program covers ----------
