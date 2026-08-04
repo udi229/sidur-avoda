@@ -2700,7 +2700,7 @@
   </div>
 
   <!-- כפתור ניהול הודעות (רק לאודי) -->
-  <button id="hub-announce-btn" onclick="annOpenManager()" style="display:none;position:fixed;top:16px;left:16px;z-index:9999;pointer-events:auto;background:rgba(20,25,45,0.7);border:1px solid #3a4d70;color:#cfe0ff;border-radius:12px;padding:8px 13px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)">📢 הודעות</button>
+  <button id="hub-announce-btn" style="display:none;position:fixed;top:14px;right:14px;left:auto;z-index:2147483647;pointer-events:auto;background:#e11d48;border:2px solid #fff;color:#fff;border-radius:12px;padding:10px 15px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(0,0,0,0.5)">📢 הודעות</button>
 
   <button class="hub-btn-exit" id="hub-exit-btn" onclick="hubExit()">
     <span class="exit-icon">🚪</span>
@@ -11832,11 +11832,18 @@ function annShowManageBtn(){
   const b=document.getElementById('hub-announce-btn');
   if(!b) return;
   b.style.display = annCanManage() ? 'block' : 'none';
+  // חיבור מאזין לחיצה ישירות (אמין יותר מ-inline onclick)
+  if(annCanManage() && !b._annBound){
+    b._annBound=true;
+    b.addEventListener('click', function(ev){ ev.preventDefault(); ev.stopPropagation(); annOpenManager(); }, true);
+    b.addEventListener('touchend', function(ev){ ev.preventDefault(); annOpenManager(); }, true);
+  }
 }
 function annOpenManager(){
   try{
+    console.log('[ann] openManager clicked — build v2');
     const ov=document.getElementById('ann-manager-overlay');
-    if(!ov){ alert('שגיאה: חלון ההודעות לא נמצא'); return; }
+    if(!ov){ alert('שגיאה: חלון ההודעות לא נמצא ב-DOM'); return; }
     ov.style.display='flex';                 // פתח את החלון קודם כל
     // טען נתונים ברקע עם הגנות — כשל בטעינה לא ימנע את פתיחת החלון
     Promise.resolve()
