@@ -11834,9 +11834,19 @@ function annShowManageBtn(){
   b.style.display = annCanManage() ? 'block' : 'none';
 }
 function annOpenManager(){
-  document.getElementById('ann-manager-overlay').style.display='flex';
-  annLoadReads().then(()=>annRenderList());
-  annRenderList();
+  try{
+    const ov=document.getElementById('ann-manager-overlay');
+    if(!ov){ alert('שגיאה: חלון ההודעות לא נמצא'); return; }
+    ov.style.display='flex';                 // פתח את החלון קודם כל
+    // טען נתונים ברקע עם הגנות — כשל בטעינה לא ימנע את פתיחת החלון
+    Promise.resolve()
+      .then(()=>annLoad().catch(e=>{console.warn('[ann] load err',e);}))
+      .then(()=>annLoadReads().catch(e=>{console.warn('[ann] reads err',e);}))
+      .then(()=>{ try{ annRenderList(); }catch(e){ console.warn('[ann] render err',e); } });
+  }catch(e){
+    console.error('[ann] openManager error:',e);
+    alert('שגיאה בפתיחת חלון ההודעות: '+e.message);
+  }
 }
 // טעינת כל אישורי הקריאה
 let annReads=[];
