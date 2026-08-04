@@ -811,33 +811,37 @@
   /* ORBIT */
   .hub-scene { position:relative; width:420px; height:420px; display:flex; align-items:center; justify-content:center; }
   .hub-orbit-ring { position:absolute; width:100%; height:100%; top:0; left:0;
-    animation:hubOrbit 30s linear infinite; pointer-events:none; }
-  .hub-orbit-svg { position:absolute; inset:0; pointer-events:none; animation:hubOrbit 30s linear infinite; }
+    pointer-events:none; }
+  .hub-orbit-svg { position:absolute; inset:0; pointer-events:none; }
 
   /* PLANETS */
+  @keyframes hubFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-9px)} }
   .hub-planet {
     position:absolute; border-radius:50%; border:none; cursor:pointer;
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
-    animation:hubCounter 30s linear infinite; pointer-events:all;
-    transition:filter 0.2s; font-family:inherit;
+    pointer-events:all; transition:filter 0.2s; font-family:inherit;
   }
   .hub-planet:hover { filter:brightness(1.4); }
-  .hub-planet::before { content:''; position:absolute; inset:-4px; border-radius:50%;
-    background:conic-gradient(from 0deg,transparent,var(--pc) 25%,transparent 50%);
-    animation:hubSpin var(--ps) linear infinite; filter:blur(1px); opacity:0.8; }
 
-  .hub-p1 { width:98px; height:98px; --pc:#cc44ff66; --ps:2.8s;
-    top:calc(50% - 49px - 155px); left:calc(50% - 49px - 55px);
+  @keyframes pulseVac{0%,100%{box-shadow:0 0 0 1.5px #cc44ffbb,0 0 18px #cc44ff88,0 0 40px #cc44ff33}50%{box-shadow:0 0 0 2px #cc44ffff,0 0 34px #cc44ffcc,0 0 70px #cc44ff55}}
+  @keyframes pulseLoz{0%,100%{box-shadow:0 0 0 1.5px #E8550Abb,0 0 18px #E8550A88,0 0 40px #E8550A33}50%{box-shadow:0 0 0 2px #E8550Aff,0 0 34px #E8550Acc,0 0 70px #E8550A55}}
+  @keyframes pulseCon{0%,100%{box-shadow:0 0 0 1.5px #ff4466bb,0 0 18px #ff446688,0 0 40px #ff446633}50%{box-shadow:0 0 0 2px #ff4466ff,0 0 34px #ff4466cc,0 0 70px #ff446655}}
+
+  /* חופשות — שמאל-תחתון */
+  .hub-p1 { width:98px; height:98px;
+    top:calc(50% - 49px + 130px); left:calc(50% - 49px - 118px);
     background:radial-gradient(circle at 38% 32%,#2d1450,#0a0420);
-    box-shadow:0 0 0 1.5px #cc44ffbb,0 0 22px #cc44ffaa,0 0 50px #cc44ff44; }
-  .hub-p2 { width:84px; height:84px; --pc:#E8550A66; --ps:3.2s;
-    top:calc(50% - 42px + 80px); left:calc(50% - 42px - 155px);
+    animation:pulseVac 2.8s ease-in-out infinite, hubFloat 5s ease-in-out infinite; }
+  /* לו"ז — מעל */
+  .hub-p2 { width:84px; height:84px;
+    top:calc(50% - 42px - 150px); left:calc(50% - 42px);
     background:radial-gradient(circle at 38% 32%,#3d1a08,#0e0502);
-    box-shadow:0 0 0 1.5px #E8550Abb,0 0 20px #E8550Aaa,0 0 44px #E8550A44; }
-  .hub-p3 { width:90px; height:90px; --pc:#ff446666; --ps:3s;
-    top:calc(50% - 45px + 80px); left:calc(50% - 45px + 120px);
+    animation:pulseLoz 3.2s ease-in-out infinite, hubFloat 5.6s ease-in-out infinite 0.4s; }
+  /* דף קשר — ימין-תחתון */
+  .hub-p3 { width:90px; height:90px;
+    top:calc(50% - 45px + 130px); left:calc(50% - 45px + 118px);
     background:radial-gradient(circle at 38% 32%,#3a0e1a,#0e0408);
-    box-shadow:0 0 0 1.5px #ff4466bb,0 0 22px #ff4466aa,0 0 48px #ff446644; }
+    animation:pulseCon 3s ease-in-out infinite, hubFloat 5.2s ease-in-out infinite 0.8s; }
 
   .hub-p-icon { font-size:24px; position:relative; z-index:2; }
   .hub-p-label { font-size:10px; font-weight:900; position:relative; z-index:2; letter-spacing:0.5px; }
@@ -2640,16 +2644,13 @@
   <div id="hub-zoom-circle"></div>
 
   <div class="hub-scene">
-    <!-- neon connector lines — rotate with planets -->
-    <svg class="hub-orbit-svg" viewBox="0 0 420 420" fill="none">
-      <defs>
-        <filter id="hg1"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        <filter id="hg2"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        <filter id="hg3"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-      </defs>
-      <line x1="210" y1="210" x2="155" y2="55"  stroke="#cc44ff" stroke-width="1" stroke-opacity="0.7" filter="url(#hg1)"/>
-      <line x1="210" y1="210" x2="55"  y2="290" stroke="#E8550A" stroke-width="1" stroke-opacity="0.7" filter="url(#hg2)"/>
-      <line x1="210" y1="210" x2="330" y2="290" stroke="#ff4466" stroke-width="1" stroke-opacity="0.7" filter="url(#hg3)"/>
+    <!-- neon connector lines (static) + snake -->
+    <svg class="hub-orbit-svg" id="hub-links" viewBox="0 0 420 420" fill="none">
+      <line x1="210" y1="210" x2="210" y2="60"  stroke="#E8550A" stroke-width="2" stroke-opacity="0.55" stroke-linecap="round"/>
+      <line x1="210" y1="210" x2="92"  y2="340" stroke="#cc44ff" stroke-width="2" stroke-opacity="0.55" stroke-linecap="round"/>
+      <line x1="210" y1="210" x2="328" y2="340" stroke="#ff4466" stroke-width="2" stroke-opacity="0.55" stroke-linecap="round"/>
+      <path id="hub-snake-glow" fill="none" stroke="#00d5ff" stroke-width="5" stroke-linecap="round" stroke-opacity="0.35" pathLength="1000"/>
+      <path id="hub-snake-core" fill="none" stroke="#eaffff" stroke-width="2.2" stroke-linecap="round" pathLength="1000"/>
     </svg>
 
     <!-- orbiting planets -->
@@ -8145,7 +8146,23 @@ function openAddVacationModal(){
   document.getElementById('vac-add-start').value=today;
   document.getElementById('vac-add-end').value=today;
   document.getElementById('vac-add-reason').value='';
-  document.getElementById('vac-add-status').value='approved';
+  // אפרת (מנהלת משנה): החופשה תמיד ממתינה לאישור אודי
+  const statusSel=document.getElementById('vac-add-status');
+  const isSecondary = (window._mgrType==='secondary');
+  if(statusSel){
+    statusSel.value = isSecondary ? 'pending' : 'approved';
+    statusSel.disabled = isSecondary;
+  }
+  // הודעה לאפרת שהחופשה תעבור לאישור
+  var noteEl=document.getElementById('vac-add-approval-note');
+  if(!noteEl){
+    noteEl=document.createElement('div');
+    noteEl.id='vac-add-approval-note';
+    noteEl.style.cssText='font-size:12.5px;color:#b45309;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:8px 10px;margin-top:8px';
+    noteEl.textContent='ℹ️ החופשה תישלח לאישור אודי לפני שתאושר.';
+    if(statusSel && statusSel.parentElement) statusSel.parentElement.appendChild(noteEl);
+  }
+  noteEl.style.display = isSecondary ? 'block' : 'none';
   buildColorSwatches('vac-add-colors','#2ECC71');
   document.getElementById('vac-add-notify').checked=true;
   const errEl=document.getElementById('vac-add-error');
@@ -8178,12 +8195,15 @@ async function saveAddVacation(){
   const saveBtn=document.getElementById('vac-add-save');
   if(saveBtn){ saveBtn.disabled=true; saveBtn.textContent='מוסיף...'; }
   const id=crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString()+Math.random().toString(36).slice(2));
-  const color=getSwatchColor('vac-add-colors')||(status==='approved'?'#2ECC71':'#FFD600');
+  // אם אפרת (מנהלת משנה) מוסיפה חופשה ידנית — היא תמיד ממתינה לאישור אודי
+  let effStatus = status||'approved';
+  if(window._mgrType==='secondary'){ effStatus='pending'; }
+  const color=getSwatchColor('vac-add-colors')||(effStatus==='approved'?'#2ECC71':'#FFD600');
   try{
     const baseRec={
       id, user_id:user.email||user.id, user_name:user.name,
       user_dept:user.dept||'כללי', start_date:start, end_date:end,
-      reason:reason||'נוספה ידנית ע״י המנהל', status:status||'approved'
+      reason:reason||'נוספה ידנית ע״י המנהל', status:effStatus
     };
     // ניסיון לשמור עם צבע; אם עמודת color לא קיימת — שמירה ללא צבע + הודעה ברורה
     let colorMissing=false;
@@ -8196,15 +8216,25 @@ async function saveAddVacation(){
     if(reqErr) throw reqErr;
     // התראה לעובד (אופציונלי)
     if(notify){
-      const msg=status==='approved'
+      const msg=effStatus==='approved'
         ? `✅ נוספה לך חופשה מאושרת — ${fmt(start)} עד ${fmt(end)}`
         : `📋 נוספה עבורך בקשת חופשה (ממתינה) — ${fmt(start)} עד ${fmt(end)}`;
       try{
         await sb.from('vac_notifications').insert({
           id:id+'_emp', user_id:user.email||user.id,
-          message:msg, type:status==='approved'?'approved':'new_request', read:false
+          message:msg, type:effStatus==='approved'?'approved':'new_request', read:false
         });
       }catch(nErr){ console.warn('add-vac notify error:',nErr); }
+    }
+    // אם אפרת הוסיפה — התראה לאודי שיש בקשה שממתינה לאישורו
+    if(window._mgrType==='secondary'){
+      try{
+        await sb.from('vac_notifications').insert({
+          id:id+'_mgr', user_id:'manager@local',
+          message:`📋 אפרת הוסיפה בקשת חופשה עבור ${user.name} (${fmt(start)} עד ${fmt(end)}) — ממתינה לאישורך`,
+          type:'new_request', read:false
+        });
+      }catch(nErr){ console.warn('add-vac mgr notify error:',nErr); }
     }
     closeAddVacationModal();
     showToast('החופשה נוספה ✓','success');
@@ -9730,6 +9760,7 @@ function hubExit(){
   const hub = document.getElementById('hub-screen');
   if(hub) hub.classList.remove('active');
   if(window.RainBG) window.RainBG.stop();
+  if(typeof hubStopSnake==='function') hubStopSnake();
   const exitBtn = document.getElementById('hub-exit-btn');
   if(exitBtn) exitBtn.classList.remove('show');
   // Hide app and splash
@@ -9785,7 +9816,68 @@ function showHub(){
 function hubInitStars(){
   // רקע הגשם החדש (מחליף את שדה הכוכבים)
   if(window.RainBG){ window.RainBG.attach('hub-rain'); window.RainBG.start(); }
+  if(typeof hubStartSnake==='function') hubStartSnake();
 }
+
+/* ===== נחש ניאון על מערכת השמש הסטטית ===== */
+function hubStartSnake(){
+  var glow=document.getElementById('hub-snake-glow'), core=document.getElementById('hub-snake-core');
+  if(!glow||!core) return;
+  if(window._hubSnakeRAF) return;   // כבר רץ
+  // מרכזים ורדיוסים ב-viewBox 420x420 (חצי גודל כפתור)
+  var S={x:210,y:210,r:52,c:'#00d5ff'};
+  var planets=[
+    {x:210, y:60,  r:42, c:'#E8550A'},  // לו"ז (מעל)
+    {x:328, y:340, r:45, c:'#ff4466'},  // דף קשר (ימין-תחתון)
+    {x:92,  y:340, r:49, c:'#cc44ff'}   // חופשות (שמאל-תחתון)
+  ];
+  function ang(p){ return Math.atan2(p.y-S.y, p.x-S.x); }
+  planets.sort(function(a,b){ return ang(a)-ang(b); });
+  function sunPt(a){ return {x:S.x+S.r*Math.cos(a), y:S.y+S.r*Math.sin(a)}; }
+  var d='', firstSun=null, segs=[];
+  for(var i=0;i<planets.length;i++){
+    var p=planets[i], aSun=ang(p), sp=sunPt(aSun);
+    if(i===0){ d+='M '+sp.x+' '+sp.y; firstSun=sp; }
+    else { d+=' A '+S.r+' '+S.r+' 0 0 1 '+sp.x+' '+sp.y; }
+    var aP2S=Math.atan2(S.y-p.y, S.x-p.x);
+    var pin={x:p.x+p.r*Math.cos(aP2S), y:p.y+p.r*Math.sin(aP2S)};
+    var opp={x:p.x-p.r*Math.cos(aP2S), y:p.y-p.r*Math.sin(aP2S)};
+    d+=' L '+pin.x+' '+pin.y;
+    d+=' A '+p.r+' '+p.r+' 0 0 1 '+opp.x+' '+opp.y;
+    d+=' A '+p.r+' '+p.r+' 0 0 1 '+pin.x+' '+pin.y;
+    d+=' L '+sp.x+' '+sp.y;
+    segs.push({x1:sp.x,y1:sp.y,x2:pin.x,y2:pin.y,c:p.c});
+  }
+  d+=' A '+S.r+' '+S.r+' 0 0 1 '+firstSun.x+' '+firstSun.y+' Z';
+  glow.setAttribute('d',d); core.setAttribute('d',d);
+  var SNAKE=70;
+  glow.style.strokeDasharray=SNAKE+' '+(1000-SNAKE);
+  core.style.strokeDasharray=SNAKE+' '+(1000-SNAKE);
+  var realTotal=core.getTotalLength();
+  function distToSeg(px,py,x1,y1,x2,y2){var dx=x2-x1,dy=y2-y1,L2=dx*dx+dy*dy;var t=L2?((px-x1)*dx+(py-y1)*dy)/L2:0;t=Math.max(0,Math.min(1,t));var cx=x1+t*dx,cy=y1+t*dy;return Math.hypot(px-cx,py-cy);}
+  function colorAt(len){
+    var pt=core.getPointAtLength(((len%realTotal)+realTotal)%realTotal);
+    for(var k=0;k<planets.length;k++){var p=planets[k],dx=pt.x-p.x,dy=pt.y-p.y;if(Math.sqrt(dx*dx+dy*dy)<=p.r+6)return p.c;}
+    for(var s=0;s<segs.length;s++){if(distToSeg(pt.x,pt.y,segs[s].x1,segs[s].y1,segs[s].x2,segs[s].y2)<=7)return segs[s].c;}
+    var sdx=pt.x-S.x,sdy=pt.y-S.y;if(Math.sqrt(sdx*sdx+sdy*sdy)<=S.r+6)return S.c;
+    return '#00d5ff';
+  }
+  var DUR=13000, t0=null;
+  function frame(ts){
+    if(!document.getElementById('hub-screen') || !document.getElementById('hub-screen').classList.contains('active')){ window._hubSnakeRAF=null; return; }
+    if(!t0)t0=ts;
+    var prog=((ts-t0)%DUR)/DUR;
+    glow.style.strokeDashoffset=-1000*prog;
+    core.style.strokeDashoffset=-1000*prog;
+    var headLen=prog*realTotal + (SNAKE/1000)*realTotal;
+    var col=colorAt(headLen);
+    glow.style.stroke=col; glow.style.filter='drop-shadow(0 0 3px '+col+')';
+    core.style.stroke=col;
+    window._hubSnakeRAF=requestAnimationFrame(frame);
+  }
+  window._hubSnakeRAF=requestAnimationFrame(frame);
+}
+function hubStopSnake(){ if(window._hubSnakeRAF){ cancelAnimationFrame(window._hubSnakeRAF); window._hubSnakeRAF=null; } }
 
 /* ===== מודול רקע גשם (client-side בלבד, קנבס יחיד, עצירה נקייה) ===== */
 (function(){
@@ -11981,8 +12073,20 @@ function annFillTargets(){
     dSel.innerHTML=(window.departments||[]).map(d=>`<option value="${d.id}">${d.title||d.name||d.id}</option>`).join('');
   }
   if(uSel){
-    const emps=(window.employees||[]).slice().sort((a,b)=>(a.full_name||'').localeCompare(b.full_name||'','he'));
-    uSel.innerHTML=emps.map(e=>`<option value="${e.email||e.full_name}">${e.full_name}${e.email?(' · '+e.email):''}</option>`).join('');
+    const roleHeb={employee:'עובד',team_lead:'ראש צוות',manager:'מנהל'};
+    const emps=(window.employees||[]).slice()
+      .filter(e=>e && e.full_name);
+    // ודא שאפרת ניצ'קו נמצאת ברשימה (מנהלת משנה שהיא גם עובדת)
+    if(!emps.some(e=>(e.full_name||'').indexOf('אפרת')===0)){
+      emps.push({full_name:"אפרת ניצ'קו", email:'efrat', role:'manager', department_id:null});
+    }
+    emps.sort((a,b)=>(a.full_name||'').localeCompare(b.full_name||'','he'));
+    uSel.innerHTML=emps.map(e=>{
+      // "תפקיד": כותרת המחלקה אם יש, אחרת התפקיד הכללי (עובד/ראש צוות/מנהל)
+      const dept=(window.departments||[]).find(d=>d.id===e.department_id);
+      const jobLabel = (dept && (dept.title||dept.name)) || roleHeb[e.role] || 'עובד';
+      return `<option value="${e.email||e.full_name}">${e.full_name} · ${jobLabel}</option>`;
+    }).join('');
   }
 }
 function annMgrStatus(msg,kind){
