@@ -372,8 +372,14 @@
   @keyframes onair{0%,100%{background:#cc0000;box-shadow:0 0 12px #ff000077}50%{background:#ff1111;box-shadow:0 0 28px #ff0000aa}}
 
   /* מנורת ON-AIR (אינדיקציית חיבור) — תמיד מוצגת לאודי; נדלקת/כבויה לפי חיבור */
-  #hub-onair{ display:none; position:fixed; bottom:20px; left:18px; z-index:60;
-    align-items:center; gap:8px; padding:7px 12px; border-radius:10px;
+  /* פס ניאון לבן עדין שעובר על כפתור ההודעות */
+  #hub-announce-btn .ann-sweep{ position:absolute; top:0; bottom:0; width:30%; z-index:1; pointer-events:none;
+    background:linear-gradient(100deg, transparent, rgba(255,255,255,0.6), transparent);
+    filter:blur(1.5px); transform:skewX(-18deg);
+    animation:annSweep 5s ease-in-out infinite; }
+  @keyframes annSweep{ 0%{ left:-40%; } 45%{ left:120%; } 100%{ left:120%; } }
+
+  #hub-onair{ display:none; position:fixed; bottom:20px; left:18px; z-index:60;    align-items:center; gap:8px; padding:7px 12px; border-radius:10px;
     background:rgba(20,4,4,0.55); border:1px solid #3a2a2a; -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
     font-family:'Heebo',system-ui,sans-serif; user-select:none; pointer-events:none; transition:opacity .3s, border-color .3s; }
   #hub-screen.active #hub-onair.udi{ display:flex; }   /* מוצגת רק לאודי כשמערכת השמש פעילה */
@@ -815,7 +821,7 @@
   .hub-orbit-svg { position:absolute; inset:0; pointer-events:none; }
 
   /* PLANETS */
-  @keyframes hubFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-9px)} }
+  @keyframes hubFloat { 0%,100%{transform:scale(1)} 50%{transform:scale(1.035)} }
   .hub-planet {
     position:absolute; border-radius:50%; border:none; cursor:pointer;
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
@@ -831,17 +837,17 @@
   .hub-p1 { width:98px; height:98px;
     top:calc(50% - 49px + 130px); left:calc(50% - 49px - 118px);
     background:radial-gradient(circle at 38% 32%,#2d1450,#0a0420);
-    animation:pulseVac 2.8s ease-in-out infinite, hubFloat 5s ease-in-out infinite; }
+    animation:pulseVac 2.8s ease-in-out infinite; }
   /* לו"ז — מעל */
   .hub-p2 { width:84px; height:84px;
     top:calc(50% - 42px - 150px); left:calc(50% - 42px);
     background:radial-gradient(circle at 38% 32%,#3d1a08,#0e0502);
-    animation:pulseLoz 3.2s ease-in-out infinite, hubFloat 5.6s ease-in-out infinite 0.4s; }
+    animation:pulseLoz 3.2s ease-in-out infinite; }
   /* דף קשר — ימין-תחתון */
   .hub-p3 { width:90px; height:90px;
     top:calc(50% - 45px + 130px); left:calc(50% - 45px + 118px);
     background:radial-gradient(circle at 38% 32%,#3a0e1a,#0e0408);
-    animation:pulseCon 3s ease-in-out infinite, hubFloat 5.2s ease-in-out infinite 0.8s; }
+    animation:pulseCon 3s ease-in-out infinite; }
 
   .hub-p-icon { font-size:24px; position:relative; z-index:2; }
   .hub-p-label { font-size:10px; font-weight:900; position:relative; z-index:2; letter-spacing:0.5px; }
@@ -2644,13 +2650,11 @@
   <div id="hub-zoom-circle"></div>
 
   <div class="hub-scene">
-    <!-- neon connector lines (static) + snake -->
+    <!-- neon connector lines (static) -->
     <svg class="hub-orbit-svg" id="hub-links" viewBox="0 0 420 420" fill="none">
       <line x1="210" y1="210" x2="210" y2="60"  stroke="#E8550A" stroke-width="2" stroke-opacity="0.55" stroke-linecap="round"/>
       <line x1="210" y1="210" x2="92"  y2="340" stroke="#cc44ff" stroke-width="2" stroke-opacity="0.55" stroke-linecap="round"/>
       <line x1="210" y1="210" x2="328" y2="340" stroke="#ff4466" stroke-width="2" stroke-opacity="0.55" stroke-linecap="round"/>
-      <path id="hub-snake-glow" fill="none" stroke="#00d5ff" stroke-width="5" stroke-linecap="round" stroke-opacity="0.35" pathLength="1000"/>
-      <path id="hub-snake-core" fill="none" stroke="#eaffff" stroke-width="2.2" stroke-linecap="round" pathLength="1000"/>
     </svg>
 
     <!-- orbiting planets -->
@@ -2695,13 +2699,13 @@
   </button>
 
   <!-- מנורת ON-AIR — אינדיקציית חיבור ועדכניות (רק לאודי) -->
-  <div id="hub-onair" aria-label="מחובר ומעודכן" title="מחובר ומעודכן">
+  <div id="hub-onair" aria-label="חיבור" title="חיבור">
     <div class="onair-dot"></div>
-    <div class="onair-text">ON&nbsp;AIR</div>
+    <div class="onair-text">OFF</div>
   </div>
 
   <!-- כפתור ניהול הודעות (רק לאודי) -->
-  <button id="hub-announce-btn" style="display:none;position:fixed;bottom:22px;left:50%;transform:translateX(-50%);right:auto;top:auto;z-index:2147483647;pointer-events:auto;background:radial-gradient(circle at 40% 35%,#1a1040,#0a0620);border:2px solid #a855f7;color:#e9d5ff;border-radius:14px;padding:10px 18px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 0 0 1px #a855f766,0 0 16px #a855f788,0 0 34px #a855f744;text-shadow:0 0 8px #c084fc">📢 הודעות</button>
+  <button id="hub-announce-btn" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);right:auto;top:auto;z-index:2147483647;pointer-events:auto;padding:7px 12px;border-radius:10px;border:1px solid #ff2a2a;background:rgba(30,4,4,0.55);color:#ff6b6b;font-size:12px;font-weight:800;letter-spacing:0.5px;font-family:'Heebo',sans-serif;cursor:pointer;overflow:hidden;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);box-shadow:0 0 7px #ff000055,0 0 14px #ff000022;text-shadow:0 0 6px #ff000088"><span style="position:relative;z-index:2">📢 הודעות</span><span class="ann-sweep"></span></button>
 
   <button class="hub-btn-exit" id="hub-exit-btn" onclick="hubExit()">
     <span class="exit-icon">🚪</span>
@@ -9816,7 +9820,6 @@ function showHub(){
 function hubInitStars(){
   // רקע הגשם החדש (מחליף את שדה הכוכבים)
   if(window.RainBG){ window.RainBG.attach('hub-rain'); window.RainBG.start(); }
-  if(typeof hubStartSnake==='function') hubStartSnake();
 }
 
 /* ===== נחש ניאון על מערכת השמש הסטטית ===== */
@@ -11822,11 +11825,14 @@ function updateOnAirIndicator(){
   const lastPoll = window._lastPollOk || 0;
   const pollFresh = (Date.now() - lastPoll) < 30000;
   const connected = online && (rtOk || pollFresh);
+  var txt=el.querySelector('.onair-text');
   if(connected){
-    el.classList.add('on');            // דולק
+    el.classList.add('on');            // דולק — ON + מנורה אדומה
+    if(txt) txt.textContent='ON';
     el.title='מחובר ומעודכן';
   } else {
-    el.classList.remove('on');         // כבוי (אבל עדיין מוצג)
+    el.classList.remove('on');         // כבוי — OFF + מנורה אפורה כבויה
+    if(txt) txt.textContent='OFF';
     el.title = !online ? 'לא מחובר לרשת' : 'מתחבר...';
   }
 }
