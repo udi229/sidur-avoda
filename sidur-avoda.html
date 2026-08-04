@@ -11803,9 +11803,12 @@ async function annCheckAndShow(){
 function annShowNext(){
   if(!annQueue.length){ annCurrent=null; document.getElementById('ann-popup-overlay').style.display='none'; return; }
   annCurrent=annQueue.shift();
+  const ov=document.getElementById('ann-popup-overlay');
+  if(ov && ov.parentElement!==document.body){ document.body.appendChild(ov); }
   document.getElementById('ann-popup-title').textContent=annCurrent.title||'';
   document.getElementById('ann-popup-body').textContent=annBodyText(annCurrent);
-  document.getElementById('ann-popup-overlay').style.display='flex';
+  ov.style.setProperty('display','flex','important');
+  ov.style.setProperty('z-index','2147483647','important');
 }
 function annDismissCurrent(){
   // מסמנים "נראה" רק להודעות חד-פעמיות. 'always' תחזור בכניסה הבאה.
@@ -11844,8 +11847,14 @@ function annOpenManager(){
     console.log('[ann] openManager clicked — build v2');
     const ov=document.getElementById('ann-manager-overlay');
     if(!ov){ alert('שגיאה: חלון ההודעות לא נמצא ב-DOM'); return; }
-    ov.style.display='flex';                 // פתח את החלון קודם כל
-    // טען נתונים ברקע עם הגנות — כשל בטעינה לא ימנע את פתיחת החלון
+    // הבטח שהחלון הוא ישירות תחת body (יוצא מכל stacking context של ה-hub)
+    if(ov.parentElement!==document.body){ document.body.appendChild(ov); }
+    // כפה תצוגה ומעל הכל
+    ov.style.setProperty('display','flex','important');
+    ov.style.setProperty('z-index','2147483647','important');
+    ov.style.setProperty('position','fixed','important');
+    ov.style.setProperty('inset','0','important');
+    // טען נתונים ברקע עם הגנות
     Promise.resolve()
       .then(()=>annLoad().catch(e=>{console.warn('[ann] load err',e);}))
       .then(()=>annLoadReads().catch(e=>{console.warn('[ann] reads err',e);}))
@@ -13052,7 +13061,7 @@ async function galSaveMasterView(){
   </div>
 </div>
 
-<div id="ann-manager-overlay" style="display:none;position:fixed;inset:0;z-index:100001;background:rgba(3,5,16,0.85);align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+<div id="ann-manager-overlay" style="display:none;position:fixed;inset:0;z-index:2147483647;background:rgba(3,5,16,0.9);align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
   <div style="background:#fff;border-radius:16px;padding:22px;max-width:460px;width:100%;margin:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h2 style="font-size:18px;font-weight:800;color:#0f172a;margin:0">📢 ניהול הודעות</h2>
