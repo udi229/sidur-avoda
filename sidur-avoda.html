@@ -11776,11 +11776,34 @@ function annIsAlways(a){
   if(typeof a.body==='string' && a.body.indexOf('[[ALWAYS]]')===0) return true;
   return false;
 }
-// טקסט נקי (בלי הסימון הפנימי)
+// טקסט נקי (בלי הסימונים הפנימיים)
 function annBodyText(a){
   let b=(a&&a.body)||'';
   if(b.indexOf('[[ALWAYS]]')===0) b=b.slice(10);
+  b=b.replace(/^\[\[TO:[^\]]*\]\]/,'');   // הסר סימון נמענים אם קיים
   return b;
+}
+// זיהוי נמענים — מעמודות target_type/target_value או מסימון [[TO:type:value]] ב-body
+function annTarget(a){
+  if(!a) return {type:'all',value:null};
+  if(a.target_type){ return {type:a.target_type, value:a.target_value||null}; }
+  const m=(a.body||'').match(/^\[\[TO:([^:]+):([^\]]*)\]\]/);
+  if(m){ return {type:m[1], value:m[2]||null}; }
+  return {type:'all',value:null};
+}
+// האם ההודעה מיועדת לצופה הנוכחי
+function annMatchesViewer(a){
+  const t=annTarget(a);
+  if(t.type==='all' || !t.type) return true;
+  if(t.type==='dept'){
+    return !!(currentEmp && currentEmp.department_id && String(currentEmp.department_id)===String(t.value));
+  }
+  if(t.type==='user'){
+    const email=(currentUser&&currentUser.email)||'';
+    const name=(currentEmp&&currentEmp.full_name)||'';
+    return (email && email===t.value) || (name && name===t.value);
+  }
+  return true;
 }
 // האם העובד כבר ראה
 function annSeen(id){
@@ -11794,6 +11817,7 @@ async function annCheckAndShow(){
   await annLoad();
   annQueue = annList.filter(a=>{
     if(!annIsActive(a)) return false;
+    if(!annMatchesViewer(a)) return false;    // רק למי שההודעה מיועדת לו
     // מצב 'always' — מוצג בכל כניסה עד פג תוקף. 'once' — רק אם לא נראה.
     if(annIsAlways(a)) return true;
     return !annSeen(a.id);
@@ -11854,6 +11878,7 @@ function annOpenManager(){
     ov.style.setProperty('z-index','2147483647','important');
     ov.style.setProperty('position','fixed','important');
     ov.style.setProperty('inset','0','important');
+    if(typeof annFillTargets==='function') annFillTargets();
     // טען נתונים ברקע עם הגנות
     Promise.resolve()
       .then(()=>annLoad().catch(e=>{console.warn('[ann] load err',e);}))
@@ -11879,6 +11904,26 @@ function annToggleExpiry(){
   const t=document.getElementById('ann-new-exptype').value;
   document.getElementById('ann-new-expat').style.display = (t==='date') ? 'inline-block' : 'none';
 }
+// בחירת נמענים — הצגת הרשימה המתאימה
+function annToggleTarget(){
+  const t=document.getElementById('ann-new-target').value;
+  const dSel=document.getElementById('ann-new-target-dept');
+  const uSel=document.getElementById('ann-new-target-user');
+  dSel.style.display = (t==='dept') ? 'inline-block' : 'none';
+  uSel.style.display = (t==='user') ? 'inline-block' : 'none';
+}
+// מילוי רשימות מחלקות/עובדים
+function annFillTargets(){
+  const dSel=document.getElementById('ann-new-target-dept');
+  const uSel=document.getElementById('ann-new-target-user');
+  if(dSel){
+    dSel.innerHTML=(window.departments||[]).map(d=>`<option value="${d.id}">${d.title||d.name||d.id}</option>`).join('');
+  }
+  if(uSel){
+    const emps=(window.employees||[]).slice().sort((a,b)=>(a.full_name||'').localeCompare(b.full_name||'','he'));
+    uSel.innerHTML=emps.map(e=>`<option value="${e.email||e.full_name}">${e.full_name}${e.email?(' · '+e.email):''}</option>`).join('');
+  }
+}
 function annMgrStatus(msg,kind){
   const el=document.getElementById('ann-mgr-status'); if(!el) return;
   const c={ok:'#16a34a',err:'#dc2626',info:'#2563eb'}[kind]||'#2563eb';
@@ -11897,12 +11942,21 @@ async function annCreate(){
   }
   annMgrStatus('שומר...','info');
   const mode=(document.getElementById('ann-new-mode')||{}).value||'once'; // once | always
+  // נמענים
+  const targetType=(document.getElementById('ann-new-target')||{}).value||'all';
+  let targetValue=null;
+  if(targetType==='dept') targetValue=(document.getElementById('ann-new-target-dept')||{}).value||null;
+  else if(targetType==='user') targetValue=(document.getElementById('ann-new-target-user')||{}).value||null;
   try{
-    let ins = await sb.from('announcements').insert({title,body,expires_at,active:true,show_mode:mode}).select();
-    if(ins.error && /show_mode|column|schema cache|PGRST204/i.test(ins.error.message||'')){
-      // עמודת show_mode לא קיימת עדיין — נשמור בלי, ונקודד "always" בתחילת ה-body
-      console.warn('[ann] show_mode column missing, saving with body marker');
-      ins = await sb.from('announcements').insert({title,body:(mode==='always'?('[[ALWAYS]]'+body):body),expires_at,active:true}).select();
+    const row={title,body,expires_at,active:true,show_mode:mode,target_type:targetType,target_value:targetValue};
+    let ins = await sb.from('announcements').insert(row).select();
+    if(ins.error && /target_type|target_value|show_mode|column|schema cache|PGRST204/i.test(ins.error.message||'')){
+      // עמודות חדשות לא קיימות — נשמור בלי, ונקודד ב-body
+      console.warn('[ann] extra columns missing, saving with body markers');
+      let b2=body;
+      if(mode==='always') b2='[[ALWAYS]]'+b2;
+      if(targetType!=='all') b2='[[TO:'+targetType+':'+(targetValue||'')+']]'+b2;
+      ins = await sb.from('announcements').insert({title,body:b2,expires_at,active:true}).select();
     }
     const {data,error}=ins;
     if(error) throw error;
@@ -11938,12 +11992,16 @@ function annRenderList(){
     const active=annIsActive(a);
     const exp = a.expires_at ? ('פג: '+new Date(a.expires_at).toLocaleString('he-IL')) : 'עד ביטול ידני';
     const modeLbl = annIsAlways(a) ? '🔁 בכל כניסה' : '1️⃣ חד-פעמי';
+    const tgt=annTarget(a);
+    let tgtLbl='👥 כולם';
+    if(tgt.type==='dept'){ const d=(window.departments||[]).find(x=>String(x.id)===String(tgt.value)); tgtLbl='🏢 '+((d&&(d.title||d.name))||'מחלקה'); }
+    else if(tgt.type==='user'){ const e=(window.employees||[]).find(x=>(x.email===tgt.value||x.full_name===tgt.value)); tgtLbl='👤 '+((e&&e.full_name)||tgt.value||'עובד'); }
     return `<div style="border:1px solid ${active?'#bbf7d0':'#e2e8f0'};border-radius:10px;padding:11px 13px;margin-bottom:9px;background:${active?'#f0fdf4':'#f8fafc'}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div style="flex:1">
           <div style="font-weight:700;color:#0f172a;font-size:14px">${a.title||'(ללא כותרת)'}</div>
           <div style="font-size:12.5px;color:#475569;margin-top:2px;white-space:pre-wrap">${annBodyText(a)}</div>
-          <div style="font-size:11px;color:#94a3b8;margin-top:5px">${active?'🟢 פעילה':'⚪ לא פעילה'} · ${modeLbl} · ${exp}</div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:5px">${active?'🟢 פעילה':'⚪ לא פעילה'} · ${modeLbl} · ${tgtLbl} · ${exp}</div>
         </div>
       </div>
       ${(function(){
@@ -13072,6 +13130,16 @@ async function galSaveMasterView(){
       <div style="font-weight:700;color:#334155;font-size:14px;margin-bottom:10px">הודעה חדשה</div>
       <input id="ann-new-title" placeholder="כותרת" style="width:100%;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:14px;margin-bottom:8px;box-sizing:border-box">
       <textarea id="ann-new-body" placeholder="טקסט ההודעה..." rows="3" style="width:100%;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:14px;margin-bottom:10px;box-sizing:border-box;resize:vertical"></textarea>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+        <label style="font-size:13px;color:#475569;font-weight:600">למי:</label>
+        <select id="ann-new-target" onchange="annToggleTarget()" style="padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px">
+          <option value="all">כל העובדים</option>
+          <option value="dept">מחלקה מסוימת</option>
+          <option value="user">עובד ספציפי</option>
+        </select>
+        <select id="ann-new-target-dept" style="display:none;padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px"></select>
+        <select id="ann-new-target-user" style="display:none;padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px"></select>
+      </div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
         <label style="font-size:13px;color:#475569;font-weight:600">תדירות:</label>
         <select id="ann-new-mode" style="padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px">
