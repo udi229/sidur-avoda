@@ -2700,7 +2700,7 @@
   </div>
 
   <!-- כפתור ניהול הודעות (רק לאודי) -->
-  <button id="hub-announce-btn" onclick="annOpenManager()" style="display:none;position:fixed;top:16px;left:16px;z-index:61;background:rgba(20,25,45,0.7);border:1px solid #3a4d70;color:#cfe0ff;border-radius:12px;padding:8px 13px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)">📢 הודעות</button>
+  <button id="hub-announce-btn" onclick="annOpenManager()" style="display:none;position:fixed;top:16px;left:16px;z-index:9999;pointer-events:auto;background:rgba(20,25,45,0.7);border:1px solid #3a4d70;color:#cfe0ff;border-radius:12px;padding:8px 13px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)">📢 הודעות</button>
 
   <button class="hub-btn-exit" id="hub-exit-btn" onclick="hubExit()">
     <span class="exit-icon">🚪</span>
@@ -11827,7 +11827,7 @@ async function annRecordRead(annId){
 }
 
 // ---------- ניהול (רק אודי) ----------
-function annCanManage(){ return isMgr; }
+function annCanManage(){ return isMgr && window._mgrType==='primary'; }
 function annShowManageBtn(){
   const b=document.getElementById('hub-announce-btn');
   if(!b) return;
