@@ -2699,6 +2699,9 @@
     <div class="onair-text">ON&nbsp;AIR</div>
   </div>
 
+  <!-- כפתור ניהול הודעות (רק לאודי) -->
+  <button id="hub-announce-btn" onclick="annOpenManager()" style="display:none;position:fixed;top:16px;left:16px;z-index:61;background:rgba(20,25,45,0.7);border:1px solid #3a4d70;color:#cfe0ff;border-radius:12px;padding:8px 13px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)">📢 הודעות</button>
+
   <button class="hub-btn-exit" id="hub-exit-btn" onclick="hubExit()">
     <span class="exit-icon">🚪</span>
     <span class="exit-label">יציאה</span>
@@ -9756,6 +9759,8 @@ function showHub(){
   if(exitBtn) exitBtn.classList.add('show');
   hubInitStars();
   if(typeof updateOnAirIndicator==='function') updateOnAirIndicator();
+  if(typeof annShowManageBtn==='function') annShowManageBtn();
+  if(typeof annCheckAndShow==='function') setTimeout(annCheckAndShow, 600);
   // עדכון אוטומטי של הבאדג' על כפתור החופשות - בלי תלות בכניסה ללוח חופשות
   console.log('[vac-badge] showHub called - triggering badge update');
   // Retry quietly until loadDB/updateVacBadge are available (they load async)
@@ -11740,6 +11745,206 @@ if(typeof window!=='undefined'){
   if(!window._onairTimer){ window._onairTimer=setInterval(()=>{ if(typeof updateOnAirIndicator==='function') updateOnAirIndicator(); }, 5000); }
 }
 
+// ===================== מערכת הודעות (Announcements) =====================
+let annList=[];              // כל ההודעות מה-DB
+let annQueue=[];             // תור הודעות שלא נראו — להצגה
+let annCurrent=null;
+
+// טעינת הודעות פעילות
+async function annLoad(){
+  try{
+    const {data,error}=await sb.from('announcements').select('*').order('created_at',{ascending:false});
+    if(error) throw error;
+    annList=data||[];
+    return true;
+  }catch(e){
+    console.warn('[ann] load failed:',e?.message||e);
+    annList=[];
+    return false;
+  }
+}
+// האם הודעה פעילה (לא בוטלה + לא פג תוקף)
+function annIsActive(a){
+  if(!a||a.active===false) return false;
+  if(a.expires_at){ if(new Date(a.expires_at).getTime() < Date.now()) return false; }
+  return true;
+}
+// האם ההודעה "בכל כניסה" (always) — לפי עמודת show_mode או סימון ב-body
+function annIsAlways(a){
+  if(!a) return false;
+  if(a.show_mode==='always') return true;
+  if(typeof a.body==='string' && a.body.indexOf('[[ALWAYS]]')===0) return true;
+  return false;
+}
+// טקסט נקי (בלי הסימון הפנימי)
+function annBodyText(a){
+  let b=(a&&a.body)||'';
+  if(b.indexOf('[[ALWAYS]]')===0) b=b.slice(10);
+  return b;
+}
+// האם העובד כבר ראה
+function annSeen(id){
+  try{ return localStorage.getItem('ann_seen_'+id)==='1'; }catch(e){ return false; }
+}
+function annMarkSeen(id){
+  try{ localStorage.setItem('ann_seen_'+id,'1'); }catch(e){}
+}
+// בדיקה והצגת הודעות שלא נראו (נקרא בכניסה)
+async function annCheckAndShow(){
+  await annLoad();
+  annQueue = annList.filter(a=>{
+    if(!annIsActive(a)) return false;
+    // מצב 'always' — מוצג בכל כניסה עד פג תוקף. 'once' — רק אם לא נראה.
+    if(annIsAlways(a)) return true;
+    return !annSeen(a.id);
+  });
+  annShowNext();
+}
+function annShowNext(){
+  if(!annQueue.length){ annCurrent=null; document.getElementById('ann-popup-overlay').style.display='none'; return; }
+  annCurrent=annQueue.shift();
+  document.getElementById('ann-popup-title').textContent=annCurrent.title||'';
+  document.getElementById('ann-popup-body').textContent=annBodyText(annCurrent);
+  document.getElementById('ann-popup-overlay').style.display='flex';
+}
+function annDismissCurrent(){
+  // מסמנים "נראה" רק להודעות חד-פעמיות. 'always' תחזור בכניסה הבאה.
+  if(annCurrent && !annIsAlways(annCurrent)){ annMarkSeen(annCurrent.id); }
+  // תיעוד במסד הנתונים — מי אישר (כדי שאודי יראה)
+  if(annCurrent){ annRecordRead(annCurrent.id); }
+  annShowNext();
+}
+// רישום אישור קריאה של העובד (upsert — פעם אחת לכל עובד להודעה)
+async function annRecordRead(annId){
+  try{
+    const name = (currentEmp&&currentEmp.full_name) || (currentUser&&currentUser.email) || 'לא ידוע';
+    const email = (currentUser&&currentUser.email) || (currentEmp&&currentEmp.email) || name;
+    await sb.from('announcement_reads').upsert(
+      { announcement_id: annId, user_email: email, user_name: name, seen_at: new Date().toISOString() },
+      { onConflict: 'announcement_id,user_email' }
+    );
+  }catch(e){ console.warn('[ann] record read failed (table may be missing):', e?.message||e); }
+}
+
+// ---------- ניהול (רק אודי) ----------
+function annCanManage(){ return isMgr; }
+function annShowManageBtn(){
+  const b=document.getElementById('hub-announce-btn');
+  if(!b) return;
+  b.style.display = annCanManage() ? 'block' : 'none';
+}
+function annOpenManager(){
+  document.getElementById('ann-manager-overlay').style.display='flex';
+  annLoadReads().then(()=>annRenderList());
+  annRenderList();
+}
+// טעינת כל אישורי הקריאה
+let annReads=[];
+async function annLoadReads(){
+  try{
+    const {data,error}=await sb.from('announcement_reads').select('*');
+    if(error) throw error;
+    annReads=data||[];
+  }catch(e){ console.warn('[ann] load reads failed:',e?.message||e); annReads=[]; }
+}
+function annReadsFor(annId){ return annReads.filter(r=>r.announcement_id===annId); }
+function annCloseManager(){ document.getElementById('ann-manager-overlay').style.display='none'; }
+function annToggleExpiry(){
+  const t=document.getElementById('ann-new-exptype').value;
+  document.getElementById('ann-new-expat').style.display = (t==='date') ? 'inline-block' : 'none';
+}
+function annMgrStatus(msg,kind){
+  const el=document.getElementById('ann-mgr-status'); if(!el) return;
+  const c={ok:'#16a34a',err:'#dc2626',info:'#2563eb'}[kind]||'#2563eb';
+  el.style.color=c; el.textContent=msg;
+}
+async function annCreate(){
+  const title=(document.getElementById('ann-new-title').value||'').trim();
+  const body=(document.getElementById('ann-new-body').value||'').trim();
+  if(!title && !body){ annMgrStatus('צריך כותרת או טקסט','err'); return; }
+  const expType=document.getElementById('ann-new-exptype').value;
+  let expires_at=null;
+  if(expType==='date'){
+    const v=document.getElementById('ann-new-expat').value;
+    if(!v){ annMgrStatus('בחר תאריך/שעה לפג תוקף','err'); return; }
+    expires_at=new Date(v).toISOString();
+  }
+  annMgrStatus('שומר...','info');
+  const mode=(document.getElementById('ann-new-mode')||{}).value||'once'; // once | always
+  try{
+    let ins = await sb.from('announcements').insert({title,body,expires_at,active:true,show_mode:mode}).select();
+    if(ins.error && /show_mode|column|schema cache|PGRST204/i.test(ins.error.message||'')){
+      // עמודת show_mode לא קיימת עדיין — נשמור בלי, ונקודד "always" בתחילת ה-body
+      console.warn('[ann] show_mode column missing, saving with body marker');
+      ins = await sb.from('announcements').insert({title,body:(mode==='always'?('[[ALWAYS]]'+body):body),expires_at,active:true}).select();
+    }
+    const {data,error}=ins;
+    if(error) throw error;
+    if(!data||!data.length){ annMgrStatus('❌ לא נשמר (הרשאות DB) — ראה הסבר','err'); annShowRlsHelp(); return; }
+    document.getElementById('ann-new-title').value='';
+    document.getElementById('ann-new-body').value='';
+    document.getElementById('ann-new-expat').value='';
+    annMgrStatus('✅ פורסם','ok');
+    await annLoad(); annRenderList();
+  }catch(e){
+    console.error('[ann] create failed:',e.message);
+    annMgrStatus('❌ שגיאה: '+e.message,'err');
+    if(/row-level security|policy|permission|denied|42501|relation .* does not exist|does not exist/i.test(e.message||'')) annShowRlsHelp();
+  }
+}
+async function annToggleActive(id,cur){
+  try{ await sb.from('announcements').update({active:!cur}).eq('id',id); await annLoad(); annRenderList(); }
+  catch(e){ alert('שגיאה: '+e.message); }
+}
+async function annDelete(id){
+  if(!confirm('למחוק את ההודעה?')) return;
+  try{
+    await sb.from('announcements').delete().eq('id',id);
+    try{ await sb.from('announcement_reads').delete().eq('announcement_id',id); }catch(e){}
+    await annLoad(); annRenderList();
+  }
+  catch(e){ alert('שגיאה: '+e.message); }
+}
+function annRenderList(){
+  const wrap=document.getElementById('ann-list'); if(!wrap) return;
+  if(!annList.length){ wrap.innerHTML='<div style="color:#94a3b8;font-size:13px;text-align:center;padding:16px">אין הודעות עדיין</div>'; return; }
+  wrap.innerHTML=annList.map(a=>{
+    const active=annIsActive(a);
+    const exp = a.expires_at ? ('פג: '+new Date(a.expires_at).toLocaleString('he-IL')) : 'עד ביטול ידני';
+    const modeLbl = annIsAlways(a) ? '🔁 בכל כניסה' : '1️⃣ חד-פעמי';
+    return `<div style="border:1px solid ${active?'#bbf7d0':'#e2e8f0'};border-radius:10px;padding:11px 13px;margin-bottom:9px;background:${active?'#f0fdf4':'#f8fafc'}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="flex:1">
+          <div style="font-weight:700;color:#0f172a;font-size:14px">${a.title||'(ללא כותרת)'}</div>
+          <div style="font-size:12.5px;color:#475569;margin-top:2px;white-space:pre-wrap">${annBodyText(a)}</div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:5px">${active?'🟢 פעילה':'⚪ לא פעילה'} · ${modeLbl} · ${exp}</div>
+        </div>
+      </div>
+      ${(function(){
+        const reads=annReadsFor(a.id);
+        if(!reads.length) return '<div style="font-size:11.5px;color:#94a3b8;margin-top:7px;background:#f1f5f9;border-radius:7px;padding:6px 9px">👁 עדיין אף אחד לא סימן שראה</div>';
+        const names=reads.sort((x,y)=>new Date(y.seen_at)-new Date(x.seen_at)).map(r=>{
+          const t=r.seen_at?new Date(r.seen_at).toLocaleDateString('he-IL'):'';
+          return `<span style="display:inline-block;background:#dbeafe;color:#1e40af;border-radius:6px;padding:2px 8px;font-size:11px;margin:2px">${r.user_name||r.user_email} <span style="color:#60a5fa">· ${t}</span></span>`;
+        }).join('');
+        return `<div style="margin-top:7px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:7px 9px">
+          <div style="font-size:11.5px;color:#0369a1;font-weight:700;margin-bottom:3px">✅ ראו וסימנו (${reads.length}):</div>
+          <div>${names}</div>
+        </div>`;
+      })()}
+      <div style="display:flex;gap:6px;margin-top:9px">
+        <button onclick="annToggleActive('${a.id}',${a.active!==false})" style="flex:1;padding:7px;border-radius:7px;border:1px solid #cbd5e1;background:#fff;font-family:inherit;font-size:12px;cursor:pointer">${a.active!==false?'⏸ השבת':'▶ הפעל'}</button>
+        <button onclick="annDelete('${a.id}')" style="flex:1;padding:7px;border-radius:7px;border:1px solid #fecaca;background:#fee2e2;color:#b91c1c;font-family:inherit;font-size:12px;cursor:pointer">🗑️ מחק</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+// עזרת RLS (משתמש בהסבר הכללי אם קיים, אחרת מציג הסבר ממוקד)
+function annShowRlsHelp(){
+  const el=document.getElementById('ann-mgr-status');
+  if(el){ el.innerHTML='צריך ליצור טבלת announcements ולפתוח הרשאות. ראה ה-SQL שהעברתי לך.'; el.style.color='#b45309'; }
+}
+
 // ---------- Hub button visibility ----------
 function galRefreshHubButton(){
   const btn = document.getElementById('hub-gallery-btn');
@@ -12820,6 +13025,50 @@ async function galSaveMasterView(){
 </div>
 
 
+<!-- ===== מערכת הודעות: פופ-אפ לעובד + מודל ניהול לאודי ===== -->
+<div id="ann-popup-overlay" style="display:none;position:fixed;inset:0;z-index:100000;background:rgba(3,5,16,0.8);align-items:center;justify-content:center;padding:18px">
+  <div style="background:#fff;border-radius:16px;padding:24px 22px;max-width:340px;width:100%;text-align:center;border-top:5px solid #38bdf8;box-shadow:0 16px 50px rgba(0,0,0,0.5)">
+    <div id="ann-popup-icon" style="font-size:36px;margin-bottom:10px">📢</div>
+    <div id="ann-popup-title" style="font-size:19px;font-weight:800;color:#0f172a;margin-bottom:8px">כותרת</div>
+    <div id="ann-popup-body" style="font-size:14px;color:#475569;line-height:1.7;margin-bottom:20px;white-space:pre-wrap;text-align:right"></div>
+    <button onclick="annDismissCurrent()" style="width:100%;padding:12px;border-radius:10px;border:none;background:#38bdf8;color:#fff;font-weight:700;font-size:15px;font-family:inherit;cursor:pointer">הבנתי</button>
+  </div>
+</div>
+
+<div id="ann-manager-overlay" style="display:none;position:fixed;inset:0;z-index:100001;background:rgba(3,5,16,0.85);align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+  <div style="background:#fff;border-radius:16px;padding:22px;max-width:460px;width:100%;margin:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="font-size:18px;font-weight:800;color:#0f172a;margin:0">📢 ניהול הודעות</h2>
+      <button onclick="annCloseManager()" style="background:#f1f5f9;border:none;border-radius:8px;width:32px;height:32px;font-size:18px;cursor:pointer;color:#475569">✕</button>
+    </div>
+
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;margin-bottom:16px">
+      <div style="font-weight:700;color:#334155;font-size:14px;margin-bottom:10px">הודעה חדשה</div>
+      <input id="ann-new-title" placeholder="כותרת" style="width:100%;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:14px;margin-bottom:8px;box-sizing:border-box">
+      <textarea id="ann-new-body" placeholder="טקסט ההודעה..." rows="3" style="width:100%;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:14px;margin-bottom:10px;box-sizing:border-box;resize:vertical"></textarea>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+        <label style="font-size:13px;color:#475569;font-weight:600">תדירות:</label>
+        <select id="ann-new-mode" style="padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px">
+          <option value="once">חד-פעמי (נעלם אחרי שראו)</option>
+          <option value="always">בכל כניסה (עד פג תוקף)</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+        <label style="font-size:13px;color:#475569;font-weight:600">פג תוקף:</label>
+        <select id="ann-new-exptype" onchange="annToggleExpiry()" style="padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px">
+          <option value="manual">עד שאני מבטל</option>
+          <option value="date">בתאריך/שעה</option>
+        </select>
+        <input id="ann-new-expat" type="datetime-local" style="display:none;padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px">
+      </div>
+      <button onclick="annCreate()" style="width:100%;padding:11px;border-radius:10px;border:none;background:#16a34a;color:#fff;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer">➕ פרסם הודעה</button>
+      <div id="ann-mgr-status" style="font-size:12px;text-align:center;margin-top:8px;min-height:16px"></div>
+    </div>
+
+    <div style="font-weight:700;color:#334155;font-size:14px;margin-bottom:8px">הודעות קיימות</div>
+    <div id="ann-list"></div>
+  </div>
+</div>
 
 </body>
 </html>
