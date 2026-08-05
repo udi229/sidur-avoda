@@ -3897,6 +3897,10 @@ function enterMgr(label='מנהל',type='primary'){
         if(typeof checkVacAlerts==='function') setTimeout(()=>checkVacAlerts(), 1000);
       }
     }
+  }).catch(function(err){
+    console.error('[enterMgr] initial load failed:', err);
+    try{ updateWeekUI();renderDeptTabs();renderSchedule(); }catch(e){}
+    try{ alert('שגיאה בטעינת הנתונים. בדוק את החיבור ונסה לרענן.'); }catch(e){}
   });
   // presence for manager — use different key for Udi vs Efrat
   const presenceKey=window._mgrType==='secondary'?'efratn@kan.org.il':'manager@local';
@@ -4202,13 +4206,22 @@ async function initApp(user){
 }
 
 async function loadAll(){
+  // טעינה עמידה: כשל בקריאה בודדת לא יפיל את כל הטעינה, עם ניסיון חוזר אחד
+  async function q(fn){
+    try{ const r=await fn(); if(r.error) throw r.error; return r; }
+    catch(e){
+      console.warn('[loadAll] query failed, retrying once:', e?.message||e);
+      try{ const r2=await fn(); if(r2.error) throw r2.error; return r2; }
+      catch(e2){ console.error('[loadAll] query failed after retry:', e2?.message||e2); return {data:null,error:e2}; }
+    }
+  }
   const [d,e,f,ds,cv,st]=await Promise.all([
-    sb.from('departments').select('*').order('name'),
-    sb.from('employees').select('*').order('full_name'),
-    sb.from('freelancers').select('*').order('name'),
-    sb.from('department_shifts').select('*').order('sort_order'),
-    sb.from('combined_views').select('*').order('name'),
-    sb.from('shift_types').select('*').order('sort_order'),
+    q(()=>sb.from('departments').select('*').order('name')),
+    q(()=>sb.from('employees').select('*').order('full_name')),
+    q(()=>sb.from('freelancers').select('*').order('name')),
+    q(()=>sb.from('department_shifts').select('*').order('sort_order')),
+    q(()=>sb.from('combined_views').select('*').order('name')),
+    q(()=>sb.from('shift_types').select('*').order('sort_order')),
   ]);
   departments=d.data||[];
   // Sort: ע.במאי right after במאים
@@ -9658,15 +9671,32 @@ function showHubOrAuth(){
     }
   } catch(e){}
   const auth = document.getElementById('auth-screen');
-  const showAuth = ()=>{ if(auth && !currentUser && !isMgr){ auth.style.display='flex'; setTimeout(initAuthScreen,200); } };
+  const showAuth = ()=>{ if(auth && !currentUser && !isMgr){ auth.style.display='flex'; setTimeout(initAuthScreen,200); } hideBootLoader(); };
+  // אינדיקטור טעינה קטן — כדי שלא ייראה כאילו האפליקציה לא עובדת
+  showBootLoader();
   window._authChecking = true;
-  // רשת ביטחון: אם Supabase לא עונה תוך 2.5 שניות — נפתח כניסה בכל זאת
-  const _authTimeout = setTimeout(()=>{ if(window._authChecking) showAuth(); }, 2500);
+  // רשת ביטחון: אם Supabase לא עונה תוך 1.4 שניות — נפתח כניסה ומנקים את הדגל
+  const _authTimeout = setTimeout(()=>{ if(window._authChecking){ window._authChecking=false; showAuth(); } }, 1400);
   sb.auth.getSession().then(({data:{session}})=>{
     window._authChecking = false; clearTimeout(_authTimeout);
-    if(session){ if(auth) auth.style.display='none'; initApp(session.user); }
+    if(session){ if(auth) auth.style.display='none'; hideBootLoader(); initApp(session.user); }
     else showAuth();
   }).catch(()=>{ window._authChecking = false; clearTimeout(_authTimeout); showAuth(); });
+}
+function showBootLoader(){
+  if(document.getElementById('boot-loader')) return;
+  var d=document.createElement('div');
+  d.id='boot-loader';
+  d.style.cssText='position:fixed;inset:0;z-index:99998;background:#030510;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#7dd3fc;font-family:Heebo,system-ui,sans-serif';
+  d.innerHTML='<div style="width:44px;height:44px;border:3px solid #1e3a5f;border-top-color:#38bdf8;border-radius:50%;animation:bootspin 0.8s linear infinite"></div><div style="font-size:14px;color:#9fb2cc">טוען…</div><style>@keyframes bootspin{to{transform:rotate(360deg)}}</style>';
+  document.body.appendChild(d);
+  // רשת ביטחון: הסתרה אחרי 6 שניות בכל מקרה
+  clearTimeout(window._bootLoaderKill);
+  window._bootLoaderKill=setTimeout(hideBootLoader,6000);
+}
+function hideBootLoader(){
+  var d=document.getElementById('boot-loader');
+  if(d){ d.style.transition='opacity .3s'; d.style.opacity='0'; setTimeout(function(){ if(d.parentElement) d.parentElement.removeChild(d); },320); }
 }
 
 function calcMobileZoom(){
@@ -11819,12 +11849,9 @@ function updateOnAirIndicator(){
   const isUdi = (window._mgrType==='primary') && isMgr;
   if(!isUdi){ el.classList.remove('udi'); el.classList.remove('on'); return; }
   el.classList.add('udi'); // תמיד מוצגת לאודי (גם כבויה)
-  // "מחובר ומעודכן" = יש רשת + (realtime פעיל או polling עדכני לאחרונה)
-  const online = (typeof navigator!=='undefined' ? navigator.onLine : true);
-  const rtOk = (window._rtStatus==='SUBSCRIBED');
-  const lastPoll = window._lastPollOk || 0;
-  const pollFresh = (Date.now() - lastPoll) < 30000;
-  const connected = online && (rtOk || pollFresh);
+  // "מחובר" = יש חיבור רשת. (ה-polling נעצר בכוונה בחוסר פעילות, אז לא נסתמך עליו)
+  const online = (typeof navigator!=='undefined' ? (navigator.onLine!==false) : true);
+  const connected = online;
   var txt=el.querySelector('.onair-text');
   if(connected){
     el.classList.add('on');            // דולק — ON + מנורה אדומה
