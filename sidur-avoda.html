@@ -6844,6 +6844,7 @@ async function delEmp(id){
 // ── NAV ──
 function showView(v,e){
   activeView=v;openDropdown=null;
+  if(window.RainBG) window.RainBG.stop();   // גשם רץ רק ב-Hub/כניסה, לא בתצוגות
   ['schedule','stats','settings','vacation','loz'].forEach(x=>{const el=document.getElementById('view-'+x);if(el)el.style.display=x===v?(x==='vacation'?'flex':'block'):'none';});
   // Toggle body class so mobile flex-fill rules apply only when vacation is visible
   document.body.classList.toggle('view-vacation-active', v === 'vacation');
@@ -10115,6 +10116,7 @@ function hubGoZoom(e, dest, col){
 
   setTimeout(()=>{
     document.getElementById('hub-screen').classList.remove('active');
+    if(window.RainBG) window.RainBG.stop();   // עצירת הגשם — רץ רק ב-Hub/כניסה
 
     if(dest==='contact'){
       showContactView();
