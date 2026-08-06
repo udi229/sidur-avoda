@@ -870,8 +870,8 @@
   .hub-sun-sub { font-size:10px; color:#00aaff99; position:relative; z-index:2; letter-spacing:1px; }
 
   /* ORBIT */
-  .hub-scene { position:absolute; top:50%; left:50%; width:420px; height:420px; display:flex; align-items:center; justify-content:center;
-    transform:translate(-50%,-50%) scale(var(--hub-scale,1)); transform-origin:center center; }
+  .hub-scene { position:relative; width:420px; height:420px; display:flex; align-items:center; justify-content:center;
+    transform:scale(var(--hub-scale,1)); transform-origin:center center; }
   .hub-orbit-ring { position:absolute; width:100%; height:100%; top:0; left:0;
     pointer-events:none; }
   .hub-orbit-svg { position:absolute; inset:0; pointer-events:none; }
@@ -11407,7 +11407,7 @@ function closeContactView(){
 
 // ===== בדיקת גרסת HTML — מנקה מטמון אם הקובץ השתנה =====
 (function(){
-  var APP_VERSION = 'v20260806-124301';   // מתעדכן אוטומטית בכל בנייה
+  var APP_VERSION = 'v20260806-133901';   // מתעדכן אוטומטית בכל בנייה
   try{
     var prev = localStorage.getItem('app_version');
     if(prev && prev !== APP_VERSION){
