@@ -773,7 +773,7 @@
   #splash-canvas { position:absolute; inset:0; width:100%; height:100%; }
 
   /* ===== מסך לוגו פתיחה (לפני הקרן) ===== */
-  #logo-splash{ position:fixed; inset:0; z-index:10000; display:flex; align-items:center; justify-content:center;
+  #logo-splash{ display:none; position:fixed; inset:0; z-index:10000; align-items:center; justify-content:center;
     background:#03060e; overflow:hidden; padding:3vh 4vw;
     transition:opacity .55s ease; }
   /* רקע מטושטש שממלא את כל המסך (תחושת פול-פריים) */
@@ -9640,15 +9640,6 @@ function initSplash(){
     const beamX = -W*0.3 + (W*1.6)*t;
     const beamW = W*0.35;
 
-    // ניגוב הלוגו: קו האור סוחף ומנגב את הלוגו במקום פייד
-    var _lg = document.getElementById('logo-splash');
-    if(_lg && _lg.style.display!=='none'){
-      var wipe = Math.max(0, beamX + 10); // הכל משמאל לקו נמחק
-      _lg.style.clipPath = 'inset(0 0 0 ' + wipe + 'px)';
-      _lg.style.webkitClipPath = 'inset(0 0 0 ' + wipe + 'px)';
-      if(beamX > W){ _lg.style.display='none'; }  // נוגב לגמרי
-    }
-
     // Grid
     ctx.strokeStyle='rgba(0,150,255,0.06)'; ctx.lineWidth=1;
     for(let x=0;x<W;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
@@ -11422,7 +11413,7 @@ function initLogoSplash(){
   }, 1500);
 }
 window.addEventListener('DOMContentLoaded', ()=>{
-  initLogoSplash();
+  initSplash();
   setTimeout(loadDeptSel, 300);
   
   // ═══ VAC BADGE — מעקב אחרי כל פתיחה של ה-Hub וריענון תקופתי ═══
