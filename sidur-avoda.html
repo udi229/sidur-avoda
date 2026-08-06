@@ -4875,7 +4875,17 @@ async function ensureSched(dId){
 const VAPID_PUBLIC_KEY = 'BEZSJ3egcBOhyZ3ExGVG5Ti790C71LC02w2dPg5257_p9t8F_hzXiJZ8wZw5a41JH9xQs1q-m_2OkPdAZP3Ozy4';
 const PUSH_EDGE_URL = 'https://efkcnuzbmwnslhgvpxws.supabase.co/functions/v1/push-notify';
 
+// ═══════════════════════════════════════════════════════════════
+//  דגל הפעלת Push — נקודת רישום שנייה של ה-SW
+//  false = לא רושמים. sw.js הנוכחי הוא kill-switch בלבד,
+//  אין בו מאזין 'push', ולכן רישום שלו רק החזיר את הלולאה
+//  (register → clients.claim → controllerchange → reload → ...).
+//  כשתחזיר קוד push אמיתי ל-sw.js — תהפוך ל-true.
+// ═══════════════════════════════════════════════════════════════
+const SW_PUSH_ENABLED = false;
+
 async function requestNotifPermission(){
+  if(!SW_PUSH_ENABLED){ console.log('[SW] רישום push מושבת'); return; }
   if(!('Notification' in window)) return;
   if(!('serviceWorker' in navigator)) return;
   
@@ -11407,7 +11417,7 @@ function closeContactView(){
 
 // ===== בדיקת גרסת HTML — מנקה מטמון אם הקובץ השתנה =====
 (function(){
-  var APP_VERSION = 'v20260806-134624';   // מתעדכן אוטומטית בכל בנייה
+  var APP_VERSION = 'v20260806-noloop-1';   // מתעדכן אוטומטית בכל בנייה
   try{
     var prev = localStorage.getItem('app_version');
     if(prev && prev !== APP_VERSION){
@@ -11431,40 +11441,23 @@ function closeContactView(){
   }catch(e){}
 })();
 
-// ===== עדכון אוטומטי — מזהה גרסה חדשה ומרענן ללא מטמון ישן =====
+// ===== ניקוי Service Worker — ללא רישום, ללא רענון אוטומטי =====
+// היה כאן בלוק "עדכון אוטומטי" שיצר לולאה אינסופית:
+//   אין SW → register → sw.js עושה clients.claim() → controllerchange
+//   → location.reload() → sw.js עשה unregister → אין SW → register → ...
+// המשתנה _reloaded היה מתאפס בכל רענון ולכן לא עצר כלום.
+//
+// sw.js הנוכחי הוא kill-switch בלבד: אין בו מאזין 'push' ואין בו קאש.
+// אין שום סיבה לרשום אותו. בדיקת הגרסה למעלה (APP_VERSION) כבר
+// מטפלת בניקוי מטמון בכל העלאה.
 (function(){
   if(!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.getRegistration().then(function(reg){
-    if(!reg){
-      // אין עדיין SW רשום — נרשום כדי שבפעם הבאה נזהה עדכונים
-      navigator.serviceWorker.register('/sidur-avoda/sw.js').catch(function(){});
-      return;
-    }
-    // בדיקת עדכון מיידית בכל טעינה
-    reg.update().catch(function(){});
-    // אם נמצאת גרסה חדשה שממתינה — נבקש ממנה להשתלט
-    function promptUpdate(worker){
-      if(!worker) return;
-      showUpdateBanner(function(){
-        try{ worker.postMessage({type:'SKIP_WAITING'}); }catch(e){}
-        // אם ה-SW לא תומך בהודעה — פשוט ננקה ונטען מחדש
-        setTimeout(function(){ location.reload(true); }, 300);
-      });
-    }
-    if(reg.waiting) promptUpdate(reg.waiting);
-    reg.addEventListener('updatefound', function(){
-      var nw=reg.installing;
-      if(!nw) return;
-      nw.addEventListener('statechange', function(){
-        if(nw.state==='installed' && navigator.serviceWorker.controller){ promptUpdate(nw); }
-      });
-    });
+  if(!navigator.serviceWorker.getRegistrations) return;
+  navigator.serviceWorker.getRegistrations().then(function(regs){
+    if(!regs || !regs.length) return;
+    regs.forEach(function(r){ r.unregister().catch(function(){}); });
+    console.log('[SW] הוסרו', regs.length, 'רישומים ישנים');
   }).catch(function(){});
-  // כשה-SW החדש השתלט — טוענים מחדש פעם אחת
-  var _reloaded=false;
-  navigator.serviceWorker.addEventListener('controllerchange', function(){
-    if(_reloaded) return; _reloaded=true; location.reload();
-  });
 })();
 function showUpdateBanner(onClick){
   if(document.getElementById('update-banner')) return;
