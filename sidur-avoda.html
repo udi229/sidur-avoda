@@ -13888,6 +13888,17 @@ async function galSaveMasterView(){
           res.cells[c.schedule_id+'_'+c.shift_type+'_'+c.day_index]=c.content||'';
         });
       }
+      // אם shiftRoles עדיין ריק (טעינה חלקית) — נשלוף אותו, אחרת תת-שורות ייעלמו
+      try{
+        if(typeof shiftRoles!=='undefined' && !Object.keys(shiftRoles).length){
+          var sr=await sb.from('shift_roles').select('id,department_id,shift_id');
+          (sr.data||[]).forEach(function(r){
+            var k=r.department_id+'_'+r.shift_id;
+            if(!shiftRoles[k]) shiftRoles[k]=[];
+            shiftRoles[k].push(r);
+          });
+        }
+      }catch(e){ console.warn('[shift-panel] shift_roles fetch failed:', e&&e.message); }
       var ns=(typeof shiftTypes!=='undefined'?shiftTypes:[]).filter(function(x){return x.name==='לילה';})[0];
       if(ns){
         var nw=await sb.from('night_week_active')
@@ -13970,12 +13981,22 @@ async function galSaveMasterView(){
   function peopleFor(cat,dayOverride,onlyIds){
     var day=(dayOverride===undefined)?dayForCat(cat):dayOverride;
     var ids=onlyIds||shiftIdsFor(cat), out=[];
+    var SR=(typeof shiftRoles!=='undefined'?shiftRoles:{});
     depts().forEach(function(dp){
       var sch=S.scheds[dp.id]; var seen=[];
       if(sch){
         ids.forEach(function(sid){
-          String(S.cells[sch.id+'_'+sid+'_'+day]||'').split('|').forEach(function(n){
-            n=n.trim(); if(n && seen.indexOf(n)===-1) seen.push(n);
+          // 1) התא של המשמרת עצמה
+          var keys=[sch.id+'_'+sid+'_'+day];
+          // 2) תת-שורות של תפקידים. כשמוגדרים תפקידים למחלקה+משמרת,
+          //    השמות נשמרים תחת 'r_<role_id>' ולא תחת מזהה המשמרת —
+          //    בלי זה מחלקות שלמות (למשל סיג'י) יצאו ריקות.
+          var rl=SR[dp.id+'_'+sid]||[];
+          rl.forEach(function(r){ keys.push(sch.id+'_r_'+r.id+'_'+day); });
+          keys.forEach(function(k){
+            String(S.cells[k]||'').split('|').forEach(function(n){
+              n=n.trim(); if(n && seen.indexOf(n)===-1) seen.push(n);
+            });
           });
         });
       }
