@@ -13604,6 +13604,42 @@ async function galSaveMasterView(){
     box-shadow:0 0 10px #00e5a044,0 0 20px #00e5a022; text-shadow:0 0 7px #00e5a088; }
   #hub-shift-btn.allowed{ display:flex; }
 
+  /* ── כוונון מרכוז מערכת השמש ──
+     הכוכבים סימטריים בקוד, אבל הסצנה כולה יושבת ~20px שמאלה מהמרכז.
+     הערך למטה מזיז אותה ימינה. שנה אותו אם צריך לדייק. */
+  .hub-scene{
+    --hub-shift-x: 20px;
+    transform: translateX(var(--hub-shift-x)) scale(var(--hub-scale,1)) !important;
+    transform-origin:center center;
+  }
+
+  /* ── נשימה עדינה מאוד של כוכבי מערכת השמש ──
+     נפרד מה-pulse הקיים (שהוא box-shadow), אז הזוהר לא נפגע.
+     :not(.hub-intro) — כדי לא להתנגש באנימציית הכניסה. */
+  /* ריחוף: תנועה אנכית קטנה + נשימה. מחזורים לא-שלמים זה מול זה,
+     כדי שהכוכבים ייצאו מסנכרון לבד ולא ינועו כמו מנגנון. */
+  @keyframes hubDriftA{ 0%,100%{ transform:translateY(0)      scale(1);     }
+                        50%    { transform:translateY(-4px)   scale(1.015); } }
+  @keyframes hubDriftB{ 0%,100%{ transform:translateY(0)      scale(1);     }
+                        50%    { transform:translateY(-3px)   scale(1.013); } }
+  @keyframes hubDriftC{ 0%,100%{ transform:translateY(0)      scale(1);     }
+                        50%    { transform:translateY(-5px)   scale(1.017); } }
+  @keyframes hubDriftSun{ 0%,100%{ transform:translateY(0)    scale(1);     }
+                          50%  { transform:translateY(-2.5px) scale(1.01);  } }
+
+  #hub-screen:not(.hub-intro) .hub-p1{ animation:pulseVac 2.8s ease-in-out infinite, hubDriftA 5.4s ease-in-out 0s   infinite; }
+  #hub-screen:not(.hub-intro) .hub-p2{ animation:pulseLoz 3.2s ease-in-out infinite, hubDriftB 6.3s ease-in-out .7s  infinite; }
+  #hub-screen:not(.hub-intro) .hub-p3{ animation:pulseCon 3s   ease-in-out infinite, hubDriftC 4.9s ease-in-out 1.5s infinite; }
+  #hub-screen:not(.hub-intro) .hub-sun{ animation:hubSunBreath 3.5s ease-in-out infinite, hubDriftSun 7.2s ease-in-out .4s infinite; }
+
+  /* מכבדים העדפת מערכת להפחתת תנועה */
+  @media (prefers-reduced-motion: reduce){
+    #hub-screen:not(.hub-intro) .hub-p1,
+    #hub-screen:not(.hub-intro) .hub-p2,
+    #hub-screen:not(.hub-intro) .hub-p3,
+    #hub-screen:not(.hub-intro) .hub-sun{ animation-name:pulseVac; }
+  }
+
   /* הגלריה כבויה — לא בשימוש. להחזרה: GALLERY_ENABLED=true והסרת הכלל הזה. */
   .hub-tv-btn, #hub-screen.active .hub-tv-btn.active{ display:none !important; }
 
@@ -13992,7 +14028,12 @@ async function galSaveMasterView(){
   function updateBtnCount(){
     var el=document.getElementById('hub-shift-count'); if(!el) return;
     var cur=curCat();
-    if(!cur || !Object.keys(S.scheds).length){ el.textContent='—'; return; }
+    if(!Object.keys(S.scheds).length){
+      el.textContent='—';
+      el.title='אין נתוני שיבוץ בזיכרון (weekOffset='+(typeof weekOffset!=='undefined'?weekOffset:'?')+')';
+      return;
+    }
+    if(!cur){ el.textContent='—'; el.title='אין משמרת פעילה כרגע'; return; }
     var cat=activeCats().filter(function(c){return c.key===cur;})[0];
     var n=0; peopleFor(cat).forEach(function(g){ n+=g.names.length; });
     el.textContent=n;
@@ -14031,14 +14072,25 @@ async function galSaveMasterView(){
   }
 
   window.shiftPanelOpen=async function(){
-    if(!allowed()) return;
+    if(!allowed()){ console.warn('[shift-panel] blocked: isMgr=',(typeof isMgr!=='undefined'?isMgr:'?'),'mgrType=',window._mgrType); return; }
     var p=document.getElementById('shift-panel');
+    if(!p){ alert('שגיאה: חלון "מי במשמרת" לא נמצא ב-DOM'); return; }
+    if(p.parentElement!==document.body) document.body.appendChild(p);
     p.classList.add('open');
-    document.getElementById('sp-list').innerHTML='<div class="sp-load">טוען…</div>';
-    await refresh(false);
+    p.style.setProperty('transform','translateY(0)','important');
+    var lst=document.getElementById('sp-list');
+    if(lst) lst.innerHTML='<div class="sp-load">טוען…</div>';
+    try{ await refresh(false); }
+    catch(err){
+      console.error('[shift-panel] refresh failed:',err);
+      if(lst) lst.innerHTML='<div class="sp-load">שגיאה בטעינה: '+(err&&err.message||err)+'</div>';
+    }
   };
   window.shiftPanelClose=function(){
-    document.getElementById('shift-panel').classList.remove('open');
+    var p=document.getElementById('shift-panel');
+    if(!p) return;
+    p.classList.remove('open');
+    p.style.removeProperty('transform');
   };
 
   // עדכון חי בלי פולינג: מתעדכן כשהאפליקציה עצמה מרעננת את הלו״ז.
@@ -14076,6 +14128,22 @@ async function galSaveMasterView(){
   // מחובר · גלריה · מעטפה · מי במשמרת   (היציאה נשארת בפינה בנפרד)
   function buildDock(){
     var dock=document.getElementById('hub-dock'); if(!dock) return;
+
+    // הפאנל חייב להיות ילד ישיר של body — אחרת z-index שלו כלוא
+    // בתוך ה-stacking context של #hub-screen (z-index:9990) והוא לא ייראה.
+    var pnl=document.getElementById('shift-panel');
+    if(pnl && pnl.parentElement!==document.body) document.body.appendChild(pnl);
+
+    // מאזין אמיתי במקום להסתמך על inline onclick
+    var sb2=document.getElementById('hub-shift-btn');
+    if(sb2 && !sb2._spBound){
+      sb2._spBound=true;
+      sb2.addEventListener('click', function(ev){
+        ev.preventDefault(); ev.stopPropagation();
+        try{ window.shiftPanelOpen(); }
+        catch(err){ console.error('[shift-panel] open failed:',err); alert('שגיאה בפתיחה: '+(err&&err.message)); }
+      }, true);
+    }
     ['hub-onair','hub-announce-btn','hub-shift-btn'].forEach(function(id){
       var el=document.getElementById(id);
       if(el && el.parentNode!==dock) dock.appendChild(el);
