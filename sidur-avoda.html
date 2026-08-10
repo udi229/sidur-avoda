@@ -13763,12 +13763,57 @@ async function galSaveMasterView(){
   var DSH=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
   var MON=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
 
-  // קטגוריות — מוגדרות לפי שמות המשמרות, לא לפי id (ה-id מגיע מה-DB ומשתנה)
-  var CATS=[
-    {key:'am',   name:'בוקר',                  color:'#F59E0B', from:['בוקר'],          s:360,  e:840},
-    {key:'pm',   name:'צהריים · מהדורה · ערב', color:'#8B5CF6', from:['אמצע','מהדורה'], s:600,  e:1380},
-    {key:'nite', name:'לילה',                  color:'#64748B', from:['לילה'],          s:1380, e:360, night:true}
+  // ── קטגוריות נבנות מהמשמרות האמיתיות לפי שעת ההתחלה ──
+  // לא לפי שם: שם שונה במשהו ב-shift_types היה מפיל משמרת שלמה מהמסך.
+  // כך גם משמרות בלי שעה (למשל "ערבית") נכנסות ולא נעלמות.
+  var CAT_DEF=[
+    {key:'am',   name:'בוקר',                  color:'#F59E0B'},
+    {key:'pm',   name:'צהריים · מהדורה · ערב', color:'#8B5CF6'},
+    {key:'nite', name:'לילה',                  color:'#64748B', night:true}
   ];
+  function parseHM(t){
+    var m=/^(\d{1,2}):(\d{2})/.exec(String(t||'').trim());
+    if(!m) return null;
+    return parseInt(m[1],10)*60+parseInt(m[2],10);
+  }
+  // מחזיר {s,e} כשה-e תמיד גדול מ-s. משמרת שחוצה חצות מקבלת e>1440.
+  // "15:00-00:00" → {900,1440}   "23:00-06:00" → {1380,1800}
+  function spanOf(st){
+    var p=String(st.time||'').split('-');
+    var a=parseHM(p[0]), b=parseHM(p[1]);
+    if(a===null) return null;
+    if(b===null) b=a;
+    if(b<=a) b+=1440;
+    return {s:a,e:b};
+  }
+  function catKeyForShift(st){
+    var sp=spanOf(st);
+    // לילה = חוצה חצות. זו התכונה שמגדירה אותו, לא שעה שרירותית.
+    // כלל שהתבסס על "לפני 05:00" היה מסווג בוקר 05:30 כלילה בטעות.
+    // e==1440 בדיוק (למשל 15:00-00:00) נחשב מסתיים בחצות ולא חוצה אותה.
+    if(/לילה/.test(st.name||'')) return 'nite';
+    if(!sp) return 'pm';                       // בלי שעה מוגדרת
+    if(sp.e>1440) return 'nite';
+    if(sp.s<10*60) return 'am';
+    return 'pm';
+  }
+  // נבנה מחדש בכל קריאה — משתנה יחד עם shift_types בלי לגעת בקוד
+  function CATS(){
+    var all=(typeof shiftTypes!=='undefined'?shiftTypes:[]);
+    return CAT_DEF.map(function(d){
+      var mem=all.filter(function(st){ return catKeyForShift(st)===d.key; });
+      var sMin=null,eMax=null;
+      mem.forEach(function(st){
+        var sp=spanOf(st); if(!sp) return;
+        if(sMin===null||sp.s<sMin) sMin=sp.s;
+        if(eMax===null||sp.e>eMax) eMax=sp.e;
+      });
+      return { key:d.key, name:d.name, color:d.color, night:!!d.night,
+               ids:mem.map(function(st){return st.id;}),
+               names:mem.map(function(st){return st.name;}),
+               s:(sMin===null?0:sMin), e:(eMax===null?0:eMax) };
+    }).filter(function(c){ return c.ids.length>0; });
+  }
 
   var S={ cells:{}, scheds:{}, vac:[], nightOn:false, sel:null, tab:1,
           loaded:false, lastSig:null, flash:{} };
@@ -13782,20 +13827,9 @@ async function galSaveMasterView(){
   function initials(n){ return String(n).trim().split(/\s+/).map(function(w){return w[0];}).slice(0,2).join(''); }
   function fmtD(d){ return DSH[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1); }
   function fmtPhone(p){ return p?String(p).replace(/[^\d]/g,'').replace(/(\d{3})(\d{3,4})(\d{4})/,'$1-$2-$3'):''; }
-  function shiftTimeOf(nm){
-    var st=(typeof shiftTypes!=='undefined'?shiftTypes:[]).filter(function(s){return s.name===nm;})[0];
-    return st&&st.time?st.time:'';
-  }
-  function catTime(c){
-    var a=shiftTimeOf(c.from[0]), b=shiftTimeOf(c.from[c.from.length-1]);
-    if(!a) return '';
-    return a.split('-')[0]+'-'+((b||a).split('-')[1]||'');
-  }
-  function shiftIdsFor(c){
-    return (typeof shiftTypes!=='undefined'?shiftTypes:[])
-      .filter(function(s){ return c.from.indexOf(s.name)>-1; })
-      .map(function(s){ return s.id; });
-  }
+  function pad2(n){ n=((n%1440)+1440)%1440; return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0'); }
+  function catTime(c){ return c.e?(pad2(c.s)+'-'+pad2(c.e)):''; }
+  function shiftIdsFor(c){ return c.ids||[]; }
 
   // ── נתונים: קודם כל מהזיכרון. שליפה מהשרת רק כשאין ברירה. ──
   // egress יקר, ו-cellData/schedules/nightWeekDepts כבר טעונים ע"י loadWeekData().
@@ -13872,15 +13906,13 @@ async function galSaveMasterView(){
     }
   }
 
-  function activeCats(){ return CATS.filter(function(c){ return !c.night || S.nightOn; }); }
+  function activeCats(){ return CATS().filter(function(c){ return !c.night || S.nightOn; }); }
   function nowMin(){ var d=new Date(); return d.getHours()*60+d.getMinutes(); }
+  // הטווחים כבר מנורמלים (e>s, יכול לעבור 1440), אז בודקים גם m וגם m+1440
+  function inSpan(m,c){ return (m>=c.s&&m<c.e) || (m+1440>=c.s&&m+1440<c.e); }
   function curCat(){
     var m=nowMin(), L=activeCats();
-    for(var i=0;i<L.length;i++){
-      var c=L[i];
-      if(c.e<=c.s){ if(m>=c.s||m<c.e) return c.key; }
-      else if(m>=c.s&&m<c.e) return c.key;
-    }
+    for(var i=0;i<L.length;i++){ if(inSpan(m,L[i])) return L[i].key; }
     return null;
   }
   function nextCat(){
@@ -13888,10 +13920,23 @@ async function galSaveMasterView(){
     for(var i=0;i<L.length;i++){ var d=L[i].s-m; if(d<0)d+=1440; if(d<gap){gap=d;best=L[i];} }
     return best?{cat:best,mins:gap}:null;
   }
+  // כשאין משמרת פעילה — מציגים את זו שהרגע הסתיימה, לא את הבוקר.
+  function lastEndedCat(){
+    var m=nowMin(), L=activeCats(), best=null, gap=1e9;
+    for(var i=0;i<L.length;i++){ var d=m-(L[i].e%1440); if(d<0)d+=1440; if(d<gap){gap=d;best=L[i];} }
+    return best?{cat:best,mins:gap}:null;
+  }
+  function defaultCatKey(){
+    var cur=curCat(); if(cur) return cur;
+    var le=lastEndedCat(); if(le) return le.cat.key;
+    var L=activeCats(); return L.length?L[0].key:null;
+  }
   // משמרת שחוצה חצות שייכת ליום שבו התחילה
+  // קטגוריה שחוצה חצות שייכת ליום שבו התחילה.
+  // ב-02:00 ביום ב׳, צוות הלילה הוא זה שנרשם ליום א׳.
   function dayForCat(c){
-    var di=new Date().getDay();
-    if(c.e<=c.s && nowMin()<c.e) return (di+6)%7;
+    var di=new Date().getDay(), m=nowMin();
+    if(c.e>1440 && m<(c.e-1440)) return (di+6)%7;
     return di;
   }
   function depts(){ return (typeof departments!=='undefined'?departments:[]); }
@@ -13944,7 +13989,7 @@ async function galSaveMasterView(){
 
     var L=activeCats(), cur=curCat();
     if(S.sel && !L.some(function(c){return c.key===S.sel;})) S.sel=null;
-    var show=S.sel||cur||'am';
+    var show=S.sel||defaultCatKey();
 
     document.getElementById('sp-cats').innerHTML=L.map(function(c){
       var n=0; peopleFor(c).forEach(function(g){ n+=g.names.length; });
@@ -13963,12 +14008,16 @@ async function galSaveMasterView(){
 
     var banner='';
     if(!cur){
-      var nx=nextCat();
+      var nx=nextCat(), le=lastEndedCat(), txt='אין משמרת פעילה כרגע';
+      if(le){
+        var lh=Math.floor(le.mins/60), lm=le.mins%60;
+        txt+=' · מוצגת '+le.cat.name+' שהסתיימה לפני '+(lh?lh+' שעות ':'')+(lm?lm+' דק׳':'');
+      }
       if(nx){
         var h=Math.floor(nx.mins/60), mm=nx.mins%60;
-        banner='<div class="sp-off">אין משמרת פעילה כרגע · המשמרת הבאה: '+nx.cat.name
-          +' בעוד '+(h?h+' שעות ':'')+(mm?mm+' דק׳':'')+'</div>';
+        txt+=' · הבאה: '+nx.cat.name+' בעוד '+(h?h+' שעות ':'')+(mm?mm+' דק׳':'');
       }
+      banner='<div class="sp-off">'+txt+'</div>';
     }
     document.getElementById('sp-tot').innerHTML=banner+'<span>'+tot+' משובצים · '+cat.name
       +(dayForCat(cat)!==di?' (צוות של אתמול)':'')+(isNight?' · עם טלפונים':'')+'</span>';
@@ -14027,13 +14076,13 @@ async function galSaveMasterView(){
 
   function updateBtnCount(){
     var el=document.getElementById('hub-shift-count'); if(!el) return;
-    var cur=curCat();
     if(!Object.keys(S.scheds).length){
       el.textContent='—';
       el.title='אין נתוני שיבוץ בזיכרון (weekOffset='+(typeof weekOffset!=='undefined'?weekOffset:'?')+')';
       return;
     }
-    if(!cur){ el.textContent='—'; el.title='אין משמרת פעילה כרגע'; return; }
+    var cur=curCat(), key=defaultCatKey();
+    if(!key){ el.textContent='—'; el.title='אין משמרות מוגדרות'; return; }
     var cat=activeCats().filter(function(c){return c.key===cur;})[0];
     var n=0; peopleFor(cat).forEach(function(g){ n+=g.names.length; });
     el.textContent=n;
