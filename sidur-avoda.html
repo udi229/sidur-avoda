@@ -13716,6 +13716,11 @@ async function galSaveMasterView(){
     text-decoration:none; direction:ltr; }
   #shift-panel .sp-prow .noph{ margin-right:auto; font-size:10px; color:#3a5f7d; font-style:italic; }
   #shift-panel .sp-none{ font-size:11px; color:#ff8a6699; font-style:italic; padding-top:3px; }
+  #shift-panel .sp-col{ flex:1; min-width:0; }
+  #shift-panel .sp-rolegrp{ margin-bottom:7px; }
+  #shift-panel .sp-rolegrp:last-child{ margin-bottom:0; }
+  #shift-panel .sp-role{ font-size:9.5px; font-weight:900; color:#6f9cba;
+    letter-spacing:.4px; margin-bottom:3px; opacity:.85; }
   #shift-panel .sp-row.zero .dn{ color:#2a4a63; }
 
   #shift-panel .vcard{ background:#0b0616; border:1px solid #33204a; border-radius:12px;
@@ -13978,29 +13983,42 @@ async function galSaveMasterView(){
       return cat.ids.indexOf(st.id)>-1 && run.indexOf(st.id)===-1;
     });
   }
+  // לכל מחלקה: names (הכל) + groups לפי תפקיד.
+  // תפקיד הוא מידע אמיתי — פרומפטר הוא לא סיג'י, CCU הוא לא צלם.
   function peopleFor(cat,dayOverride,onlyIds){
     var day=(dayOverride===undefined)?dayForCat(cat):dayOverride;
     var ids=onlyIds||shiftIdsFor(cat), out=[];
     var SR=(typeof shiftRoles!=='undefined'?shiftRoles:{});
     depts().forEach(function(dp){
-      var sch=S.scheds[dp.id]; var seen=[];
+      var sch=S.scheds[dp.id], seen=[], groups=[];
+      function add(label,raw){
+        var list=[];
+        String(raw||'').split('|').forEach(function(n){
+          n=n.trim(); if(!n) return;
+          if(seen.indexOf(n)===-1) seen.push(n);
+          if(list.indexOf(n)===-1) list.push(n);
+        });
+        if(!list.length) return;
+        var g=groups.filter(function(x){ return x.role===label; })[0];
+        if(g){ list.forEach(function(n){ if(g.names.indexOf(n)===-1) g.names.push(n); }); }
+        else groups.push({role:label,names:list});
+      }
       if(sch){
         ids.forEach(function(sid){
-          // 1) התא של המשמרת עצמה
-          var keys=[sch.id+'_'+sid+'_'+day];
-          // 2) תת-שורות של תפקידים. כשמוגדרים תפקידים למחלקה+משמרת,
-          //    השמות נשמרים תחת 'r_<role_id>' ולא תחת מזהה המשמרת —
-          //    בלי זה מחלקות שלמות (למשל סיג'י) יצאו ריקות.
-          var rl=SR[dp.id+'_'+sid]||[];
-          rl.forEach(function(r){ keys.push(sch.id+'_r_'+r.id+'_'+day); });
-          keys.forEach(function(k){
-            String(S.cells[k]||'').split('|').forEach(function(n){
-              n=n.trim(); if(n && seen.indexOf(n)===-1) seen.push(n);
-            });
-          });
+          var rl=(SR[dp.id+'_'+sid]||[]).slice()
+            .sort(function(a,b){ return (a.sort_order||0)-(b.sort_order||0); });
+          // או/או — בדיוק כמו renderSchedule (שורה 5767):
+          // יש תפקידים → קוראים רק את תאי התפקידים.
+          // התא הראשי עדיין קיים ב-DB עם נתונים מלפני הגדרת התפקידים,
+          // אבל הטבלה לא מציגה אותו, ולכן גם אנחנו לא.
+          if(rl.length){
+            rl.forEach(function(r){ add(r.role_name||'תפקיד', S.cells[sch.id+'_r_'+r.id+'_'+day]); });
+          } else {
+            add(null, S.cells[sch.id+'_'+sid+'_'+day]);
+          }
         });
       }
-      out.push({dept:dp.name, names:seen});
+      out.push({dept:dp.name, names:seen, groups:groups});
     });
     return out;
   }
@@ -14096,22 +14114,33 @@ async function galSaveMasterView(){
     document.getElementById('sp-list').innerHTML=groups.map(function(g){
       if(isNight && !g.names.length) return '';   // בלילה — מחלקות ריקות לא מוצגות
       var inner;
-      if(!g.names.length){ inner='<div class="sp-none">לא מאויש</div>'; }
-      else if(isNight){
-        inner='<div class="sp-ppl tel">'+g.names.map(function(x){
+      var gs=(g.groups&&g.groups.length)?g.groups:[{role:null,names:g.names}];
+      var showRoles = gs.length>1 || (gs[0] && gs[0].role);
+      function chips(list){
+        return '<div class="sp-ppl">'+list.map(function(x){
+          return '<span class="sp-p" style="--c:'+cat.color+'">'+x+'</span>';
+        }).join('')+'</div>';
+      }
+      function tel(list){
+        return '<div class="sp-ppl tel">'+list.map(function(x){
           var ph=fmtPhone(phoneOf(x)), raw=String(phoneOf(x)).replace(/[^\d+]/g,'');
           return '<div class="sp-prow" style="--c:'+cat.color+'"><span class="n2">'+x+'</span>'
             +(ph?'<a href="tel:'+raw+'">📞 '+ph+'</a>':'<span class="noph">אין טלפון במערכת</span>')
             +'</div>';
         }).join('')+'</div>';
-      } else {
-        inner='<div class="sp-ppl">'+g.names.map(function(x){
-          return '<span class="sp-p" style="--c:'+cat.color+'">'+x+'</span>';
-        }).join('')+'</div>';
+      }
+      if(!g.names.length){ inner='<div class="sp-none">לא מאויש</div>'; }
+      else if(!showRoles){ inner = isNight?tel(g.names):chips(g.names); }
+      else {
+        inner = gs.map(function(sg){
+          return '<div class="sp-rolegrp">'
+            +(sg.role?'<div class="sp-role">'+sg.role+'</div>':'')
+            +(isNight?tel(sg.names):chips(sg.names))+'</div>';
+        }).join('');
       }
       return '<div class="sp-row '+(g.names.length?'':'zero')+'">'
         +'<span class="dn" style="color:'+(g.names.length?'#adcde4':'#2a4a63')+'">'+g.dept+'</span>'
-        +inner+'</div>';
+        +'<div class="sp-col">'+inner+'</div></div>';
     }).join('')||'<div class="sp-none" style="text-align:center;padding:26px 0">אין שיבוצים</div>';
 
     renderVac();
