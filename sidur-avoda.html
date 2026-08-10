@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
+<script>
+window.GALLERY_ENABLED = false;   // ← true כדי להחזיר את הגלריה
+window.RAIN_ENABLED    = false;   // ← true כדי להחזיר את גשם האותיות
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>אולפנים — סידורי עבודה</title>
@@ -382,10 +386,10 @@
   #hub-onair{ display:none; position:fixed; bottom:20px; left:18px; z-index:60;    align-items:center; gap:8px; padding:7px 12px; border-radius:10px;
     background:rgba(20,4,4,0.55); border:1px solid #3a2a2a; -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
     font-family:'Heebo',system-ui,sans-serif; user-select:none; pointer-events:none; transition:opacity .3s, border-color .3s; }
-  #hub-screen.active #hub-onair.udi{ display:flex; }   /* מוצגת רק לאודי כשמערכת השמש פעילה */
+  #hub-screen.active #hub-onair{ display:flex; }   /* מוצגת לכל המשתמשים כשמערכת השמש פעילה */
   /* מצב כבוי (ברירת מחדל) — אפור, עמום */
   #hub-onair .onair-dot{ width:11px; height:11px; border-radius:50%; background:#555; box-shadow:none; transition:background .3s, box-shadow .3s; }
-  #hub-onair .onair-text{ color:#777; font-weight:900; font-size:13px; letter-spacing:1.5px; text-shadow:none; transition:color .3s, text-shadow .3s; }
+  #hub-onair .onair-text{ color:#777; font-weight:900; font-size:12px; letter-spacing:.3px; text-shadow:none; transition:color .3s, text-shadow .3s; white-space:nowrap; }
   /* מצב דלוק — אדום זוהר פועם */
   #hub-onair.on .onair-dot{ background:#ff2222; box-shadow:0 0 8px #ff0000,0 0 16px #ff000088; animation:onairPulse 1.8s ease-in-out infinite; }
   #hub-onair.on .onair-text{ color:#ff5555; text-shadow:0 0 8px #ff000088; }
@@ -2760,14 +2764,22 @@
     <div class="hub-tv-label">פריימים</div>
   </button>
 
-  <!-- מנורת ON-AIR — אינדיקציית חיבור ועדכניות (רק לאודי) -->
+  <!-- מנורת חיבור — מוצגת לכל המשתמשים -->
   <div id="hub-onair" aria-label="חיבור" title="חיבור">
     <div class="onair-dot"></div>
-    <div class="onair-text">OFF</div>
+    <div class="onair-text">לא מחובר</div>
   </div>
 
+  <!-- שורת הכפתורים התחתונה -->
+  <div id="hub-dock"></div>
+
+  <!-- כפתור "מי במשמרת" — אודי ואפרת בלבד -->
+  <button id="hub-shift-btn" onclick="shiftPanelOpen()">
+    <span class="sb-ic">👥</span><span class="sb-lb">מי במשמרת</span><span class="sb-n" id="hub-shift-count">—</span>
+  </button>
+
   <!-- כפתור ניהול הודעות (רק לאודי) -->
-  <button id="hub-announce-btn" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);right:auto;top:auto;z-index:2147483647;pointer-events:auto;padding:7px 12px;border-radius:10px;border:1px solid #ff2a2a;background:rgba(30,4,4,0.55);color:#ff6b6b;font-size:12px;font-weight:800;letter-spacing:0.5px;font-family:'Heebo',sans-serif;cursor:pointer;overflow:hidden;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);box-shadow:0 0 7px #ff000055,0 0 14px #ff000022;text-shadow:0 0 6px #ff000088"><span style="position:relative;z-index:2">📢 הודעות</span><span class="ann-sweep"></span></button>
+  <button id="hub-announce-btn" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);right:auto;top:auto;z-index:2147483647;pointer-events:auto;padding:7px 12px;border-radius:10px;border:1px solid #ff2a2a;background:rgba(30,4,4,0.55);color:#ff6b6b;font-size:12px;font-weight:800;letter-spacing:0.5px;font-family:'Heebo',sans-serif;cursor:pointer;overflow:hidden;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);box-shadow:0 0 7px #ff000055,0 0 14px #ff000022;text-shadow:0 0 6px #ff000088"><span style="position:relative;z-index:2">✉️</span><span class="ann-sweep"></span></button>
 
   <button class="hub-btn-exit" id="hub-exit-btn" onclick="hubExit()">
     <span class="exit-icon">🚪</span>
@@ -10006,6 +10018,23 @@ function hubStopSnake(){ if(window._hubSnakeRAF){ cancelAnimationFrame(window._h
 /* ===== מודול רקע גשם (client-side בלבד, קנבס יחיד, עצירה נקייה) ===== */
 (function(){
   if(window.RainBG) return;                 // מונע יצירה כפולה
+  // ── הגשם מבוטל. RAIN_ENABLED=true מחזיר אותו. ──
+  // stub עם אותו API, כדי שכל הקריאות הקיימות (attach/start/stop/resize)
+  // ימשיכו לעבוד בלי שנצטרך לגעת בהן.
+  if(window.RAIN_ENABLED===false){
+    window.RainBG={ attach:function(){}, start:function(){}, stop:function(){}, resize:function(){} };
+    ['hub-rain','auth-rain'].forEach(function(id){
+      var c=document.getElementById(id);
+      if(c) c.style.display='none';
+    });
+    document.addEventListener('DOMContentLoaded',function(){
+      ['hub-rain','auth-rain'].forEach(function(id){
+        var c=document.getElementById(id);
+        if(c) c.style.display='none';
+      });
+    });
+    return;
+  }
   var FONT=16,SPEED=0.9,TRAIL=11,SPARSE=0.42,HEAD_A=0.6,TAIL_A=0.28;
   var PALETTE=[[30,64,160],[40,90,200],[25,50,130],[50,110,220],[35,75,175]];
   var GLYPHS='אבגדהוזחטיכךלמםנןסעפףצץקרשת0123456789';
@@ -11981,6 +12010,8 @@ function galCanManagePerms(){
 
 // ---------- Load / refresh permissions+settings ----------
 async function galLoadPerms(){
+  // הגלריה כבויה — לא שולפים הרשאות (חוסך 2 שאילתות בכל טעינה)
+  if(window.GALLERY_ENABLED===false) return;
   try{
     const [{data: settings}, {data: perms}] = await Promise.all([
       sb.from('gallery_settings').select('*').eq('id',1).maybeSingle(),
@@ -11997,26 +12028,22 @@ async function galLoadPerms(){
   }
 }
 
-// ---------- מנורת ON-AIR: אינדיקציית חיבור ועדכניות (רק לאודי) ----------
+// ---------- מנורת חיבור: "מחובר" / "לא מחובר" (לכל המשתמשים) ----------
 function updateOnAirIndicator(){
   const el=document.getElementById('hub-onair');
   if(!el) return;
-  // רק לאודי (מנהל ראשי) — המנורה מוצגת. לכל השאר היא לא קיימת.
-  const isUdi = (window._mgrType==='primary') && isMgr;
-  if(!isUdi){ el.classList.remove('udi'); el.classList.remove('on'); return; }
-  el.classList.add('udi'); // תמיד מוצגת לאודי (גם כבויה)
+  el.classList.add('udi'); // נשמר לתאימות אחורה; התצוגה כבר לא תלויה בזה
   // "מחובר" = יש חיבור רשת. (ה-polling נעצר בכוונה בחוסר פעילות, אז לא נסתמך עליו)
   const online = (typeof navigator!=='undefined' ? (navigator.onLine!==false) : true);
-  const connected = online;
   var txt=el.querySelector('.onair-text');
-  if(connected){
-    el.classList.add('on');            // דולק — ON + מנורה אדומה
-    if(txt) txt.textContent='ON';
-    el.title='מחובר ומעודכן';
+  if(online){
+    el.classList.add('on');
+    if(txt) txt.textContent='מחובר';
+    el.title='מחובר לרשת';
   } else {
-    el.classList.remove('on');         // כבוי — OFF + מנורה אפורה כבויה
-    if(txt) txt.textContent='OFF';
-    el.title = !online ? 'לא מחובר לרשת' : 'מתחבר...';
+    el.classList.remove('on');
+    if(txt) txt.textContent='לא מחובר';
+    el.title='אין חיבור לרשת';
   }
 }
 if(typeof window!=='undefined'){
@@ -12415,6 +12442,8 @@ let galHubCoverUrls = [];
 let galHubSlideIdx = 0;
 
 async function galLoadHubCovers(){
+  // הגלריה כבויה — לא מורידים תמונות כיסוי (זה היה צרכן egress אמיתי)
+  if(window.GALLERY_ENABLED===false){ galHubCoverUrls=[]; return; }
   // Cache hub covers in localStorage for 1 hour to reduce DB hits + egress
   // Hub slideshow displays in background — staleness of up to 1h is fine
   try{
@@ -12451,6 +12480,7 @@ async function galLoadHubCovers(){
 }
 
 async function galStartHubSlideshow(){
+  if(window.GALLERY_ENABLED===false) return;
   // Already running? Don't double-start.
   if(galHubSlideTimer) return;
   await galLoadHubCovers();
@@ -13539,6 +13569,535 @@ async function galSaveMasterView(){
     <div id="ann-list"></div>
   </div>
 </div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     מסך "מי במשמרת" — אודי ואפרת בלבד
+     מודול עצמאי: לא נוגע בשום קוד קיים.
+     ══════════════════════════════════════════════════════════════ -->
+<style id="shift-panel-css">
+  /* ── שורת כפתורים תחתונה: flex אמיתי במקום קואורדינטות קבועות ──
+     פותר גם חפיפה קיימת בין מנורת החיבור לכפתור הגלריה. */
+  #hub-dock{ display:none; position:fixed; left:0; right:0; bottom:16px; z-index:2147483646;
+    align-items:center; justify-content:space-between; gap:8px;
+    padding:0 14px 0 80px;   /* 80 משמאל = מרווח לכפתור היציאה */
+    direction:ltr; pointer-events:none; }
+  #hub-screen.active #hub-dock{ display:flex; }
+  #hub-dock > *{ pointer-events:auto; position:static !important;
+    transform:none !important; margin:0 !important; flex-shrink:0; inset:auto !important; }
+
+  #hub-shift-btn{ display:none; align-items:center; gap:7px; padding:8px 13px; border-radius:20px;
+    border:1.5px solid #00e5a0; background:rgba(2,20,14,0.6); color:#5cffcc;
+    font-family:'Heebo',sans-serif; font-size:12px; font-weight:900; cursor:pointer;
+    -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); direction:rtl;
+    box-shadow:0 0 10px #00e5a044,0 0 20px #00e5a022; text-shadow:0 0 7px #00e5a088; }
+  #hub-shift-btn.allowed{ display:flex; }
+
+  /* הגלריה כבויה — לא בשימוש. להחזרה: GALLERY_ENABLED=true והסרת הכלל הזה. */
+  .hub-tv-btn, #hub-screen.active .hub-tv-btn.active{ display:none !important; }
+
+  /* ההודעות הופכות למעטפה בלבד — עיגול קומפקטי */
+  #hub-dock #hub-announce-btn{ width:38px; height:38px; padding:0 !important;
+    border-radius:50% !important; display:none; align-items:center; justify-content:center;
+    font-size:17px !important; letter-spacing:0 !important; }
+  #hub-dock #hub-announce-btn.shown{ display:flex; }
+  #hub-shift-btn .sb-n{ background:#00e5a0; color:#012b20; border-radius:9px; padding:1px 7px;
+    font-size:10px; font-weight:900; text-shadow:none; }
+
+  #shift-panel{ position:fixed; inset:0; z-index:2147483647; background:#030510;
+    display:flex; flex-direction:column; transform:translateY(100%);
+    transition:transform .4s cubic-bezier(.2,.9,.3,1);
+    font-family:'Heebo',sans-serif; color:#e8f0f8; direction:rtl; }
+  #shift-panel.open{ transform:translateY(0); }
+  #shift-panel *{ box-sizing:border-box; }
+  #shift-panel header{ padding:14px 16px 11px; border-bottom:1px solid #0e2233; flex-shrink:0; position:relative; }
+  #shift-panel .sp-day{ font-size:21px; font-weight:900; color:#fff; line-height:1.15; }
+  #shift-panel .sp-dt{ font-size:11px; color:#4d7a96; margin-top:2px; }
+  #shift-panel .sp-x{ position:absolute; top:14px; left:16px; width:34px; height:34px;
+    border-radius:50%; background:#0c1420; border:1px solid #1e3a5f; color:#5f8fb8;
+    font-size:17px; cursor:pointer; }
+  #shift-panel .sp-live{ display:flex; align-items:center; gap:6px; margin-top:7px; font-size:10px; color:#4d7a96; }
+  #shift-panel .sp-live i{ width:7px; height:7px; border-radius:50%; background:#00e5a0;
+    box-shadow:0 0 8px #00e5a0; animation:spBl 1.7s ease-in-out infinite; font-style:normal; }
+  @keyframes spBl{0%,100%{opacity:1}50%{opacity:.2}}
+
+  #shift-panel .sp-tabs{ display:flex; gap:7px; padding:11px 16px 0; flex-shrink:0; }
+  #shift-panel .sp-tab{ flex:1; background:#070d18; border:1px solid #16293d; border-radius:10px;
+    padding:9px 6px; cursor:pointer; font-family:inherit; font-size:12px; font-weight:900;
+    color:#5f8fb8; position:relative; }
+  #shift-panel .sp-tab.on{ background:#0d2033; border-color:#00aaff; color:#00ccff; box-shadow:0 0 16px #00aaff33; }
+  #shift-panel .sp-tab .pip{ position:absolute; top:6px; left:8px; width:7px; height:7px;
+    border-radius:50%; background:#ffc24d; box-shadow:0 0 8px #ffc24d; display:none; }
+  #shift-panel .sp-tab .pip.show{ display:block; }
+
+  #shift-panel .sp-page{ display:none; flex:1; overflow-y:auto; padding:12px 16px 26px; }
+  #shift-panel .sp-page.on{ display:block; }
+
+  #shift-panel .sp-cats{ display:flex; gap:7px; margin-bottom:13px; }
+  #shift-panel .sp-cat{ flex:1; background:#070d18; border:1.5px solid #16293d; border-radius:11px;
+    padding:9px; cursor:pointer; font-family:inherit; text-align:right; position:relative; }
+  #shift-panel .sp-cat .nm{ font-size:12px; font-weight:900; color:#8fb0c8; display:block; line-height:1.25; }
+  #shift-panel .sp-cat .tm{ font-size:8.5px; color:#3f6b85; direction:ltr; margin-top:2px; display:block; }
+  #shift-panel .sp-cat .n{ font-size:22px; font-weight:900; line-height:1; margin-top:6px; display:block; color:#54809c; }
+  #shift-panel .sp-cat.on{ border-color:var(--c); background:color-mix(in srgb,var(--c) 13%,#070d18);
+    box-shadow:0 0 18px color-mix(in srgb,var(--c) 25%,transparent); }
+  #shift-panel .sp-cat.on .nm{ color:#fff; }
+  #shift-panel .sp-cat.on .n{ color:var(--c); }
+  #shift-panel .sp-cat .liv{ position:absolute; top:6px; left:7px; width:7px; height:7px;
+    border-radius:50%; background:#00e5a0; box-shadow:0 0 8px #00e5a0; }
+
+  #shift-panel .sp-tot{ font-size:11px; color:#4d7a96; margin-bottom:9px; }
+  #shift-panel .sp-off{ background:#1a1206; border:1px solid #4d3a12; border-radius:9px;
+    padding:9px 11px; margin-bottom:8px; font-size:11.5px; font-weight:700; color:#ffc24d; line-height:1.5; }
+
+  #shift-panel .sp-row{ display:flex; gap:9px; padding:9px 2px; border-bottom:1px solid #0c1a28; align-items:flex-start; }
+  #shift-panel .sp-row:last-child{ border-bottom:none; }
+  #shift-panel .sp-row .dn{ font-size:11px; font-weight:900; width:92px; flex-shrink:0; line-height:1.6; }
+  #shift-panel .sp-ppl{ display:flex; flex-wrap:wrap; gap:5px; flex:1; }
+  #shift-panel .sp-p{ font-size:12px; font-weight:700; background:#0c1a2a; border:1px solid var(--c);
+    border-radius:12px; padding:3px 10px; color:#dbeaf7; }
+  #shift-panel .sp-ppl.tel{ flex-direction:column; align-items:stretch; gap:6px; }
+  #shift-panel .sp-prow{ display:flex; align-items:center; gap:8px; background:#0c1a2a;
+    border:1px solid var(--c); border-radius:11px; padding:6px 11px; }
+  #shift-panel .sp-prow .n2{ font-size:12.5px; font-weight:700; color:#dbeaf7; }
+  #shift-panel .sp-prow a{ margin-right:auto; font-size:12px; font-weight:700; color:#7fe8ff;
+    text-decoration:none; direction:ltr; }
+  #shift-panel .sp-prow .noph{ margin-right:auto; font-size:10px; color:#3a5f7d; font-style:italic; }
+  #shift-panel .sp-none{ font-size:11px; color:#ff8a6699; font-style:italic; padding-top:3px; }
+  #shift-panel .sp-row.zero .dn{ color:#2a4a63; }
+
+  #shift-panel .vcard{ background:#0b0616; border:1px solid #33204a; border-radius:12px;
+    padding:11px 13px; margin-bottom:9px; display:flex; gap:11px; align-items:flex-start;
+    transition:box-shadow .5s,border-color .5s; }
+  #shift-panel .vcard.flash{ border-color:#ffc24d; box-shadow:0 0 24px #ffc24d66; }
+  #shift-panel .vcard .av{ width:34px; height:34px; border-radius:50%; background:#2d1450;
+    border:1px solid #6b3a99; display:grid; place-items:center; font-size:12px; font-weight:900;
+    color:#cc88ff; flex-shrink:0; }
+  #shift-panel .vcard .who{ font-size:14px; font-weight:900; color:#f0e4fc; line-height:1.2; }
+  #shift-panel .vcard .dp{ font-size:10px; color:#8a6aa8; margin-top:1px; }
+  #shift-panel .vcard .rng{ font-size:11px; color:#b593d4; margin-top:6px; line-height:1.5; }
+  #shift-panel .vcard .back{ font-size:11px; font-weight:900; color:#5cffcc; margin-top:4px; }
+  #shift-panel .vcard .back.gapd{ color:#ffc24d; }
+  #shift-panel .vcard .upd{ font-size:9px; font-weight:900; color:#ffc24d; margin-top:4px; }
+  #shift-panel .vtag{ margin-right:auto; font-size:9px; font-weight:900; border-radius:9px;
+    padding:3px 8px; white-space:nowrap; flex-shrink:0; }
+  #shift-panel .vtag.now{ background:#cc88ff; color:#1a0a26; }
+  #shift-panel .vtag.soon{ background:#2a1a3d; color:#b593d4; border:1px solid #4a2a66; }
+  #shift-panel .vempty{ text-align:center; padding:30px 0; color:#4a3560; font-size:13px; }
+  #shift-panel .vsec{ font-size:10px; font-weight:900; color:#6a4d8a; letter-spacing:.5px;
+    margin:14px 0 8px; padding-right:2px; }
+  #shift-panel .sp-load{ text-align:center; padding:40px 0; color:#3f6b85; font-size:13px; }
+</style>
+
+<div id="shift-panel">
+  <header>
+    <button class="sp-x" onclick="shiftPanelClose()">✕</button>
+    <div class="sp-day" id="sp-day">—</div>
+    <div class="sp-dt" id="sp-dt">—</div>
+    <div class="sp-live"><i></i><span id="sp-livetxt">מאזין לשינויים בלו״ז</span></div>
+  </header>
+  <div class="sp-tabs">
+    <button class="sp-tab on" id="sp-t1" onclick="spTab(1)">מי במשמרת</button>
+    <button class="sp-tab" id="sp-t2" onclick="spTab(2)">מי בחופשה<span class="pip" id="sp-pip"></span></button>
+  </div>
+  <div class="sp-page on" id="sp-p1">
+    <div class="sp-cats" id="sp-cats"></div>
+    <div class="sp-tot" id="sp-tot">—</div>
+    <div id="sp-list"><div class="sp-load">טוען…</div></div>
+  </div>
+  <div class="sp-page" id="sp-p2"><div id="sp-vlist"><div class="sp-load">טוען…</div></div></div>
+</div>
+
+<script id="shift-panel-logic">
+(function(){
+  'use strict';
+
+  var DAYS_HE=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  var DSH=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+  var MON=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+
+  // קטגוריות — מוגדרות לפי שמות המשמרות, לא לפי id (ה-id מגיע מה-DB ומשתנה)
+  var CATS=[
+    {key:'am',   name:'בוקר',                  color:'#F59E0B', from:['בוקר'],          s:360,  e:840},
+    {key:'pm',   name:'צהריים · מהדורה · ערב', color:'#8B5CF6', from:['אמצע','מהדורה'], s:600,  e:1380},
+    {key:'nite', name:'לילה',                  color:'#64748B', from:['לילה'],          s:1380, e:360, night:true}
+  ];
+
+  var S={ cells:{}, scheds:{}, vac:[], nightOn:false, sel:null, tab:1,
+          loaded:false, lastSig:null, flash:{} };
+
+  function allowed(){
+    return (typeof isMgr!=='undefined' && isMgr) &&
+           (window._mgrType==='primary' || window._mgrType==='secondary');
+  }
+  function iso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function addD(b,n){ var d=new Date(b); d.setDate(d.getDate()+n); return d; }
+  function initials(n){ return String(n).trim().split(/\s+/).map(function(w){return w[0];}).slice(0,2).join(''); }
+  function fmtD(d){ return DSH[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1); }
+  function fmtPhone(p){ return p?String(p).replace(/[^\d]/g,'').replace(/(\d{3})(\d{3,4})(\d{4})/,'$1-$2-$3'):''; }
+  function shiftTimeOf(nm){
+    var st=(typeof shiftTypes!=='undefined'?shiftTypes:[]).filter(function(s){return s.name===nm;})[0];
+    return st&&st.time?st.time:'';
+  }
+  function catTime(c){
+    var a=shiftTimeOf(c.from[0]), b=shiftTimeOf(c.from[c.from.length-1]);
+    if(!a) return '';
+    return a.split('-')[0]+'-'+((b||a).split('-')[1]||'');
+  }
+  function shiftIdsFor(c){
+    return (typeof shiftTypes!=='undefined'?shiftTypes:[])
+      .filter(function(s){ return c.from.indexOf(s.name)>-1; })
+      .map(function(s){ return s.id; });
+  }
+
+  // ── נתונים: קודם כל מהזיכרון. שליפה מהשרת רק כשאין ברירה. ──
+  // egress יקר, ו-cellData/schedules/nightWeekDepts כבר טעונים ע"י loadWeekData().
+  var VAC_TTL = 5*60*1000;   // חופשות נשלפות לכל היותר פעם ב-5 דקות
+  var vacAt = 0;
+
+  function curWeekStart(){
+    var d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-d.getDay());
+    return iso(d);
+  }
+
+  // האם הנתונים שבזיכרון הם של השבוע הנוכחי?
+  function memoryIsCurrentWeek(){
+    return (typeof weekOffset!=='undefined' && weekOffset===0);
+  }
+
+  // קורא את התאים מהזיכרון — אפס egress
+  function readFromMemory(){
+    var res={cells:{},scheds:{},nightOn:false};
+    if(typeof schedules!=='undefined'){
+      Object.keys(schedules).forEach(function(k){ res.scheds[k]=schedules[k]; });
+    }
+    if(typeof cellData!=='undefined'){
+      Object.keys(cellData).forEach(function(k){
+        if(k.indexOf('note_')===0) return;
+        var v=cellData[k];
+        res.cells[k]=(v && typeof v==='object') ? (v.content||'') : String(v||'');
+      });
+    }
+    res.nightOn=(typeof nightWeekDepts!=='undefined' && nightWeekDepts.size>0);
+    return res;
+  }
+
+  // שליפה מהשרת — רק אם המשתמש גלל לשבוע אחר, ורק את מה שחסר
+  async function fetchWeekFromServer(){
+    var ws=curWeekStart();
+    var res={cells:{},scheds:{},nightOn:false};
+    try{
+      var sc=await sb.from('schedules').select('id,department_id').eq('week_start',ws);
+      (sc.data||[]).forEach(function(s){ res.scheds[s.department_id]=s; });
+      var ids=Object.keys(res.scheds).map(function(k){ return res.scheds[k].id; });
+      if(ids.length){
+        var cl=await sb.from('schedule_cells')
+          .select('schedule_id,shift_type,day_index,content').in('schedule_id',ids);
+        (cl.data||[]).forEach(function(c){
+          if(String(c.shift_type).indexOf('note_')===0) return;
+          res.cells[c.schedule_id+'_'+c.shift_type+'_'+c.day_index]=c.content||'';
+        });
+      }
+      var ns=(typeof shiftTypes!=='undefined'?shiftTypes:[]).filter(function(x){return x.name==='לילה';})[0];
+      if(ns){
+        var nw=await sb.from('night_week_active')
+          .select('department_id').eq('week_start',ws).eq('shift_id',ns.id);
+        res.nightOn=((nw.data||[]).length>0);
+      }
+    }catch(e){ console.warn('[shift-panel] week fetch failed:', e&&e.message); }
+    return res;
+  }
+
+  // חופשות — שאילתה קטנה, ממוטמנת ל-5 דקות.
+  // מסונן בשרת: רק מאושרות שעוד לא הסתיימו.
+  async function fetchVac(force){
+    if(!force && vacAt && (Date.now()-vacAt)<VAC_TTL) return S.vac;
+    try{
+      var today=iso(new Date());
+      var vr=await sb.from('vac_requests')
+        .select('user_name,user_dept,start_date,end_date')
+        .eq('status','approved').gte('end_date',today);
+      vacAt=Date.now();
+      return vr.data||[];
+    }catch(e){
+      console.warn('[shift-panel] vac fetch failed:', e&&e.message);
+      return S.vac||[];
+    }
+  }
+
+  function activeCats(){ return CATS.filter(function(c){ return !c.night || S.nightOn; }); }
+  function nowMin(){ var d=new Date(); return d.getHours()*60+d.getMinutes(); }
+  function curCat(){
+    var m=nowMin(), L=activeCats();
+    for(var i=0;i<L.length;i++){
+      var c=L[i];
+      if(c.e<=c.s){ if(m>=c.s||m<c.e) return c.key; }
+      else if(m>=c.s&&m<c.e) return c.key;
+    }
+    return null;
+  }
+  function nextCat(){
+    var m=nowMin(), L=activeCats(), best=null, gap=1e9;
+    for(var i=0;i<L.length;i++){ var d=L[i].s-m; if(d<0)d+=1440; if(d<gap){gap=d;best=L[i];} }
+    return best?{cat:best,mins:gap}:null;
+  }
+  // משמרת שחוצה חצות שייכת ליום שבו התחילה
+  function dayForCat(c){
+    var di=new Date().getDay();
+    if(c.e<=c.s && nowMin()<c.e) return (di+6)%7;
+    return di;
+  }
+  function depts(){ return (typeof departments!=='undefined'?departments:[]); }
+
+  function peopleFor(cat,dayOverride){
+    var day=(dayOverride===undefined)?dayForCat(cat):dayOverride;
+    var ids=shiftIdsFor(cat), out=[];
+    depts().forEach(function(dp){
+      var sch=S.scheds[dp.id]; var seen=[];
+      if(sch){
+        ids.forEach(function(sid){
+          String(S.cells[sch.id+'_'+sid+'_'+day]||'').split('|').forEach(function(n){
+            n=n.trim(); if(n && seen.indexOf(n)===-1) seen.push(n);
+          });
+        });
+      }
+      out.push({dept:dp.name, names:seen});
+    });
+    return out;
+  }
+  function phoneOf(name){
+    var e=(typeof employees!=='undefined'?employees:[]).filter(function(x){return x.full_name===name;})[0];
+    return e&&e.phone?e.phone:'';
+  }
+  function worksOn(name,dayIdx){
+    var ks=Object.keys(S.cells);
+    for(var i=0;i<ks.length;i++){
+      var k=ks[i];
+      if(k.slice(k.lastIndexOf('_')+1)!==String(dayIdx)) continue;
+      if(String(S.cells[k]).split('|').map(function(x){return x.trim();}).indexOf(name)>-1) return true;
+    }
+    return false;
+  }
+  function returnInfo(r){
+    var end=new Date(r.end_date+'T00:00:00');
+    for(var i=1;i<=7;i++){
+      var d=addD(end,i);
+      if(worksOn(r.user_name,d.getDay())) return {date:d,days:i};
+    }
+    return null;
+  }
+  function sigOf(){
+    return S.vac.map(function(r){ var ri=returnInfo(r); return r.user_name+':'+(ri?iso(ri.date):'-'); }).join(',');
+  }
+
+  function render(){
+    var now=new Date(), di=now.getDay();
+    document.getElementById('sp-day').textContent='יום '+DAYS_HE[di];
+    document.getElementById('sp-dt').textContent=now.getDate()+' ב'+MON[now.getMonth()]+' '+now.getFullYear();
+
+    var L=activeCats(), cur=curCat();
+    if(S.sel && !L.some(function(c){return c.key===S.sel;})) S.sel=null;
+    var show=S.sel||cur||'am';
+
+    document.getElementById('sp-cats').innerHTML=L.map(function(c){
+      var n=0; peopleFor(c).forEach(function(g){ n+=g.names.length; });
+      return '<button class="sp-cat '+(show===c.key?'on':'')+'" style="--c:'+c.color+'"'
+        +' data-k="'+c.key+'">'+(c.key===cur?'<span class="liv"></span>':'')
+        +'<span class="nm">'+c.name+'</span><span class="tm">'+catTime(c)+'</span>'
+        +'<span class="n">'+n+'</span></button>';
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('#sp-cats .sp-cat'),function(b){
+      b.onclick=function(){ S.sel=b.getAttribute('data-k'); render(); };
+    });
+
+    var cat=L.filter(function(c){return c.key===show;})[0]||L[0];
+    var groups=peopleFor(cat), isNight=(cat.key==='nite'), tot=0;
+    groups.forEach(function(g){ tot+=g.names.length; });
+
+    var banner='';
+    if(!cur){
+      var nx=nextCat();
+      if(nx){
+        var h=Math.floor(nx.mins/60), mm=nx.mins%60;
+        banner='<div class="sp-off">אין משמרת פעילה כרגע · המשמרת הבאה: '+nx.cat.name
+          +' בעוד '+(h?h+' שעות ':'')+(mm?mm+' דק׳':'')+'</div>';
+      }
+    }
+    document.getElementById('sp-tot').innerHTML=banner+'<span>'+tot+' משובצים · '+cat.name
+      +(dayForCat(cat)!==di?' (צוות של אתמול)':'')+(isNight?' · עם טלפונים':'')+'</span>';
+
+    document.getElementById('sp-list').innerHTML=groups.map(function(g){
+      if(isNight && !g.names.length) return '';   // בלילה — מחלקות ריקות לא מוצגות
+      var inner;
+      if(!g.names.length){ inner='<div class="sp-none">לא מאויש</div>'; }
+      else if(isNight){
+        inner='<div class="sp-ppl tel">'+g.names.map(function(x){
+          var ph=fmtPhone(phoneOf(x)), raw=String(phoneOf(x)).replace(/[^\d+]/g,'');
+          return '<div class="sp-prow" style="--c:'+cat.color+'"><span class="n2">'+x+'</span>'
+            +(ph?'<a href="tel:'+raw+'">📞 '+ph+'</a>':'<span class="noph">אין טלפון במערכת</span>')
+            +'</div>';
+        }).join('')+'</div>';
+      } else {
+        inner='<div class="sp-ppl">'+g.names.map(function(x){
+          return '<span class="sp-p" style="--c:'+cat.color+'">'+x+'</span>';
+        }).join('')+'</div>';
+      }
+      return '<div class="sp-row '+(g.names.length?'':'zero')+'">'
+        +'<span class="dn" style="color:'+(g.names.length?'#adcde4':'#2a4a63')+'">'+g.dept+'</span>'
+        +inner+'</div>';
+    }).join('')||'<div class="sp-none" style="text-align:center;padding:26px 0">אין שיבוצים</div>';
+
+    renderVac();
+    updateBtnCount();
+  }
+
+  function renderVac(){
+    var today=iso(new Date());
+    var nowV=S.vac.filter(function(r){ return r.start_date<=today && r.end_date>=today; });
+    var soon=S.vac.filter(function(r){ return r.start_date>today; })
+                  .sort(function(a,b){ return a.start_date<b.start_date?-1:1; });
+
+    function card(r,isNow){
+      var st=new Date(r.start_date+'T00:00:00'), en=new Date(r.end_date+'T00:00:00');
+      var ri=returnInfo(r), dayAfter=addD(en,1);
+      var gap=ri && ri.date.getTime()!==dayAfter.getTime();
+      var fl=!!S.flash[r.user_name];
+      return '<div class="vcard '+(fl?'flash':'')+'"><span class="av">'+initials(r.user_name)+'</span><div>'
+        +'<div class="who">'+r.user_name+'</div><div class="dp">'+(r.user_dept||'')+'</div>'
+        +'<div class="rng">בחופשה '+fmtD(st)+(r.start_date!==r.end_date?' — '+fmtD(en):'')+'</div>'
+        +(ri?'<div class="back '+(gap?'gapd':'')+'">חוזר לעבודה: '+fmtD(ri.date)
+              +(gap?' · '+ri.days+' ימים אחרי סוף החופשה':' · למחרת')+'</div>'
+            :'<div class="back gapd">לא משובץ בשבוע שאחרי החופשה</div>')
+        +(fl?'<div class="upd">↻ עודכן — נכנס שיבוץ חדש</div>':'')
+        +'</div><span class="vtag '+(isNow?'now':'soon')+'">'+(isNow?'בחופשה עכשיו':'עתידי')+'</span></div>';
+    }
+    var h='<div class="vsec">בחופשה היום</div>';
+    h+=nowV.length?nowV.map(function(r){return card(r,true);}).join('')
+                  :'<div class="vempty">אף אחד לא בחופשה היום</div>';
+    if(soon.length) h+='<div class="vsec">חופשות מאושרות קרובות</div>'+soon.map(function(r){return card(r,false);}).join('');
+    document.getElementById('sp-vlist').innerHTML=h;
+  }
+
+  function updateBtnCount(){
+    var el=document.getElementById('hub-shift-count'); if(!el) return;
+    var cur=curCat();
+    if(!cur || !Object.keys(S.scheds).length){ el.textContent='—'; return; }
+    var cat=activeCats().filter(function(c){return c.key===cur;})[0];
+    var n=0; peopleFor(cat).forEach(function(g){ n+=g.names.length; });
+    el.textContent=n;
+  }
+
+  // ── עדכון חי: מזהה שינוי בחזרה לעבודה אחרי שיבוץ חדש ──
+  function afterDataChange(){
+    var sig=sigOf();
+    if(S.lastSig!==null && sig!==S.lastSig){
+      var before={};
+      S.lastSig.split(',').forEach(function(x){ var i=x.lastIndexOf(':'); before[x.slice(0,i)]=x.slice(i+1); });
+      S.vac.forEach(function(r){
+        var ri=returnInfo(r), cur=ri?iso(ri.date):'-';
+        if(before[r.user_name]!==undefined && before[r.user_name]!==cur){
+          S.flash[r.user_name]=1;
+          var pip=document.getElementById('sp-pip'); if(pip) pip.classList.add('show');
+          var lt=document.getElementById('sp-livetxt'); if(lt) lt.textContent='עודכן — חזרה לעבודה חושבה מחדש';
+          setTimeout(function(){
+            delete S.flash[r.user_name];
+            var l=document.getElementById('sp-livetxt'); if(l) l.textContent='מאזין לשינויים בלו״ז';
+            if(document.getElementById('shift-panel').classList.contains('open')) render();
+          },6000);
+        }
+      });
+    }
+    S.lastSig=sig;
+    render();
+  }
+
+  async function refresh(force){
+    var r = memoryIsCurrentWeek() ? readFromMemory() : await fetchWeekFromServer();
+    S.cells=r.cells; S.scheds=r.scheds; S.nightOn=r.nightOn;
+    S.vac=await fetchVac(force);
+    S.loaded=true;
+    afterDataChange();
+  }
+
+  window.shiftPanelOpen=async function(){
+    if(!allowed()) return;
+    var p=document.getElementById('shift-panel');
+    p.classList.add('open');
+    document.getElementById('sp-list').innerHTML='<div class="sp-load">טוען…</div>';
+    await refresh(false);
+  };
+  window.shiftPanelClose=function(){
+    document.getElementById('shift-panel').classList.remove('open');
+  };
+
+  // עדכון חי בלי פולינג: מתעדכן כשהאפליקציה עצמה מרעננת את הלו״ז.
+  // loadWeekData() כבר רצה מה-Realtime/פולינג הקיים — אנחנו רק נטפלים אליה.
+  (function hookExisting(){
+    if(typeof window.loadWeekData!=='function') return setTimeout(hookExisting,1500);
+    if(window.loadWeekData._spHooked) return;
+    var orig=window.loadWeekData;
+    window.loadWeekData=async function(){
+      var r=await orig.apply(this,arguments);
+      try{
+        if(document.getElementById('shift-panel').classList.contains('open')){
+          var m=readFromMemory();
+          if(memoryIsCurrentWeek()){
+            S.cells=m.cells; S.scheds=m.scheds; S.nightOn=m.nightOn;
+            afterDataChange();     // אפס egress — הנתונים כבר הגיעו
+          }
+        }
+      }catch(e){}
+      return r;
+    };
+    window.loadWeekData._spHooked=true;
+  })();
+  window.spTab=function(n){
+    S.tab=n;
+    document.getElementById('sp-p1').classList.toggle('on',n===1);
+    document.getElementById('sp-p2').classList.toggle('on',n===2);
+    document.getElementById('sp-t1').classList.toggle('on',n===1);
+    document.getElementById('sp-t2').classList.toggle('on',n===2);
+    if(n===2){ var pip=document.getElementById('sp-pip'); if(pip) pip.classList.remove('show'); }
+  };
+
+  // הצגת הכפתור בהאב — אודי ואפרת בלבד
+  // מסדר את שורת הכפתורים התחתונה. סדר משמאל לימין:
+  // מחובר · גלריה · מעטפה · מי במשמרת   (היציאה נשארת בפינה בנפרד)
+  function buildDock(){
+    var dock=document.getElementById('hub-dock'); if(!dock) return;
+    ['hub-onair','hub-announce-btn','hub-shift-btn'].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el && el.parentNode!==dock) dock.appendChild(el);
+    });
+    // ההודעות מנוהלות ע"י annCanManage() שכותב style.display ישירות.
+    // display:block היה שובר את מרכוז המעטפה, אז ממירים למחלקה.
+    var ann=document.getElementById('hub-announce-btn');
+    if(ann){
+      var vis;
+      if(typeof annCanManage==='function'){ try{ vis=annCanManage(); }catch(e){ vis=false; } }
+      else { vis = !!(ann.style.display && ann.style.display!=='none'); }
+      ann.classList.toggle('shown', !!vis);
+      if(ann.style.display) ann.style.display='';   // מנטרלים את ה-inline כדי לא לדרוס flex
+      ann.title='הודעות';
+    }
+  }
+
+  window.shiftBtnRefresh=function(){
+    var b=document.getElementById('hub-shift-btn'); if(!b) return;
+    buildDock();
+    b.classList.toggle('allowed', allowed());
+    // המונה מחושב מהזיכרון בלבד. לא שולפים כלום רק כדי להציג מספר על כפתור.
+    if(allowed() && memoryIsCurrentWeek() && typeof cellData!=='undefined'){
+      var m=readFromMemory();
+      S.cells=m.cells; S.scheds=m.scheds; S.nightOn=m.nightOn;
+      updateBtnCount();
+    }
+  };
+  setInterval(function(){ if(typeof window.shiftBtnRefresh==='function') window.shiftBtnRefresh(); }, 8000);
+  document.addEventListener('DOMContentLoaded', function(){ window.shiftBtnRefresh(); });
+  window.shiftBtnRefresh();
+})();
+</script>
 
 </body>
 </html>
