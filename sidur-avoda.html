@@ -13744,6 +13744,67 @@ async function galSaveMasterView(){
   #shift-panel .vsec{ font-size:10px; font-weight:900; color:#6a4d8a; letter-spacing:.5px;
     margin:14px 0 8px; padding-right:2px; }
   #shift-panel .sp-load{ text-align:center; padding:40px 0; color:#3f6b85; font-size:13px; }
+
+  /* ══ מסך רחב: הגדלה ומירכוז. בנייד לא משתנה כלום. ══ */
+  @media (min-width: 820px){
+    #shift-panel header,
+    #shift-panel .sp-tabs,
+    #shift-panel .sp-page{ max-width:1000px; margin-inline:auto; width:100%; }
+    #shift-panel header{ padding:26px 28px 18px; }
+    #shift-panel .sp-day{ font-size:34px; }
+    #shift-panel .sp-dt{ font-size:15px; margin-top:4px; }
+    #shift-panel .sp-live{ font-size:13px; margin-top:10px; }
+    #shift-panel .sp-x{ top:24px; left:28px; width:44px; height:44px; font-size:21px; }
+
+    #shift-panel .sp-tabs{ padding:16px 28px 0; gap:10px; }
+    #shift-panel .sp-tab{ font-size:16px; padding:13px 10px; border-radius:12px; }
+
+    #shift-panel .sp-page{ padding:18px 28px 40px; }
+    #shift-panel .sp-cats{ grid-template-columns:repeat(4,1fr); gap:11px; margin-bottom:20px; }
+    #shift-panel .sp-cat{ padding:14px 14px 15px; border-radius:14px; }
+    #shift-panel .sp-cat .nm{ font-size:16px; }
+    #shift-panel .sp-cat .tm{ font-size:12px; margin-top:4px; }
+    #shift-panel .sp-cat .n{ font-size:34px; margin-top:10px; }
+
+    #shift-panel .sp-tot{ font-size:14px; margin-bottom:13px; }
+    #shift-panel .sp-off{ font-size:15px; padding:13px 16px; }
+    #shift-panel .sp-note{ font-size:13px; padding:11px 14px; }
+    #shift-panel .sp-more{ font-size:12px; padding:5px 12px; }
+
+    #shift-panel .sp-row{ padding:14px 4px; gap:16px; }
+    #shift-panel .sp-row .dn{ font-size:15px; width:150px; line-height:1.7; }
+    #shift-panel .sp-role{ font-size:12px; margin-bottom:5px; }
+    #shift-panel .sp-ppl{ gap:8px; }
+    #shift-panel .sp-p{ font-size:15px; padding:6px 15px; border-radius:16px; }
+    #shift-panel .sp-none{ font-size:14px; }
+    #shift-panel .sp-rolegrp{ margin-bottom:11px; }
+
+    /* טלפונים בלילה — שתי עמודות כשיש מקום */
+    #shift-panel .sp-ppl.tel{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    #shift-panel .sp-prow{ padding:9px 14px; }
+    #shift-panel .sp-prow .n2{ font-size:15px; }
+    #shift-panel .sp-prow a{ font-size:15px; }
+
+    #shift-panel .vcard{ padding:15px 18px; margin-bottom:11px; gap:15px; }
+    #shift-panel .vcard .av{ width:44px; height:44px; font-size:15px; }
+    #shift-panel .vcard .who{ font-size:18px; }
+    #shift-panel .vcard .dp{ font-size:13px; }
+    #shift-panel .vcard .rng{ font-size:14px; margin-top:8px; }
+    #shift-panel .vcard .back{ font-size:14px; }
+    #shift-panel .vtag{ font-size:12px; padding:5px 11px; }
+    #shift-panel .vsec{ font-size:13px; margin:20px 0 11px; }
+    #shift-panel .vempty{ font-size:16px; padding:44px 0; }
+  }
+
+  /* מסך רחב מאוד — עוד קצת אוויר */
+  @media (min-width: 1400px){
+    #shift-panel header,
+    #shift-panel .sp-tabs,
+    #shift-panel .sp-page{ max-width:1200px; }
+    #shift-panel .sp-day{ font-size:40px; }
+    #shift-panel .sp-p{ font-size:16px; }
+    #shift-panel .sp-row .dn{ font-size:16px; width:170px; }
+  }
 </style>
 
 <div id="shift-panel">
