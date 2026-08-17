@@ -114,8 +114,8 @@ window.RAIN_ENABLED    = false;   // ← true כדי להחזיר את גשם ה
     overflow:visible; pointer-events:none; z-index:0; }
   .dept-tab.meter > .mlbl{ position:relative; z-index:1;
     display:inline-flex; align-items:center; gap:2px; }
-  .dept-tab.meter .m-track{ fill:none; stroke-width:2; }
-  .dept-tab.meter .m-prog{ fill:none; stroke-width:2; stroke-linecap:round; }
+  .dept-tab.meter .m-track{ fill:none; stroke-width:2.5; }
+  .dept-tab.meter .m-prog{ fill:none; stroke-width:3; stroke-linecap:round; }
   .dept-tab.meter .m-prog.m-done{ filter:drop-shadow(0 0 3px currentColor); }
 
   /* TOOLBAR */
@@ -14621,6 +14621,14 @@ async function galSaveMasterView(){
     });
     window._fillPct=pct;
     lastKey=key;
+    try{
+      var dbg={};
+      Object.keys(now).forEach(function(dId){
+        var nm=(departments.filter(function(x){return x.id===dId;})[0]||{}).name||dId;
+        dbg[nm]=now[dId]+'/'+(prev[dId]||0)+' = '+(pct[dId]===undefined?'—':pct[dId]+'%');
+      });
+      console.log('[fill-meter] שבוע קודם '+pws+':', dbg);
+    }catch(e){}
     if(typeof renderDeptTabs==='function') renderDeptTabs();
     else if(typeof paintDeptMeters==='function') paintDeptMeters();
   };
@@ -14634,8 +14642,10 @@ async function galSaveMasterView(){
       var p=Math.min(parseInt(el.getAttribute('data-mp'),10)||0,100);
       var c=el.getAttribute('data-mc')||'#64748b';
       var active=el.getAttribute('data-ma')==='1';
-      var sw=2, inset=sw/2, rx=Math.min(20,h/2-inset);
-      var W=w-sw, H=h-sw;
+      // המד עבה יותר מהמסלול, כדי שהאפור לא יציץ מסביבו ויעמעם את הצבע
+      var swProg=3, swTrack=2.5;
+      var inset=swProg/2, rx=Math.min(20,h/2-inset);
+      var W=w-swProg, H=h-swProg;
       var rects=svg.querySelectorAll('rect');
       for(var j=0;j<rects.length;j++){
         var r=rects[j];
@@ -14646,9 +14656,14 @@ async function galSaveMasterView(){
       var L=2*((W-2*rx)+(H-2*rx))+2*Math.PI*rx;
       var track=svg.querySelector('.m-track'), prog=svg.querySelector('.m-prog');
       // היפוך צבעים במצב נבחר — הרקע כבר בצבע המחלקה
-      track.style.stroke = active ? 'rgba(255,255,255,.32)' : '#e2e8f0';
+      // ב-100% אין מה להראות כמסלול — המסגרת מלאה בצבע המחלקה
+      track.style.stroke  = (p>=100) ? 'transparent'
+                          : (active ? 'rgba(255,255,255,.35)' : '#cbd5e1');
+      track.setAttribute('stroke-width', swTrack);
+      prog.setAttribute('stroke-width', swProg);
       prog.style.stroke  = active ? '#ffffff' : c;
       prog.style.color   = active ? '#ffffff' : c;
+      prog.style.opacity = 1;
       prog.setAttribute('stroke-dasharray',L);
       prog.setAttribute('stroke-dashoffset',L*(1-p/100));
       var t='scale(-1,1) translate('+(-w)+',0)';
