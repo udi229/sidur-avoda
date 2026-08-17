@@ -108,6 +108,15 @@ window.RAIN_ENABLED    = false;   // ← true כדי להחזיר את גשם ה
   .dept-tab.active { box-shadow:0 0 16px currentColor; }
   .dept-tab.no-neon { box-shadow:none!important; animation:none!important; }
   .dept-tab.no-neon.active { box-shadow:none!important; }
+  /* ── מד מילוי על מסגרת לשונית המחלקה (אודי בלבד) ── */
+  .dept-tab.meter{ position:relative; border-color:transparent!important; }
+  .dept-tab.meter > svg{ position:absolute; inset:0; width:100%; height:100%;
+    overflow:visible; pointer-events:none; z-index:0; }
+  .dept-tab.meter > .mlbl{ position:relative; z-index:1;
+    display:inline-flex; align-items:center; gap:2px; }
+  .dept-tab.meter .m-track{ fill:none; stroke-width:2; }
+  .dept-tab.meter .m-prog{ fill:none; stroke-width:2; stroke-linecap:round; }
+  .dept-tab.meter .m-prog.m-done{ filter:drop-shadow(0 0 3px currentColor); }
 
   /* TOOLBAR */
   .sched-toolbar { display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
@@ -4695,6 +4704,16 @@ function renderDeptTabs(){
       :'';
     const activeStyle=isActive?`background:${d.color};color:white;`:`color:${d.color};`;
     const tabStyle=submitted&&!approved&&!isActive?submittedStyle:(`border-color:${d.color};`+activeStyle);
+    // מד מילוי — רק לאודי, ורק כשיש נתוני שבוע קודם
+    const _mp = (window._fillPct && window._fillPct[d.id]);
+    const _showMeter = (window._mgrType==='primary') && isMgr && (_mp!==undefined) && !window._fillBusy;
+    if(_showMeter){
+      return `<button class="dept-tab meter${isActive?' active':''}${submitted&&!approved?' no-neon':''}"
+        style="${tabStyle}display:inline-flex;align-items:center;gap:2px"
+        data-mp="${_mp}" data-mc="${d.color}" data-ma="${isActive?1:0}"
+        title="${_mp}% מהסידור הקודם"
+        onclick="setDept('${d.id}')"><svg><rect class="m-track"/><rect class="m-prog"/></svg><span class="mlbl">${indicator}${nameHtml}</span></button>`;
+    }
     return `<button class="dept-tab${isActive?' active':''}${submitted&&!approved?' no-neon':''}"
       style="${tabStyle}display:inline-flex;align-items:center;gap:2px"
       onclick="setDept('${d.id}')">${indicator}${nameHtml}</button>`;
@@ -4710,6 +4729,7 @@ function renderDeptTabs(){
   }).join('');
 
   document.getElementById('dept-tabs').innerHTML=deptTabsHtml+cvTabsHtml;
+  if(typeof paintDeptMeters==='function') requestAnimationFrame(paintDeptMeters);
   if(!activeDeptId&&vis.length) activeDeptId=vis[0].id;
 
   // עובד רגיל — אם המחלקה שלו בתוך CV מפורסם, עבור אוטומטית ל-CV
@@ -9954,8 +9974,42 @@ function showHub(){
 function hubFitScene(){
   var sc=document.querySelector('.hub-scene');
   if(!sc) return;
-  var avail=Math.min(window.innerWidth-24, window.innerHeight-140); // מרווח לכפתורים/מנורה
-  var scale=Math.min(1, Math.max(0.5, avail/420));
+
+  // .hub-scene הוא ריבוע 420x420, אבל התוכן בפועל קטן ממנו:
+  //   אנכית  — לוז מ--192 עד חופשות ב-+179  = 371px
+  //   אופקית — ±118 מרכז ± 49 רדיוס         = 334px
+  // חילקנו קודם ב-420, כלומר ויתרנו על ~12% בלי סיבה.
+  var CONTENT_H = 371, CONTENT_W = 334;
+
+  // מדידת הכפתורים התחתונים בפועל, במקום 140 קבוע
+  var dock = document.getElementById('hub-dock');
+  var dockH = dock ? (dock.offsetHeight + 34) : 78;   // גובה + מרווח נשימה
+  var reserveBottom = Math.max(78, dockH);
+
+  // שוליים עליונים — מקום לשם המשתמש/כותרת שמופיעים בראש המסך.
+  // נמדד לפי האלמנט הגבוה ביותר שיושב שם בפועל, אם קיים.
+  var reserveTop = 92;
+  try{
+    var cand=['#hub-onair','#hub-screen > .hub-hello','#hub-screen > h1','#hub-screen > .hub-top'];
+    for(var ci=0; ci<cand.length; ci++){
+      var e=document.querySelector(cand[ci]);
+      if(e && e.offsetParent!==null){
+        var r=e.getBoundingClientRect();
+        if(r.top < window.innerHeight*0.35 && r.bottom+20 > reserveTop) reserveTop = r.bottom+20;
+      }
+    }
+  }catch(e){}
+
+  var availH = window.innerHeight - reserveBottom - reserveTop;
+  var availW = window.innerWidth  - 20;
+
+  // כמה אפשר להגדיל לפי כל ציר — לפי התוכן האמיתי
+  var byH = availH / CONTENT_H;
+  var byW = availW / CONTENT_W;
+
+  // 1.18 = תקרה. גדול מהמקורי (1.0) אבל לא מנופח.
+  var scale = Math.min(1.18, Math.max(0.5, Math.min(byH, byW)));
+
   sc.style.setProperty('--hub-scale', scale.toFixed(3));
 }
 window.addEventListener('resize', hubFitScene);
@@ -14346,6 +14400,86 @@ async function galSaveMasterView(){
   };
 
   // הצגת הכפתור בהאב — אודי ואפרת בלבד
+  // ── מנורת חיבור — מנוע עצמאי ──
+  // המקורית יושבת בתוך בלוק gallery-logic, שאין לה שום קשר אליו.
+  // כאן היא לא תלויה בשום דבר חוץ מ-navigator.onLine.
+  // navigator.onLine לבדו לא מספיק: הוא false רק כשאין ממשק רשת בכלל.
+  // שרת שנפל או Supabase שלא מגיב — הוא עדיין true, והמנורה נראית "תקועה".
+  // לכן בודקים גם מתי בפעם האחרונה באמת דיברנו עם השרת.
+  var LAMP_STALE = 75000;   // 75 שנ' בלי תשובה → מציגים ניתוק
+  function lampProbe(){
+    // HEAD לדף עצמו (GitHub Pages, לא Supabase) — עלות אפסית.
+    if(document.hidden) return;
+    if(!navigator.onLine){ window._lampProbeFail=99; lampTick(); return; }
+    var to=setTimeout(function(){
+      window._lampProbeFail=(window._lampProbeFail||0)+1; lampTick();
+    }, 6000);
+    try{
+      fetch(location.pathname+'?_p='+Date.now(),{method:'HEAD',cache:'no-store'})
+        .then(function(r){
+          clearTimeout(to);
+          if(r && r.ok){ window._lampProbeFail=0; window._lastPollOk=Date.now(); }
+          else { window._lampProbeFail=(window._lampProbeFail||0)+1; }
+          lampTick();
+        })
+        .catch(function(){
+          clearTimeout(to);
+          window._lampProbeFail=(window._lampProbeFail||0)+1;
+          lampTick();
+        });
+    }catch(e){ clearTimeout(to); window._lampProbeFail=(window._lampProbeFail||0)+1; lampTick(); }
+  }
+  function lampTick(){
+    var el=document.getElementById('hub-onair'); if(!el) return;
+    var txt=el.querySelector('.onair-text');
+    var online=(typeof navigator!=='undefined') ? (navigator.onLine!==false) : true;
+    var last=window._lastPollOk||0;
+    var fresh=last && (Date.now()-last)<LAMP_STALE;
+    // כשל probe אחרון גובר: יש מכשירים שבהם navigator.onLine נשאר true
+    // גם כשאין רשת בפועל (במיוחד ב-PWA / WebView).
+    if(window._lampProbeFail>=2) online=false;
+    var ok = online && (fresh || !last);
+    window._lampDiag={ online:navigator.onLine, fail:(window._lampProbeFail||0),
+                       lastOkAgoSec: last?Math.round((Date.now()-last)/1000):null,
+                       fresh:fresh, shows: ok?'מחובר':'לא מחובר' };
+    if(ok){
+      el.classList.add('on');
+      if(txt && txt.textContent!=='מחובר') txt.textContent='מחובר';
+      el.title = fresh ? 'מחובר · עדכון אחרון לפני '+Math.round((Date.now()-last)/1000)+' שנ׳'
+                       : 'מחובר לרשת';
+    }else{
+      el.classList.remove('on');
+      if(txt && txt.textContent!=='לא מחובר') txt.textContent='לא מחובר';
+      el.title = !online ? 'אין חיבור לרשת' : 'הרשת פעילה אבל השרת לא מגיב';
+    }
+  }
+  if(!window._lampBound){
+    window._lampBound=true;
+    window.addEventListener('online', lampTick);
+    window.addEventListener('offline', lampTick);
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) lampTick(); });
+    setInterval(lampTick, 4000);
+    // הקשה על המנורה מציגה אבחון — עוזר לברר למה היא מראה מה שהיא מראה
+    setTimeout(function(){
+      var el=document.getElementById('hub-onair');
+      if(el && !el._diagBound){
+        el._diagBound=true;
+        el.style.pointerEvents='auto';
+        el.addEventListener('click',function(){
+          var d=window._lampDiag||{};
+          alert('אבחון מנורה:\n'
+            +'navigator.onLine: '+d.online+'\n'
+            +'כשלי probe רצופים: '+d.fail+'\n'
+            +'תקשורת אחרונה לפני: '+(d.lastOkAgoSec===null?'מעולם':d.lastOkAgoSec+' שנ׳')+'\n'
+            +'מוצג: '+d.shows);
+        });
+      }
+    }, 1500);
+    setInterval(lampProbe, 12000);   // בדיקת חיים קלה, ~0 egress
+    lampProbe(); lampTick();
+    document.addEventListener('DOMContentLoaded', lampTick);
+  }
+
   // מסדר את שורת הכפתורים התחתונה. סדר משמאל לימין:
   // מחובר · גלריה · מעטפה · מי במשמרת   (היציאה נשארת בפינה בנפרד)
   function buildDock(){
@@ -14386,6 +14520,7 @@ async function galSaveMasterView(){
   window.shiftBtnRefresh=function(){
     var b=document.getElementById('hub-shift-btn'); if(!b) return;
     buildDock();
+    lampTick();
     b.classList.toggle('allowed', allowed());
     // המונה מחושב מהזיכרון בלבד. לא שולפים כלום רק כדי להציג מספר על כפתור.
     if(allowed() && memoryIsCurrentWeek() && typeof cellData!=='undefined'){
@@ -14397,6 +14532,149 @@ async function galSaveMasterView(){
   setInterval(function(){ if(typeof window.shiftBtnRefresh==='function') window.shiftBtnRefresh(); }, 8000);
   document.addEventListener('DOMContentLoaded', function(){ window.shiftBtnRefresh(); });
   window.shiftBtnRefresh();
+})();
+</script>
+
+
+<script id="dept-fill-meter">
+/* ══════════════════════════════════════════════════════════════
+   מד מילוי על מסגרת לשוניות המחלקות — אודי בלבד.
+   משווה: מספר השיבוצים בשבוע המוצג מול סך הסידור הקודם.
+   Egress: שאילתה אחת קלה לשבוע, ממוטמנת. התאים של השבוע
+   הנוכחי כבר בזיכרון (cellData) ולא נשלפים שוב.
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+  'use strict';
+  window._fillPct = window._fillPct || {};
+  var cache = {};          // ws -> {deptId: count}
+  var lastKey = null;
+
+  function isUdi(){ return (typeof isMgr!=='undefined' && isMgr) && window._mgrType==='primary'; }
+
+  function countCells(obj, schedIdByDept){
+    var out={};
+    Object.keys(schedIdByDept).forEach(function(dId){ out[dId]=0; });
+    Object.keys(obj||{}).forEach(function(k){
+      var v=obj[k];
+      var content=(v && typeof v==='object') ? (v.content||'') : String(v||'');
+      if(!content.trim()) return;
+      var schedId=k.slice(0,k.indexOf('_'));
+      var dId=schedIdByDept[schedId];
+      if(dId===undefined) return;
+      // סופרים שמות, לא תאים — תא עם 3 שמות שווה 3
+      out[dId]+=content.split('|').filter(function(x){return x.trim();}).length;
+    });
+    return out;
+  }
+
+  // מיפוי schedule_id -> department_id עבור השבוע הנוכחי (מהזיכרון)
+  function currentMap(){
+    var m={};
+    if(typeof schedules==='undefined') return m;
+    Object.keys(schedules).forEach(function(dId){
+      var sc=schedules[dId]; if(sc && sc.id) m[sc.id]=dId;
+    });
+    return m;
+  }
+
+  function prevWeekStr(){
+    try{
+      var d=weekStart(weekOffset-1);
+      return d.toISOString().split('T')[0];
+    }catch(e){ return null; }
+  }
+
+  async function fetchPrev(ws){
+    if(cache[ws]) return cache[ws];
+    var res={};
+    try{
+      var sc=await sb.from('schedules').select('id,department_id').eq('week_start',ws);
+      var map={}, ids=[];
+      (sc.data||[]).forEach(function(r){ map[r.id]=r.department_id; ids.push(r.id); res[r.department_id]=0; });
+      if(ids.length){
+        var cl=await sb.from('schedule_cells').select('schedule_id,shift_type,content').in('schedule_id',ids);
+        (cl.data||[]).forEach(function(c){
+          if(String(c.shift_type).indexOf('note_')===0) return;
+          var content=String(c.content||'');
+          if(!content.trim()) return;
+          var dId=map[c.schedule_id]; if(dId===undefined) return;
+          res[dId]=(res[dId]||0)+content.split('|').filter(function(x){return x.trim();}).length;
+        });
+      }
+    }catch(e){ console.warn('[fill-meter] prev fetch failed:', e && e.message); return null; }
+    cache[ws]=res;
+    return res;
+  }
+
+  window.refreshFillMeters = async function(){
+    if(!isUdi()){ window._fillPct={}; return; }
+    var pws=prevWeekStr(); if(!pws) return;
+    var key=pws+'|'+(typeof weekOffset!=='undefined'?weekOffset:0);
+    var prev=await fetchPrev(pws);
+    if(!prev) return;
+    var now=countCells(typeof cellData!=='undefined'?cellData:{}, currentMap());
+    var pct={};
+    Object.keys(now).forEach(function(dId){
+      var base=prev[dId]||0;
+      if(!base) return;                       // אין סידור קודם → אין מד
+      pct[dId]=Math.round(now[dId]/base*100);
+    });
+    window._fillPct=pct;
+    lastKey=key;
+    if(typeof renderDeptTabs==='function') renderDeptTabs();
+    else if(typeof paintDeptMeters==='function') paintDeptMeters();
+  };
+
+  // ציור — חייב לרוץ אחרי שהלשוניות בדף (הרוחב תלוי באורך השם)
+  window.paintDeptMeters = function(){
+    var tabs=document.querySelectorAll('.dept-tab.meter');
+    for(var i=0;i<tabs.length;i++){
+      var el=tabs[i], svg=el.querySelector('svg'); if(!svg) continue;
+      var w=el.offsetWidth, h=el.offsetHeight; if(!w||!h) continue;
+      var p=Math.min(parseInt(el.getAttribute('data-mp'),10)||0,100);
+      var c=el.getAttribute('data-mc')||'#64748b';
+      var active=el.getAttribute('data-ma')==='1';
+      var sw=2, inset=sw/2, rx=Math.min(20,h/2-inset);
+      var W=w-sw, H=h-sw;
+      var rects=svg.querySelectorAll('rect');
+      for(var j=0;j<rects.length;j++){
+        var r=rects[j];
+        r.setAttribute('x',inset); r.setAttribute('y',inset);
+        r.setAttribute('width',W); r.setAttribute('height',H);
+        r.setAttribute('rx',rx);   r.setAttribute('ry',rx);
+      }
+      var L=2*((W-2*rx)+(H-2*rx))+2*Math.PI*rx;
+      var track=svg.querySelector('.m-track'), prog=svg.querySelector('.m-prog');
+      // היפוך צבעים במצב נבחר — הרקע כבר בצבע המחלקה
+      track.style.stroke = active ? 'rgba(255,255,255,.32)' : '#e2e8f0';
+      prog.style.stroke  = active ? '#ffffff' : c;
+      prog.style.color   = active ? '#ffffff' : c;
+      prog.setAttribute('stroke-dasharray',L);
+      prog.setAttribute('stroke-dashoffset',L*(1-p/100));
+      var t='scale(-1,1) translate('+(-w)+',0)';
+      prog.setAttribute('transform',t);
+      track.setAttribute('transform',t);
+      if(p>=100) prog.classList.add('m-done'); else prog.classList.remove('m-done');
+    }
+  };
+
+  window.addEventListener('resize', function(){
+    if(typeof paintDeptMeters==='function') paintDeptMeters();
+  });
+
+  // נטפלים ל-loadWeekData הקיימת — בלי פולינג נוסף
+  (function hook(){
+    if(typeof window.loadWeekData!=='function') return setTimeout(hook,1500);
+    if(window.loadWeekData._fmHooked) return;
+    var orig=window.loadWeekData;
+    window.loadWeekData=async function(){
+      var r=await orig.apply(this,arguments);
+      try{ await window.refreshFillMeters(); }catch(e){}
+      return r;
+    };
+    window.loadWeekData._fmHooked=true;
+    setTimeout(function(){ try{ window.refreshFillMeters(); }catch(e){} }, 2500);
+  })();
 })();
 </script>
 
