@@ -4513,9 +4513,8 @@ async function loadWeekData(){
     });
   }
   // חשיפה ל-window — משתני let אינם נגישים מבלוקי סקריפט אחרים
-  window.__cellData=cellData; window.__schedules=schedules;
-  window.__departments=departments; window.__weekOffset=weekOffset;
   updateWeekUI();
+  try{ refreshFillMeters(); }catch(e){ console.warn('[fill-meter]', e); }
   // Re-apply neon highlight if active
   if(typeof _highlightedEmp!=='undefined' && _highlightedEmp){
     setTimeout(()=>{
@@ -11614,6 +11613,122 @@ window.addEventListener('DOMContentLoaded', ()=>{
   }, 1500);
 });
 
+
+/* ══════════════════════════════════════════════════════════════
+   מד מילוי על מסגרת לשוניות המחלקות — אודי בלבד.
+   יושב בתוך הבלוק הראשי בכוונה: cellData/schedules/departments
+   מוגדרים כאן עם let, ואינם נגישים מבלוקי סקריפט אחרים.
+   ══════════════════════════════════════════════════════════════ */
+window._fillPct = window._fillPct || {};
+var _fmCache = {};
+
+function _fmIsUdi(){ return isMgr && window._mgrType==='primary'; }
+
+function _fmCount(obj, schedToDept){
+  var out={};
+  Object.keys(schedToDept).forEach(function(sid){ out[schedToDept[sid]]=0; });
+  Object.keys(obj||{}).forEach(function(k){
+    if(k.indexOf('note_')===0) return;              // הערות אינן שיבוצים
+    var v=obj[k];
+    var content=(v && typeof v==='object') ? (v.content||'') : String(v||'');
+    if(!content.trim()) return;
+    var sid=k.slice(0, k.indexOf('_'));
+    var dId=schedToDept[sid];
+    if(dId===undefined) return;
+    out[dId]+=content.split('|').filter(function(x){return x.trim();}).length;
+  });
+  return out;
+}
+
+async function _fmFetchPrev(ws){
+  if(_fmCache[ws]) return _fmCache[ws];
+  var res={};
+  try{
+    var sc=await sb.from('schedules').select('id,department_id').eq('week_start',ws);
+    var map={}, ids=[];
+    (sc.data||[]).forEach(function(r){ map[r.id]=r.department_id; ids.push(r.id); res[r.department_id]=0; });
+    if(ids.length){
+      var cl=await sb.from('schedule_cells').select('schedule_id,shift_type,content').in('schedule_id',ids);
+      (cl.data||[]).forEach(function(c){
+        if(String(c.shift_type).indexOf('note_')===0) return;
+        var content=String(c.content||''); if(!content.trim()) return;
+        var dId=map[c.schedule_id]; if(dId===undefined) return;
+        res[dId]=(res[dId]||0)+content.split('|').filter(function(x){return x.trim();}).length;
+      });
+    }
+  }catch(e){ console.warn('[fill-meter] prev fetch failed:', e && e.message); return null; }
+  _fmCache[ws]=res;
+  return res;
+}
+
+async function refreshFillMeters(){
+  if(!_fmIsUdi()){ window._fillPct={}; return; }
+  var pws;
+  try{ pws=weekStart(weekOffset-1).toISOString().split('T')[0]; }catch(e){ return; }
+
+  var s2d={};
+  Object.keys(schedules).forEach(function(dId){
+    var sc=schedules[dId]; if(sc && sc.id) s2d[sc.id]=dId;
+  });
+
+  var now=_fmCount(cellData, s2d);
+  var prev=await _fmFetchPrev(pws);
+  if(!prev) return;
+
+  var pct={};
+  Object.keys(now).forEach(function(dId){
+    var base=prev[dId]||0;
+    if(!base) return;                                // אין סידור קודם → אין מד
+    pct[dId]=Math.round(now[dId]/base*100);
+  });
+  window._fillPct=pct;
+
+  try{
+    var dbg={};
+    Object.keys(now).forEach(function(dId){
+      var nm=(departments.filter(function(x){return String(x.id)===String(dId);})[0]||{}).name||dId;
+      dbg[nm]=now[dId]+'/'+(prev[dId]||0)+(pct[dId]===undefined?' (אין קודם)':' = '+pct[dId]+'%');
+    });
+    console.log('[fill-meter] מול '+pws+':', dbg);
+  }catch(e){}
+
+  if(typeof renderDeptTabs==='function') renderDeptTabs();
+}
+
+function paintDeptMeters(){
+  var tabs=document.querySelectorAll('.dept-tab.meter');
+  for(var i=0;i<tabs.length;i++){
+    var el=tabs[i], svg=el.querySelector('svg'); if(!svg) continue;
+    var w=el.offsetWidth, h=el.offsetHeight; if(!w||!h) continue;
+    var p=Math.min(parseInt(el.getAttribute('data-mp'),10)||0,100);
+    var c=el.getAttribute('data-mc')||'#64748b';
+    var active=el.getAttribute('data-ma')==='1';
+    var swProg=3, swTrack=2.5, inset=swProg/2;
+    var rx=Math.min(20, h/2-inset), W=w-swProg, H=h-swProg;
+    var rects=svg.querySelectorAll('rect');
+    for(var j=0;j<rects.length;j++){
+      var r=rects[j];
+      r.setAttribute('x',inset); r.setAttribute('y',inset);
+      r.setAttribute('width',W); r.setAttribute('height',H);
+      r.setAttribute('rx',rx);   r.setAttribute('ry',rx);
+    }
+    var L=2*((W-2*rx)+(H-2*rx))+2*Math.PI*rx;
+    var track=svg.querySelector('.m-track'), prog=svg.querySelector('.m-prog');
+    track.style.stroke = (p>=100) ? 'transparent'
+                       : (active ? 'rgba(255,255,255,.35)' : '#cbd5e1');
+    track.setAttribute('stroke-width', swTrack);
+    prog.setAttribute('stroke-width', swProg);
+    prog.style.stroke = active ? '#ffffff' : c;
+    prog.style.color  = active ? '#ffffff' : c;
+    prog.setAttribute('stroke-dasharray', L);
+    prog.setAttribute('stroke-dashoffset', L*(1-p/100));
+    var t='scale(-1,1) translate('+(-w)+',0)';
+    prog.setAttribute('transform', t);
+    track.setAttribute('transform', t);
+    if(p>=100) prog.classList.add('m-done'); else prog.classList.remove('m-done');
+  }
+}
+window.addEventListener('resize', paintDeptMeters);
 </script>
 
 <script id="user-approval-logic">
@@ -14539,167 +14654,7 @@ async function galSaveMasterView(){
 </script>
 
 
-<script id="dept-fill-meter">
-/* ══════════════════════════════════════════════════════════════
-   מד מילוי על מסגרת לשוניות המחלקות — אודי בלבד.
-   משווה: מספר השיבוצים בשבוע המוצג מול סך הסידור הקודם.
-   Egress: שאילתה אחת קלה לשבוע, ממוטמנת. התאים של השבוע
-   הנוכחי כבר בזיכרון (cellData) ולא נשלפים שוב.
-   ══════════════════════════════════════════════════════════════ */
-(function(){
-  'use strict';
-  window._fillPct = window._fillPct || {};
-  var cache = {};          // ws -> {deptId: count}
-  var lastKey = null;
 
-  function isUdi(){ return (typeof isMgr!=='undefined' && isMgr) && window._mgrType==='primary'; }
-
-  function countCells(obj, schedIdByDept){
-    var out={};
-    Object.keys(schedIdByDept).forEach(function(dId){ out[dId]=0; });
-    Object.keys(obj||{}).forEach(function(k){
-      if(k.indexOf('note_')===0) return;      // תאי הערות אינם שיבוצים
-      var v=obj[k];
-      var content=(v && typeof v==='object') ? (v.content||'') : String(v||'');
-      if(!content.trim()) return;
-      var schedId=k.slice(0,k.indexOf('_'));
-      var dId=schedIdByDept[schedId];
-      if(dId===undefined) return;
-      // סופרים שמות, לא תאים — תא עם 3 שמות שווה 3
-      out[dId]+=content.split('|').filter(function(x){return x.trim();}).length;
-    });
-    return out;
-  }
-
-  // מיפוי schedule_id -> department_id עבור השבוע הנוכחי (מהזיכרון)
-  function currentMap(){
-    var m={};
-    var SCH=window.__schedules||(typeof schedules!=='undefined'?schedules:null);
-    if(!SCH) return m;
-    Object.keys(SCH).forEach(function(dId){
-      var sc=SCH[dId]; if(sc && sc.id) m[sc.id]=dId;
-    });
-    return m;
-  }
-
-  function prevWeekStr(){
-    try{
-      var wo=(window.__weekOffset!==undefined)?window.__weekOffset:(typeof weekOffset!=='undefined'?weekOffset:0);
-      var d=weekStart(wo-1);
-      return d.toISOString().split('T')[0];
-    }catch(e){ return null; }
-  }
-
-  async function fetchPrev(ws){
-    if(cache[ws]) return cache[ws];
-    var res={};
-    try{
-      var sc=await sb.from('schedules').select('id,department_id').eq('week_start',ws);
-      var map={}, ids=[];
-      (sc.data||[]).forEach(function(r){ map[r.id]=r.department_id; ids.push(r.id); res[r.department_id]=0; });
-      if(ids.length){
-        var cl=await sb.from('schedule_cells').select('schedule_id,shift_type,content').in('schedule_id',ids);
-        (cl.data||[]).forEach(function(c){
-          if(String(c.shift_type).indexOf('note_')===0) return;
-          var content=String(c.content||'');
-          if(!content.trim()) return;
-          var dId=map[c.schedule_id]; if(dId===undefined) return;
-          res[dId]=(res[dId]||0)+content.split('|').filter(function(x){return x.trim();}).length;
-        });
-      }
-    }catch(e){ console.warn('[fill-meter] prev fetch failed:', e && e.message); return null; }
-    cache[ws]=res;
-    return res;
-  }
-
-  window.refreshFillMeters = async function(){
-    if(!isUdi()){ window._fillPct={}; return; }
-    var pws=prevWeekStr(); if(!pws) return;
-    var key=pws+'|'+((window.__weekOffset!==undefined)?window.__weekOffset:0);
-    var prev=await fetchPrev(pws);
-    if(!prev) return;
-    var CD=window.__cellData||(typeof cellData!=='undefined'?cellData:{});
-    var now=countCells(CD, currentMap());
-    var pct={};
-    Object.keys(now).forEach(function(dId){
-      var base=prev[dId]||0;
-      if(!base) return;                       // אין סידור קודם → אין מד
-      pct[dId]=Math.round(now[dId]/base*100);
-    });
-    window._fillPct=pct;
-    lastKey=key;
-    try{
-      var dbg={};
-      Object.keys(now).forEach(function(dId){
-        var DEPS=window.__departments||(typeof departments!=='undefined'?departments:[]);
-        var nm=(DEPS.filter(function(x){return String(x.id)===String(dId);})[0]||{}).name||dId;
-        dbg[nm]=now[dId]+'/'+(prev[dId]||0)+' = '+(pct[dId]===undefined?'—':pct[dId]+'%');
-      });
-      console.log('[fill-meter] שבוע קודם '+pws+':', dbg);
-    }catch(e){}
-    if(typeof renderDeptTabs==='function') renderDeptTabs();
-    else if(typeof paintDeptMeters==='function') paintDeptMeters();
-  };
-
-  // ציור — חייב לרוץ אחרי שהלשוניות בדף (הרוחב תלוי באורך השם)
-  window.paintDeptMeters = function(){
-    var tabs=document.querySelectorAll('.dept-tab.meter');
-    for(var i=0;i<tabs.length;i++){
-      var el=tabs[i], svg=el.querySelector('svg'); if(!svg) continue;
-      var w=el.offsetWidth, h=el.offsetHeight; if(!w||!h) continue;
-      var p=Math.min(parseInt(el.getAttribute('data-mp'),10)||0,100);
-      var c=el.getAttribute('data-mc')||'#64748b';
-      var active=el.getAttribute('data-ma')==='1';
-      // המד עבה יותר מהמסלול, כדי שהאפור לא יציץ מסביבו ויעמעם את הצבע
-      var swProg=3, swTrack=2.5;
-      var inset=swProg/2, rx=Math.min(20,h/2-inset);
-      var W=w-swProg, H=h-swProg;
-      var rects=svg.querySelectorAll('rect');
-      for(var j=0;j<rects.length;j++){
-        var r=rects[j];
-        r.setAttribute('x',inset); r.setAttribute('y',inset);
-        r.setAttribute('width',W); r.setAttribute('height',H);
-        r.setAttribute('rx',rx);   r.setAttribute('ry',rx);
-      }
-      var L=2*((W-2*rx)+(H-2*rx))+2*Math.PI*rx;
-      var track=svg.querySelector('.m-track'), prog=svg.querySelector('.m-prog');
-      // היפוך צבעים במצב נבחר — הרקע כבר בצבע המחלקה
-      // ב-100% אין מה להראות כמסלול — המסגרת מלאה בצבע המחלקה
-      track.style.stroke  = (p>=100) ? 'transparent'
-                          : (active ? 'rgba(255,255,255,.35)' : '#cbd5e1');
-      track.setAttribute('stroke-width', swTrack);
-      prog.setAttribute('stroke-width', swProg);
-      prog.style.stroke  = active ? '#ffffff' : c;
-      prog.style.color   = active ? '#ffffff' : c;
-      prog.style.opacity = 1;
-      prog.setAttribute('stroke-dasharray',L);
-      prog.setAttribute('stroke-dashoffset',L*(1-p/100));
-      var t='scale(-1,1) translate('+(-w)+',0)';
-      prog.setAttribute('transform',t);
-      track.setAttribute('transform',t);
-      if(p>=100) prog.classList.add('m-done'); else prog.classList.remove('m-done');
-    }
-  };
-
-  window.addEventListener('resize', function(){
-    if(typeof paintDeptMeters==='function') paintDeptMeters();
-  });
-
-  // נטפלים ל-loadWeekData הקיימת — בלי פולינג נוסף
-  (function hook(){
-    if(typeof window.loadWeekData!=='function') return setTimeout(hook,1500);
-    if(window.loadWeekData._fmHooked) return;
-    var orig=window.loadWeekData;
-    window.loadWeekData=async function(){
-      var r=await orig.apply(this,arguments);
-      try{ await window.refreshFillMeters(); }catch(e){}
-      return r;
-    };
-    window.loadWeekData._fmHooked=true;
-    setTimeout(function(){ try{ window.refreshFillMeters(); }catch(e){} }, 2500);
-  })();
-})();
-</script>
 
 </body>
 </html>
