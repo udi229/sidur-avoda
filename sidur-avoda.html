@@ -11644,7 +11644,10 @@ function _fmCount(obj, schedToDept){
     var sid=k.slice(0, k.indexOf('_'));
     var dId=schedToDept[sid];
     if(dId===undefined) return;
-    out[dId]+=content.split('|').filter(function(x){return x.trim();}).length;
+    // סופרים משבצות מאוישות, לא שמות. תא עם 2 שמות = 1.
+    // ראש צוות שמילא את אותן משבצות אמור לראות 100%,
+    // גם אם שם שם אחד במקום שניים.
+    out[dId] += 1;
   });
   return out;
 }
@@ -11662,7 +11665,7 @@ async function _fmFetchPrev(ws){
         if(String(c.shift_type).indexOf('note_')===0) return;
         var content=String(c.content||''); if(!content.trim()) return;
         var dId=map[c.schedule_id]; if(dId===undefined) return;
-        res[dId]=(res[dId]||0)+content.split('|').filter(function(x){return x.trim();}).length;
+        res[dId]=(res[dId]||0)+1;
       });
     }
   }catch(e){ console.warn('[fill-meter] prev fetch failed:', e && e.message); return null; }
