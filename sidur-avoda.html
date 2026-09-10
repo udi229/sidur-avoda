@@ -4350,8 +4350,20 @@ async function loadAll(){
   }catch(e){ console.warn('cv_weekly_publish error:',e); }
   if(st.data&&st.data.length>0){
     shiftTypes=st.data.map(s=>({id:s.id,name:s.name,time:s.time||'',color:s.color||'#94a3b8'}));
+  } else if(st.error || st.data===null){
+    // ── הבאג שיצר משמרות כפולות ──
+    // כאן היה else אחד שטיפל בשני מצבים שונים לגמרי:
+    //   (א) באמת אין משמרות במסד  → צריך ליצור ברירות מחדל
+    //   (ב) השליפה נכשלה           → אסור ליצור כלום
+    // כשהמסד לא הגיב, q() החזירה {data:null}, הקוד הסיק "פעם ראשונה",
+    // ויצר מחדש את midday / news / arabic — בדיוק המשמרות הכפולות שנמחקו.
+    // עכשיו במצב כשל פשוט משאירים את מה שכבר בזיכרון ולא כותבים כלום.
+    console.error('[shift_types] השליפה נכשלה — לא נוצרות משמרות ברירת מחדל.',
+                  st.error?.message||st.error);
+    try{ if(typeof showToast==='function') showToast('שגיאת טעינה — נסה לרענן','error'); }catch(e){}
   } else {
-    // first time - save default shifts to DB
+    // באמת אין משמרות (מערך ריק, בלי שגיאה) — התקנה ראשונה
+    console.log('[shift_types] הטבלה ריקה — יוצר משמרות ברירת מחדל');
     await Promise.all(shiftTypes.map((s,i)=>
       sb.from('shift_types').upsert({id:s.id,name:s.name,time:s.time||'',color:s.color,sort_order:i})
     ));
