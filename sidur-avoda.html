@@ -12306,6 +12306,15 @@ function annStyle(a){
   const m=(a&&a.body||'').match(/\[\[ST:([^\]]*)\]\]/);
   return m ? m[1] : 'neon-blue';
 }
+function annEsc(t){
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                  .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function annToggleCustom(){
+  var sel=document.getElementById('ann-new-btntype');
+  var wrap=document.getElementById('ann-custom-wrap');
+  if(sel&&wrap) wrap.style.display = (sel.value==='custom') ? 'block' : 'none';
+}
 // סוג כפתור התגובה
 function annBtnType(a){
   if(a && a.btn_type) return a.btn_type;
@@ -12380,6 +12389,17 @@ function annShowNext(){
   const neonBtn=(label,col,resp)=>`<button onclick="annRespond('${resp}')" style="flex:1;padding:12px;border-radius:12px;border:2px solid ${col};background:transparent;color:${col};font-weight:800;font-size:15px;font-family:inherit;cursor:pointer;text-shadow:0 0 8px ${col};box-shadow:0 0 14px ${col}55,inset 0 0 14px ${col}22;transition:all .2s" onmouseover="this.style.background='${col}22'" onmouseout="this.style.background='transparent'">${label}</button>`;
   if(bt==='yesno'){
     btnWrap.innerHTML=neonBtn('כן','#22c55e','yes')+neonBtn('לא','#ef4444','no');
+  } else if(bt.indexOf('custom:')===0){
+    // תשובות שהמנהל כתב. נשמרות כ-custom:סבבה|לא אוכל|אולי
+    var cols=['#22c55e','#3b82f6','#f59e0b'];
+    var labels=bt.slice(7).split('|').map(function(x){return x.trim();}).filter(Boolean).slice(0,3);
+    if(!labels.length){ btnWrap.innerHTML=neonBtn('הבנתי',st.c,'ok'); }
+    else{
+      btnWrap.innerHTML=labels.map(function(lb,i){
+        // התגובה נשמרת כטקסט עצמו, כדי שתראה בדיוק מה כל אחד ענה
+        return neonBtn(annEsc(lb), cols[i]||st.c, encodeURIComponent(lb));
+      }).join('');
+    }
   } else {
     btnWrap.innerHTML=neonBtn('הבנתי',st.c,'ok');
   }
@@ -12388,6 +12408,7 @@ function annShowNext(){
 }
 // תגובת העובד (הבנתי / כן / לא)
 function annRespond(resp){
+  try{ resp=decodeURIComponent(resp); }catch(e){}
   if(annCurrent){
     if(!annIsAlways(annCurrent)){ annMarkSeen(annCurrent.id); }
     annRecordRead(annCurrent.id, resp);
@@ -12534,7 +12555,15 @@ async function annCreate(){
   if(targetType==='dept') targetValue=(document.getElementById('ann-new-target-dept')||{}).value||null;
   else if(targetType==='user') targetValue=(document.getElementById('ann-new-target-user')||{}).value||null;
   const style=(document.getElementById('ann-new-style')||{}).value||'neon-blue';
-  const btnType=(document.getElementById('ann-new-btntype')||{}).value||'ok';
+  let btnType=(document.getElementById('ann-new-btntype')||{}).value||'ok';
+  if(btnType==='custom'){
+    const cs=['ann-c1','ann-c2','ann-c3']
+      .map(function(id){ return ((document.getElementById(id)||{}).value||'').trim(); })
+      .filter(Boolean)
+      .map(function(x){ return x.replace(/[|\]]/g,''); });   // | ו-] שוברים את הקידוד
+    if(!cs.length){ annMgrStatus('כתוב לפחות תשובה אחת','err'); return; }
+    btnType='custom:'+cs.join('|');
+  }
   try{
     const row={title,body,expires_at,active:true,show_mode:mode,target_type:targetType,target_value:targetValue,style,btn_type:btnType};
     let ins = await sb.from('announcements').insert(row).select();
@@ -13736,10 +13765,22 @@ async function galSaveMasterView(){
       </div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
         <label style="font-size:13px;color:#475569;font-weight:600">כפתור:</label>
-        <select id="ann-new-btntype" style="padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px">
+        <select id="ann-new-btntype" onchange="annToggleCustom()" style="padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px">
           <option value="ok">הבנתי</option>
           <option value="yesno">כן / לא</option>
+          <option value="custom">תשובות משלי…</option>
         </select>
+      </div>
+      <div id="ann-custom-wrap" style="display:none;margin-bottom:8px;padding:9px 10px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:9px">
+        <div style="font-size:12px;color:#64748b;margin-bottom:7px">עד 3 תשובות. השאר ריק מה שלא צריך.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <input id="ann-c1" maxlength="18" placeholder="למשל: סבבה"
+            style="flex:1;min-width:96px;padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px">
+          <input id="ann-c2" maxlength="18" placeholder="למשל: לא אוכל"
+            style="flex:1;min-width:96px;padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px">
+          <input id="ann-c3" maxlength="18" placeholder="אופציונלי"
+            style="flex:1;min-width:96px;padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px">
+        </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
         <label style="font-size:13px;color:#475569;font-weight:600">למי:</label>
