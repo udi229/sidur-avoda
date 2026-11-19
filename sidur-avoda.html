@@ -392,34 +392,25 @@ window.RAIN_ENABLED    = false;   // ← true כדי להחזיר את גשם ה
     animation:annSweep 5s ease-in-out infinite; }
   @keyframes annSweep{ 0%{ left:-40%; } 45%{ left:120%; } 100%{ left:120%; } }
 
-  /* ── מנורת חיבור — עיגול קטן, אודי בלבד ──
-     הטקסט הוסר: הצבע לבדו מספיק, והמידע המלא ב-title. */
-  #hub-onair{ display:none; z-index:60; width:26px; height:26px; padding:0;
-    border-radius:50%; align-items:center; justify-content:center;
+  #hub-onair{ display:none; z-index:60; align-items:center; gap:7px; padding:8px 13px; border-radius:20px;
     -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
-    user-select:none; pointer-events:none; flex-shrink:0;
+    font-family:'Heebo',system-ui,sans-serif; user-select:none; pointer-events:none;
     transition:border-color .3s, background .3s; }
-  #hub-screen.active #hub-onair.udi{ display:flex; }
-  #hub-onair .onair-text{ display:none; }   /* "מחובר" כבר לא נחוץ */
+  #hub-screen.active #hub-onair{ display:flex; }   /* מוצגת לכל המשתמשים */
 
-  /* אין נתונים (ברירת מחדל) — אדום מהבהב */
-  #hub-onair{ background:rgba(26,4,4,0.55); border:1.5px solid #ff2a2a; }
-  #hub-onair .onair-dot{ width:11px; height:11px; border-radius:50%; background:#ff2222;
+  /* ── לא מחובר (ברירת מחדל) — אדום מהבהב ── */
+  #hub-onair{ background:rgba(26,4,4,0.6); border:1.5px solid #ff2a2a; }
+  #hub-onair .onair-dot{ width:10px; height:10px; border-radius:50%; background:#ff2222;
     box-shadow:0 0 8px #ff0000,0 0 16px #ff000088;
-    animation:onairBlink 1.1s ease-in-out infinite;
-    transition:background .3s, box-shadow .3s; }
+    animation:onairBlink 1.1s ease-in-out infinite; transition:background .3s, box-shadow .3s; }
+  #hub-onair .onair-text{ color:#ff6b6b; font-weight:900; font-size:12px; letter-spacing:.3px;
+    text-shadow:0 0 7px #ff000088; white-space:nowrap;
+    animation:onairBlink 1.1s ease-in-out infinite; transition:color .3s, text-shadow .3s; }
 
-  /* מחובר — ירוק יציב */
-  #hub-onair.on{ background:rgba(2,20,14,0.55); border-color:#00e5a0; }
-  #hub-onair.on .onair-dot{ background:#00e5a0;
-    box-shadow:0 0 8px #00e5a0,0 0 16px #00e5a066; animation:none; }
-
-  /* אין רשת במכשיר — אפור, לא מהבהב */
-  #hub-onair.nonet{ background:rgba(18,20,24,0.55); border-color:#555c66; }
-  #hub-onair.nonet .onair-dot{ background:#6b7280; box-shadow:none; animation:none; }
-
-  #hub-onair.clickable{ pointer-events:auto; cursor:pointer; }
-  #hub-onair.clickable:active{ transform:scale(.9); }
+  /* ── מחובר — ירוק יציב, בלי הבהוב ── */
+  #hub-onair.on{ background:rgba(2,20,14,0.6); border-color:#00e5a0; }
+  #hub-onair.on .onair-dot{ background:#00e5a0; box-shadow:0 0 8px #00e5a0,0 0 16px #00e5a066; animation:none; }
+  #hub-onair.on .onair-text{ color:#5cffcc; text-shadow:0 0 7px #00e5a088; animation:none; }
 
   @keyframes onairBlink{ 0%,100%{ opacity:1; } 50%{ opacity:0.28; } }
   @keyframes musicnote{0%,100%{transform:translate(-50%,-50%) scale(1) rotate(-5deg)}50%{transform:translate(-50%,-52%) scale(1.05) rotate(5deg)}}
@@ -3652,21 +3643,21 @@ function getIsraeliHoliday(day, month, year){
     '1-5-2025':'יום העצמאות',
     '22-4-2026':'יום העצמאות',
     '12-5-2027':'יום העצמאות',
-    '30-4-2028':'יום העצמאות',
+    '2-5-2028':'יום העצמאות',
     '19-4-2029':'יום העצמאות',
     '8-5-2030':'יום העצמאות',
     // יום השואה (כ"ז ניסן) + ערב
     '23-4-2025':'ערב יום השואה','24-4-2025':'יום השואה',
     '13-4-2026':'ערב יום השואה','14-4-2026':'יום השואה',
-    '4-5-2027':'ערב יום השואה','5-5-2027':'יום השואה',
+    '3-5-2027':'ערב יום השואה','4-5-2027':'יום השואה',
     '23-4-2028':'ערב יום השואה','24-4-2028':'יום השואה',
     '11-4-2029':'ערב יום השואה','12-4-2029':'יום השואה',
-    '30-4-2030':'ערב יום השואה','1-5-2030':'יום השואה',
+    '29-4-2030':'ערב יום השואה','30-4-2030':'יום השואה',
     // יום הזיכרון (ד׳ אייר) + ערב
     '29-4-2025':'ערב יום הזיכרון','30-4-2025':'יום הזיכרון',
     '20-4-2026':'ערב יום הזיכרון','21-4-2026':'יום הזיכרון',
     '10-5-2027':'ערב יום הזיכרון','11-5-2027':'יום הזיכרון',
-    '28-4-2028':'ערב יום הזיכרון','29-4-2028':'יום הזיכרון',
+    '30-4-2028':'ערב יום הזיכרון','1-5-2028':'יום הזיכרון',
     '17-4-2029':'ערב יום הזיכרון','18-4-2029':'יום הזיכרון',
     '6-5-2030':'ערב יום הזיכרון','7-5-2030':'יום הזיכרון',
     // יום ירושלים (כ"ח אייר)
@@ -4350,20 +4341,8 @@ async function loadAll(){
   }catch(e){ console.warn('cv_weekly_publish error:',e); }
   if(st.data&&st.data.length>0){
     shiftTypes=st.data.map(s=>({id:s.id,name:s.name,time:s.time||'',color:s.color||'#94a3b8'}));
-  } else if(st.error || st.data===null){
-    // ── הבאג שיצר משמרות כפולות ──
-    // כאן היה else אחד שטיפל בשני מצבים שונים לגמרי:
-    //   (א) באמת אין משמרות במסד  → צריך ליצור ברירות מחדל
-    //   (ב) השליפה נכשלה           → אסור ליצור כלום
-    // כשהמסד לא הגיב, q() החזירה {data:null}, הקוד הסיק "פעם ראשונה",
-    // ויצר מחדש את midday / news / arabic — בדיוק המשמרות הכפולות שנמחקו.
-    // עכשיו במצב כשל פשוט משאירים את מה שכבר בזיכרון ולא כותבים כלום.
-    console.error('[shift_types] השליפה נכשלה — לא נוצרות משמרות ברירת מחדל.',
-                  st.error?.message||st.error);
-    try{ if(typeof showToast==='function') showToast('שגיאת טעינה — נסה לרענן','error'); }catch(e){}
   } else {
-    // באמת אין משמרות (מערך ריק, בלי שגיאה) — התקנה ראשונה
-    console.log('[shift_types] הטבלה ריקה — יוצר משמרות ברירת מחדל');
+    // first time - save default shifts to DB
     await Promise.all(shiftTypes.map((s,i)=>
       sb.from('shift_types').upsert({id:s.id,name:s.name,time:s.time||'',color:s.color,sort_order:i})
     ));
@@ -7443,11 +7422,11 @@ function showAdminAlert(name, start, end){
 // Israeli Holidays 2026-2028
 const IL_HOLIDAYS = {
   // 2026
-  '2026-02-02':'ט\' בשבט',
+  '2026-02-02':'ט״ו בשבט',
   '2026-03-03':'פורים',
   '2026-04-01':'ערב פסח','2026-04-02':'פסח','2026-04-03':'פסח','2026-04-04':'פסח',
   '2026-04-05':'פסח','2026-04-06':'פסח','2026-04-07':'פסח','2026-04-08':'פסח',
-  '2026-04-12':'ערב יום השואה','2026-04-13':'יום השואה',
+  '2026-04-13':'ערב יום השואה','2026-04-14':'יום השואה',
   '2026-04-20':'ערב יום הזיכרון','2026-04-21':'יום הזיכרון','2026-04-22':'יום העצמאות',
   '2026-05-22':'שבועות',
   '2026-07-23':'תשעה באב',
@@ -7458,14 +7437,14 @@ const IL_HOLIDAYS = {
   '2026-12-04':'ערב חנוכה','2026-12-05':'חנוכה','2026-12-06':'חנוכה','2026-12-07':'חנוכה','2026-12-08':'חנוכה',
   '2026-12-09':'חנוכה','2026-12-10':'חנוכה','2026-12-11':'חנוכה','2026-12-12':'חנוכה',
   // 2027
-  '2027-01-22':'ט\' בשבט',
-  '2027-02-23':'פורים',
-  '2027-03-22':'ערב פסח','2027-03-23':'פסח','2027-03-24':'פסח','2027-03-25':'פסח',
-  '2027-03-26':'פסח','2027-03-27':'פסח','2027-03-28':'פסח','2027-03-29':'פסח',
-  '2027-04-26':'ערב יום השואה','2027-04-27':'יום השואה',
+  '2027-01-23':'ט״ו בשבט',
+  '2027-03-23':'פורים',
+  '2027-04-21':'ערב פסח','2027-04-22':'פסח','2027-04-23':'פסח','2027-04-24':'פסח',
+  '2027-04-25':'פסח','2027-04-26':'פסח','2027-04-27':'פסח','2027-04-28':'פסח',
+  '2027-05-03':'ערב יום השואה','2027-05-04':'יום השואה',
   '2027-05-10':'ערב יום הזיכרון','2027-05-11':'יום הזיכרון','2027-05-12':'יום העצמאות',
-  '2027-05-12':'שבועות',
-  '2027-07-13':'תשעה באב',
+  '2027-06-11':'שבועות',
+  '2027-08-12':'תשעה באב',
   '2027-10-01':'ערב ראש השנה','2027-10-02':'ראש השנה','2027-10-03':'ראש השנה',
   '2027-10-10':'ערב יום כיפור','2027-10-11':'יום כיפור',
   '2027-10-15':'ערב סוכות','2027-10-16':'סוכות','2027-10-17':'סוכות','2027-10-18':'סוכות','2027-10-19':'סוכות',
@@ -7473,12 +7452,12 @@ const IL_HOLIDAYS = {
   '2027-12-24':'ערב חנוכה','2027-12-25':'חנוכה','2027-12-26':'חנוכה','2027-12-27':'חנוכה','2027-12-28':'חנוכה',
   '2027-12-29':'חנוכה','2027-12-30':'חנוכה','2027-12-31':'חנוכה','2028-01-01':'חנוכה',
   // 2028
-  '2028-02-11':'ט\' בשבט',
+  '2028-02-12':'ט״ו בשבט',
   '2028-03-12':'פורים',
   '2028-04-11':'ערב פסח','2028-04-12':'פסח','2028-04-13':'פסח','2028-04-14':'פסח',
   '2028-04-15':'פסח','2028-04-16':'פסח','2028-04-17':'פסח','2028-04-18':'פסח',
-  '2028-04-15':'ערב יום השואה','2028-04-16':'יום השואה',
-  '2028-04-28':'ערב יום הזיכרון','2028-04-29':'יום הזיכרון','2028-04-30':'יום העצמאות',
+  '2028-04-23':'ערב יום השואה','2028-04-24':'יום השואה',
+  '2028-04-30':'ערב יום הזיכרון','2028-05-01':'יום הזיכרון','2028-05-02':'יום העצמאות',
   '2028-05-31':'שבועות',
   '2028-08-01':'תשעה באב',
   '2028-09-20':'ערב ראש השנה','2028-09-21':'ראש השנה','2028-09-22':'ראש השנה',
@@ -11656,10 +11635,7 @@ function _fmCount(obj, schedToDept){
     var sid=k.slice(0, k.indexOf('_'));
     var dId=schedToDept[sid];
     if(dId===undefined) return;
-    // סופרים משבצות מאוישות, לא שמות. תא עם 2 שמות = 1.
-    // ראש צוות שמילא את אותן משבצות אמור לראות 100%,
-    // גם אם שם שם אחד במקום שניים.
-    out[dId] += 1;
+    out[dId]+=content.split('|').filter(function(x){return x.trim();}).length;
   });
   return out;
 }
@@ -11677,7 +11653,7 @@ async function _fmFetchPrev(ws){
         if(String(c.shift_type).indexOf('note_')===0) return;
         var content=String(c.content||''); if(!content.trim()) return;
         var dId=map[c.schedule_id]; if(dId===undefined) return;
-        res[dId]=(res[dId]||0)+1;
+        res[dId]=(res[dId]||0)+content.split('|').filter(function(x){return x.trim();}).length;
       });
     }
   }catch(e){ console.warn('[fill-meter] prev fetch failed:', e && e.message); return null; }
@@ -12306,15 +12282,6 @@ function annStyle(a){
   const m=(a&&a.body||'').match(/\[\[ST:([^\]]*)\]\]/);
   return m ? m[1] : 'neon-blue';
 }
-function annEsc(t){
-  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;')
-                  .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-function annToggleCustom(){
-  var sel=document.getElementById('ann-new-btntype');
-  var wrap=document.getElementById('ann-custom-wrap');
-  if(sel&&wrap) wrap.style.display = (sel.value==='custom') ? 'block' : 'none';
-}
 // סוג כפתור התגובה
 function annBtnType(a){
   if(a && a.btn_type) return a.btn_type;
@@ -12389,17 +12356,6 @@ function annShowNext(){
   const neonBtn=(label,col,resp)=>`<button onclick="annRespond('${resp}')" style="flex:1;padding:12px;border-radius:12px;border:2px solid ${col};background:transparent;color:${col};font-weight:800;font-size:15px;font-family:inherit;cursor:pointer;text-shadow:0 0 8px ${col};box-shadow:0 0 14px ${col}55,inset 0 0 14px ${col}22;transition:all .2s" onmouseover="this.style.background='${col}22'" onmouseout="this.style.background='transparent'">${label}</button>`;
   if(bt==='yesno'){
     btnWrap.innerHTML=neonBtn('כן','#22c55e','yes')+neonBtn('לא','#ef4444','no');
-  } else if(bt.indexOf('custom:')===0){
-    // תשובות שהמנהל כתב. נשמרות כ-custom:סבבה|לא אוכל|אולי
-    var cols=['#22c55e','#3b82f6','#f59e0b'];
-    var labels=bt.slice(7).split('|').map(function(x){return x.trim();}).filter(Boolean).slice(0,3);
-    if(!labels.length){ btnWrap.innerHTML=neonBtn('הבנתי',st.c,'ok'); }
-    else{
-      btnWrap.innerHTML=labels.map(function(lb,i){
-        // התגובה נשמרת כטקסט עצמו, כדי שתראה בדיוק מה כל אחד ענה
-        return neonBtn(annEsc(lb), cols[i]||st.c, encodeURIComponent(lb));
-      }).join('');
-    }
   } else {
     btnWrap.innerHTML=neonBtn('הבנתי',st.c,'ok');
   }
@@ -12408,7 +12364,6 @@ function annShowNext(){
 }
 // תגובת העובד (הבנתי / כן / לא)
 function annRespond(resp){
-  try{ resp=decodeURIComponent(resp); }catch(e){}
   if(annCurrent){
     if(!annIsAlways(annCurrent)){ annMarkSeen(annCurrent.id); }
     annRecordRead(annCurrent.id, resp);
@@ -12555,15 +12510,7 @@ async function annCreate(){
   if(targetType==='dept') targetValue=(document.getElementById('ann-new-target-dept')||{}).value||null;
   else if(targetType==='user') targetValue=(document.getElementById('ann-new-target-user')||{}).value||null;
   const style=(document.getElementById('ann-new-style')||{}).value||'neon-blue';
-  let btnType=(document.getElementById('ann-new-btntype')||{}).value||'ok';
-  if(btnType==='custom'){
-    const cs=['ann-c1','ann-c2','ann-c3']
-      .map(function(id){ return ((document.getElementById(id)||{}).value||'').trim(); })
-      .filter(Boolean)
-      .map(function(x){ return x.replace(/[|\]]/g,''); });   // | ו-] שוברים את הקידוד
-    if(!cs.length){ annMgrStatus('כתוב לפחות תשובה אחת','err'); return; }
-    btnType='custom:'+cs.join('|');
-  }
+  const btnType=(document.getElementById('ann-new-btntype')||{}).value||'ok';
   try{
     const row={title,body,expires_at,active:true,show_mode:mode,target_type:targetType,target_value:targetValue,style,btn_type:btnType};
     let ins = await sb.from('announcements').insert(row).select();
@@ -13765,22 +13712,10 @@ async function galSaveMasterView(){
       </div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
         <label style="font-size:13px;color:#475569;font-weight:600">כפתור:</label>
-        <select id="ann-new-btntype" onchange="annToggleCustom()" style="padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px">
+        <select id="ann-new-btntype" style="padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px">
           <option value="ok">הבנתי</option>
           <option value="yesno">כן / לא</option>
-          <option value="custom">תשובות משלי…</option>
         </select>
-      </div>
-      <div id="ann-custom-wrap" style="display:none;margin-bottom:8px;padding:9px 10px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:9px">
-        <div style="font-size:12px;color:#64748b;margin-bottom:7px">עד 3 תשובות. השאר ריק מה שלא צריך.</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <input id="ann-c1" maxlength="18" placeholder="למשל: סבבה"
-            style="flex:1;min-width:96px;padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px">
-          <input id="ann-c2" maxlength="18" placeholder="למשל: לא אוכל"
-            style="flex:1;min-width:96px;padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px">
-          <input id="ann-c3" maxlength="18" placeholder="אופציונלי"
-            style="flex:1;min-width:96px;padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px">
-        </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
         <label style="font-size:13px;color:#475569;font-weight:600">למי:</label>
@@ -13830,8 +13765,6 @@ async function galSaveMasterView(){
     direction:ltr; pointer-events:none; }
   /* "מי במשמרת" נצמד לימין, ליד היציאה. השאר מתחיל משמאל. */
   #hub-dock #hub-shift-btn.allowed{ margin-left:auto !important; }
-  /* המנורה ראשונה משמאל בשורה (direction:ltr) */
-  #hub-dock #hub-onair{ order:-1; }
   #hub-screen.active #hub-dock{ display:flex; }
   #hub-dock > *{ pointer-events:auto; position:static !important;
     transform:none !important; margin:0 !important; flex-shrink:0; inset:auto !important; }
@@ -14588,100 +14521,80 @@ async function galSaveMasterView(){
   // ── מנורת חיבור — מנוע עצמאי ──
   // המקורית יושבת בתוך בלוק gallery-logic, שאין לה שום קשר אליו.
   // כאן היא לא תלויה בשום דבר חוץ מ-navigator.onLine.
-  // ── בדיקת חיבור אמיתית מול Supabase ──
-  // קודם נבדק רק navigator.onLine ו-HEAD ל-GitHub Pages, כלומר "יש לי אינטרנט".
-  // זה היה ירוק גם כשהמסד היה Unhealthy והאתר לא קיבל נתונים — חסר תועלת
-  // בדיוק ברגע שצריך אותו. עכשיו נשלחת שאילתה זעירה למסד עצמו.
-  var LAMP_EVERY   = 45000;   // תדירות בדיקה
-  var LAMP_TIMEOUT = 8000;    // מעבר לזה נחשב ככשל
-  var RESTART_URL  = 'https://supabase.com/dashboard/project/efkcnuzbmwnslhgvpxws/settings/general';
-
-  function lampIsUdi(){
-    return (typeof isMgr!=='undefined' && isMgr) && window._mgrType==='primary';
-  }
-
+  // navigator.onLine לבדו לא מספיק: הוא false רק כשאין ממשק רשת בכלל.
+  // שרת שנפל או Supabase שלא מגיב — הוא עדיין true, והמנורה נראית "תקועה".
+  // לכן בודקים גם מתי בפעם האחרונה באמת דיברנו עם השרת.
+  var LAMP_STALE = 75000;   // 75 שנ' בלי תשובה → מציגים ניתוק
   function lampProbe(){
-    if(!lampIsUdi()) return;          // אף שאילתה למי שלא רואה את המנורה
+    // HEAD לדף עצמו (GitHub Pages, לא Supabase) — עלות אפסית.
     if(document.hidden) return;
-    if(!navigator.onLine){ lampTick(); return; }
-    if(typeof sb==='undefined' || !sb){ return; }
-
-    var done=false;
+    if(!navigator.onLine){ window._lampProbeFail=99; lampTick(); return; }
     var to=setTimeout(function(){
-      if(done) return; done=true;
-      window._lampFail=(window._lampFail||0)+1;
-      lampTick();
-    }, LAMP_TIMEOUT);
-
+      window._lampProbeFail=(window._lampProbeFail||0)+1; lampTick();
+    }, 6000);
     try{
-      // השאילתה הקטנה ביותר האפשרית: עמודה אחת, שורה אחת.
-      // ~40 בתים לבדיקה, פחות מ-3MB בחודש.
-      sb.from('departments').select('id').limit(1)
+      fetch(location.pathname+'?_p='+Date.now(),{method:'HEAD',cache:'no-store'})
         .then(function(r){
-          if(done) return; done=true; clearTimeout(to);
-          if(r && !r.error){ window._lampFail=0; window._lampOkAt=Date.now(); }
-          else { window._lampFail=(window._lampFail||0)+1; }
+          clearTimeout(to);
+          if(r && r.ok){ window._lampProbeFail=0; window._lastPollOk=Date.now(); }
+          else { window._lampProbeFail=(window._lampProbeFail||0)+1; }
           lampTick();
         })
         .catch(function(){
-          if(done) return; done=true; clearTimeout(to);
-          window._lampFail=(window._lampFail||0)+1;
+          clearTimeout(to);
+          window._lampProbeFail=(window._lampProbeFail||0)+1;
           lampTick();
         });
-    }catch(e){
-      if(!done){ done=true; clearTimeout(to); window._lampFail=(window._lampFail||0)+1; lampTick(); }
-    }
+    }catch(e){ clearTimeout(to); window._lampProbeFail=(window._lampProbeFail||0)+1; lampTick(); }
   }
-
   function lampTick(){
     var el=document.getElementById('hub-onair'); if(!el) return;
     var txt=el.querySelector('.onair-text');
-    var udi=lampIsUdi();
-
-    // לא אודי — המנורה לא קיימת עבורו.
-    // לעובד "ירוק" היה אומר רק "יש לי אינטרנט", וזה מטעה כשהמסד למטה.
-    el.classList.toggle('udi', udi);
-    if(!udi){ el.classList.remove('on','nonet','clickable'); return; }
-
-    el.classList.add('clickable');
-    if(!el._restartBound){
-      el._restartBound=true;
-      el.addEventListener('click', function(){
-        window.open(RESTART_URL,'_blank','noopener');
-      });
-    }
-
-    var noNet = (typeof navigator!=='undefined') ? (navigator.onLine===false) : false;
-    // שני כשלונות רצופים לפני שמכריזים תקלה — מונע אזעקות שווא מגמגום רשת
-    var bad   = (window._lampFail||0) >= 2;
-
-    el.classList.remove('on','nonet');
-
-    if(noNet){
-      el.classList.add('nonet');
-      if(txt) txt.textContent='אין רשת';
-      el.title='אין חיבור אינטרנט במכשיר הזה';
-    } else if(bad){
-      if(txt) txt.textContent='אין נתונים';
-      el.title = 'המסד לא מגיב — הקש לפתיחת מסך ההפעלה מחדש';
-    } else {
+    var online=(typeof navigator!=='undefined') ? (navigator.onLine!==false) : true;
+    var last=window._lastPollOk||0;
+    var fresh=last && (Date.now()-last)<LAMP_STALE;
+    // כשל probe אחרון גובר: יש מכשירים שבהם navigator.onLine נשאר true
+    // גם כשאין רשת בפועל (במיוחד ב-PWA / WebView).
+    if(window._lampProbeFail>=2) online=false;
+    var ok = online && (fresh || !last);
+    window._lampDiag={ online:navigator.onLine, fail:(window._lampProbeFail||0),
+                       lastOkAgoSec: last?Math.round((Date.now()-last)/1000):null,
+                       fresh:fresh, shows: ok?'מחובר':'לא מחובר' };
+    if(ok){
       el.classList.add('on');
-      if(txt) txt.textContent='מחובר';
-      el.title='המערכת מגיבה';
+      if(txt && txt.textContent!=='מחובר') txt.textContent='מחובר';
+      el.title = fresh ? 'מחובר · עדכון אחרון לפני '+Math.round((Date.now()-last)/1000)+' שנ׳'
+                       : 'מחובר לרשת';
+    }else{
+      el.classList.remove('on');
+      if(txt && txt.textContent!=='לא מחובר') txt.textContent='לא מחובר';
+      el.title = !online ? 'אין חיבור לרשת' : 'הרשת פעילה אבל השרת לא מגיב';
     }
   }
-
   if(!window._lampBound){
     window._lampBound=true;
-    window.addEventListener('online',  function(){ window._lampFail=0; lampProbe(); });
+    window.addEventListener('online', lampTick);
     window.addEventListener('offline', lampTick);
-    document.addEventListener('visibilitychange', function(){
-      if(!document.hidden){ lampTick(); lampProbe(); }
-    });
-    setInterval(lampTick,  5000);
-    setInterval(lampProbe, LAMP_EVERY);
-    setTimeout(lampProbe, 2500);   // בדיקה ראשונה אחרי שה-sb מוכן
-    lampTick();
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) lampTick(); });
+    setInterval(lampTick, 4000);
+    // הקשה על המנורה מציגה אבחון — עוזר לברר למה היא מראה מה שהיא מראה
+    setTimeout(function(){
+      var el=document.getElementById('hub-onair');
+      if(el && !el._diagBound){
+        el._diagBound=true;
+        el.style.pointerEvents='auto';
+        el.addEventListener('click',function(){
+          var d=window._lampDiag||{};
+          alert('אבחון מנורה:\n'
+            +'navigator.onLine: '+d.online+'\n'
+            +'כשלי probe רצופים: '+d.fail+'\n'
+            +'תקשורת אחרונה לפני: '+(d.lastOkAgoSec===null?'מעולם':d.lastOkAgoSec+' שנ׳')+'\n'
+            +'מוצג: '+d.shows);
+        });
+      }
+    }, 1500);
+    setInterval(lampProbe, 12000);   // בדיקת חיים קלה, ~0 egress
+    lampProbe(); lampTick();
     document.addEventListener('DOMContentLoaded', lampTick);
   }
 
